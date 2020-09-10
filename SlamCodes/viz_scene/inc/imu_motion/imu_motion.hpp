@@ -1,11 +1,21 @@
 #pragma once
 #include <iostream>
+#include <fstream>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "utilities/kinematic.hpp"
 #include "imu_motion/motion_para.hpp"
 
 struct ImuMotionState {
+  ImuMotionState() {
+    timestamp_ = 0;
+    pos_.setZero();
+    vel_.setZero();
+    acc_.setZero();
+    gyr_.setZero();
+    acc_bias_.setZero();
+    gyr_bias_.setZero();
+  }
   double timestamp_;
   Eigen::Vector3d pos_;
   Eigen::Quaterniond qwi_;
@@ -23,7 +33,7 @@ class ImuMotion {
     const MotionParam* para_;
   public:
     ImuMotion(const MotionParam* motionParam):para_(motionParam){};
-    ~ImuMotion();
+    ~ImuMotion(){};
     ImuMotionState simImuMotion(double t);
     void addImuNoise(ImuMotionState& data);
     void testImuMotionData();

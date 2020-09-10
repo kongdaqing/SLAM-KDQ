@@ -12,21 +12,38 @@ class MotionParam {
       imageFreq_ = config["imageFreq"];
       start_t_ = config["simStart"];
       end_t_ = config["simEnd"];
-      gyr_noise_sigma_ = config["gyrNoise"];
-      acc_noise_sigma_ = config["accNoise"];
-      gyr_bias_sigma_ = config["gyrBiasNoise"];
-      acc_bias_sigma_ = config["accBiasNoise"];
-      pixel_noise_ = config["pixelNoise"];
+      gyr_noise_sigma_ = config["gyr_noise_sigma"];
+      acc_noise_sigma_ = config["acc_noise_sigma"];
+      gyr_bias_sigma_ = config["gyr_bias_sigma"];
+      acc_bias_sigma_ = config["acc_bias_sigma"];
+      pixel_noise_ = config["pixel_noise"];
       cv::Mat Tbc,tbc;
       Eigen::Matrix4d Tbc_tmp;
       config["Tbc"] >> Tbc;
       cv::cv2eigen(Tbc,Tbc_tmp);
       Rbc_ = Tbc_tmp.block<3,3>(0,0);
-      tbc_ = Tbc_tmp.block<3,1>(0,3);     
+      tbc_ = Tbc_tmp.block<3,1>(0,3);
+      cv::Mat ModelPara;
+      config["SimModel"] >> ModelPara;
+      Eigen::Matrix<double,3,6> SimModel;
+      std::cout << "cv2eigen begin!" << std::endl;
+      cv::cv2eigen(ModelPara,SimModel);
+      std::cout << "cv2eigen ok!" << std::endl;
+      for (size_t i = 0; i < 2; i++)
+      {
+        Skew_[i] = SimModel.col(3*i);
+        Phase_[i] = SimModel.col(3*i + 1);
+        Bias_[i] = SimModel.col(3*i + 2);
+      }
+      
+      std::cout << "input ok!" << std::endl;
       std::cout << "imuFreq = " << imuFreq_ << std::endl;
       std::cout << "imageFreq = " << imageFreq_ << std::endl;
       std::cout << "Rbc = \n" << Rbc_ << std::endl;
       std::cout << "tbc = " << tbc_.transpose() << std::endl; 
+      std::cout << "Skew = " << Skew_[1].transpose() << std::endl;
+      std::cout << "Phase = " << Phase_[1].transpose() << std::endl;
+      std::cout << "Bias = " << Bias_[1].transpose() << std::endl;
     };
     ~MotionParam(){};
     int imuFreq_,imageFreq_;
@@ -37,4 +54,8 @@ class MotionParam {
 
     Eigen::Matrix3d Rbc_;
     Eigen::Vector3d tbc_;
+    Eigen::Vector3d Skew_[2];
+    Eigen::Vector3d Phase_[2];
+    Eigen::Vector3d Bias_[2];
+
 };
