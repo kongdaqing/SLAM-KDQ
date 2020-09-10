@@ -12,6 +12,7 @@ namespace viz_scene {
   
   VizScene::~VizScene() {
     sceneCloud_.clear();
+    sceneCamera_.clear();
     delete sceneWindowPtr_;
   }
 
@@ -20,7 +21,7 @@ namespace viz_scene {
       mCloud_.lock();
       sceneWindowPtr_->spinOnce(1,false);
       mCloud_.unlock();
-      usleep(100);
+      usleep(10);
     }
   }
   
@@ -34,7 +35,7 @@ namespace viz_scene {
     }
   }
 
-  bool VizScene::createRandomPlanePoints(string name,const Vec3f& center_vec,const Vec3f& normal_vec,int nums,int width,int height) {
+  bool VizScene::createRandomPlanePoints(string name,const Vec3f& center_vec,const Vec3f& normal_vec,int nums,float width,float height,float thick) {
     if(sceneCloud_.count(name)) {
       return false;
     }
@@ -43,16 +44,26 @@ namespace viz_scene {
     mt19937 gen(rd());
     normal_distribution<float> width_dis(center_vec[0],width);//设置均值和标准差
     normal_distribution<float> height_dis(center_vec[1],height);
+    normal_distribution<float> thick_dis;    
+    if(thick > 0) {
+      normal_distribution<float>::param_type para(center_vec[2],thick);
+      thick_dis.param(para);
+    }
+    
     Mat cloudPoints(1,nums,CV_32FC3);
     Point3f* point = cloudPoints.ptr<Point3f>(); 
     for(int i = 0;i < nums;i++) {
       point[i].x = width_dis(gen);
       point[i].y = height_dis(gen);
-      if(normal_vec[2] != 0) {
-        point[i].z = -(normal_vec[0]/normal_vec[2])*(point[i].x - center_vec[0]) -
-                    (normal_vec[1]/normal_vec[2])*(point[i].y - center_vec[1]) + center_vec[2]; 
+      if(thick <= 0) {
+        if(normal_vec[2] != 0) {
+          point[i].z = -(normal_vec[0]/normal_vec[2])*(point[i].x - center_vec[0]) -
+                      (normal_vec[1]/normal_vec[2])*(point[i].y - center_vec[1]) + center_vec[2]; 
+        } else {
+          point[i].z = center_vec[2];
+        }
       } else {
-        point[i].z = center_vec[2];
+        point[i].z = thick_dis(gen);
       }
     }
     ScenePointCloud sceneCloudObject(cloudPoints,viz::Color::green());
@@ -61,6 +72,32 @@ namespace viz_scene {
     sceneWindowPtr_->showWidget(name,widgetCloud);
     return true;
   }
+
+  bool VizScene::createCameraObject(string cameraName,float coorScalar,Vec2f frustumScalar,Vec3f pos,Vec3f focalPointPos,Vec3f y_direction) {
+    if(sceneCamera_.count(cameraName)) {
+      return false;
+    }
+    CameraObject camera(cameraName,coorScalar,frustumScalar,pos,focalPointPos,y_direction,30);
+    sceneCamera_[cameraName] = camera;
+    sceneWindowPtr_->showWidget(sceneCamera_[cameraName].cCoorScalarName_,
+                    sceneCamera_[cameraName].cameraCoordinateScalar_,
+                    sceneCamera_[cameraName].cameraPose_);
+    sceneWindowPtr_->showWidget(sceneCamera_[cameraName].cFrusName_,
+                    sceneCamera_[cameraName].cameraFrustum_,
+                    sceneCamera_[cameraName].cameraPose_);
+    return true;
+  }
+
+  bool VizScene::updateCameraPose(const string cameraName,const Affine3d& cameraPose) {
+    lock_guard<mutex> lockWCloud(mCloud_);
+    if(!sceneCamera_.count(cameraName)) {
+      return false;
+    }
+    sceneCamera_[cameraName].updatePose(cameraPose);
+    viz::WTrajectory cameraPath(sceneCamera_[cameraName].poseVec_);
+    sceneWindowPtr_->showWidget(sceneCamera_[cameraName].cPathName_,cameraPath);
+  }
+
 
   void VizScene::testIncreasePoints(string name) {
     lock_guard<mutex> lockWCloud(mCloud_);
