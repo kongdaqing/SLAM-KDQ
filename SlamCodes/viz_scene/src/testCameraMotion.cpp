@@ -18,7 +18,7 @@ int main(int argc,char** argv){
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"test.csv",true);
   while(1) {
     //vizScene.testIncreasePoints("test plane");
-    if(dt < para->end_t_) {
+    if(t  < para->end_t_) {
       ImuMotionState imuState = imuModel.simImuMotion(t);
       VioDatasInterface::recordImuMotionState(imuState,"test.csv",false);
       t += dt; 
@@ -30,6 +30,12 @@ int main(int argc,char** argv){
       Vec3d twc_cv(twc.x(),twc.y(),twc.z());
       Affine3d Twc_cv(Rwc_cv,twc_cv);
       vizScene.updateCameraPose("test camera",Twc_cv);
+    } else {
+      std::vector<ImuMotionState> imuData;
+      VioDatasInterface::readImuMotionState(imuData,"test.csv");
+      std::cout << "imu data size = " << imuData.size() << std::endl;
+      (imuData.end()-1)->printData();
+      break;
     }
     usleep(100);
   }
