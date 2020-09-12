@@ -11,34 +11,35 @@ public:
   ~VioDatasInterface();
 
   static void recordImuMotionState(const ImuMotionState& data,const std::string fileName,bool title) {
-    std::fstream file(fileName,std::ios::app);
     if(title) {
+      std::fstream file(fileName,std::ios::out);
       file << "t,px,py,pz,qw,qx,qy,qz,vx,vy,vz,ax,ay,az,wx,wy,wz,bax,bay,baz,bwx,bwy,bwz\n";
       return;
     }
-    file << data.timestamp_ << ","
-         << data.pos_.x() << "," 
-         << data.pos_.y() << "," 
-         << data.pos_.z() << "," 
-         << data.qwi_.w() << ","
-         << data.qwi_.x() << ","
-         << data.qwi_.y() << ","
-         << data.qwi_.z() << ","
-         << data.vel_.x() << ","
-         << data.vel_.y() << ","
-         << data.vel_.z() << ","
-         << data.acc_.x() << ","
-         << data.acc_.y() << ","
-         << data.acc_.z() << ","
-         << data.gyr_.x() << ","
-         << data.gyr_.y() << ","
-         << data.gyr_.z() << ","
-         << data.acc_bias_.x() << ","
-         << data.acc_bias_.y() << ","
-         << data.acc_bias_.z() << ","
-         << data.gyr_bias_.x() << ","
-         << data.gyr_bias_.y() << ","
-         << data.gyr_bias_.z() << "/n";
+    std::fstream file(fileName,std::ios::app);
+    file << data.timestamp_ << " "
+         << data.pos_.x() << " " 
+         << data.pos_.y() << " " 
+         << data.pos_.z() << " " 
+         << data.qwi_.w() << " "
+         << data.qwi_.x() << " "
+         << data.qwi_.y() << " "
+         << data.qwi_.z() << " "
+         << data.vel_.x() << " "
+         << data.vel_.y() << " "
+         << data.vel_.z() << " "
+         << data.acc_.x() << " "
+         << data.acc_.y() << " "
+         << data.acc_.z() << " "
+         << data.gyr_.x() << " "
+         << data.gyr_.y() << " "
+         << data.gyr_.z() << " "
+         << data.acc_bias_.x() << " "
+         << data.acc_bias_.y() << " "
+         << data.acc_bias_.z() << " "
+         << data.gyr_bias_.x() << " "
+         << data.gyr_bias_.y() << " "
+         << data.gyr_bias_.z() << "\n";
   }
   static void readImuMotionState(std::vector<ImuMotionState>& dataVec,const std::string fileName) {
     std::fstream file(fileName,std::ios::in);
@@ -70,9 +71,12 @@ public:
         file >> data.acc_bias_[2];  
         file >> data.gyr_bias_[0]; 
         file >> data.gyr_bias_[1]; 
-        file >> data.gyr_bias_[2];  
+        file >> data.gyr_bias_[2];
         dataVec.push_back(data);
       }
+      dataVec.erase(dataVec.end()-1);
+    } else {
+      std::cout << fileName << " can't be open" << std::endl;
     }
   }
 };
