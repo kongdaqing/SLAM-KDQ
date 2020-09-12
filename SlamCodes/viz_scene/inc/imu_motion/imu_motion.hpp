@@ -17,6 +17,16 @@ struct ImuMotionState {
     acc_bias_.setZero();
     gyr_bias_.setZero();
   }
+  void printData() {
+    std::cout << timestamp_ << ","
+              << pos_.transpose() << ","
+              << qwi_.w() << " " << qwi_.x() << " " << qwi_.y() << " " << qwi_.z() << ","
+              << vel_.transpose() << ","
+              << acc_.transpose() << ","
+              << gyr_.transpose() << ","
+              << acc_bias_.transpose() << ","
+              << gyr_bias_.transpose() << std::endl;
+  }
   double timestamp_;
   Eigen::Vector3d pos_;
   Eigen::Quaterniond qwi_;
