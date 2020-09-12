@@ -10,6 +10,8 @@ class MotionParam {
       cv::FileStorage config(configFile,cv::FileStorage::READ);
       imuFreq_ = config["imuFreq"];
       imageFreq_ = config["imageFreq"];
+      imuInterval_ = 1.0 / (double) imuFreq_;
+      imageInterval_ = 1.0 / (double) imageFreq_;
       start_t_ = config["simStart"];
       end_t_ = config["simEnd"];
       gyr_noise_sigma_ = config["gyr_noise_sigma"];
@@ -35,7 +37,7 @@ class MotionParam {
         Phase_[i] = SimModel.col(3*i + 1);
         Bias_[i] = SimModel.col(3*i + 2);
       }
-      
+
       std::cout << "input ok!" << std::endl;
       std::cout << "imuFreq = " << imuFreq_ << std::endl;
       std::cout << "imageFreq = " << imageFreq_ << std::endl;
@@ -51,7 +53,8 @@ class MotionParam {
     double gyr_noise_sigma_,acc_noise_sigma_;
     double gyr_bias_sigma_,acc_bias_sigma_;
     double pixel_noise_;
-
+    double imuInterval_;
+    double imageInterval_;
     Eigen::Matrix3d Rbc_;
     Eigen::Vector3d tbc_;
     Eigen::Vector3d Skew_[2];

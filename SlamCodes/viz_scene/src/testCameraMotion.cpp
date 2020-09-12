@@ -1,5 +1,6 @@
 #include "viz_scene/viz_scene.hpp"
 #include "imu_motion/imu_motion.hpp"
+#include "utilities/access_file.hpp"
 using namespace viz_scene;
 int main(int argc,char** argv){
   if(argc < 2) {
@@ -14,10 +15,12 @@ int main(int argc,char** argv){
   vizScene.createCameraObject("test camera",0.3,Vec2f(0.3,0.4),Vec3f(0,0,0.2),Vec3f(0,0,0.1),Vec3f(0,1.0,0));
   double t = para->start_t_;
   double dt = 1.0 / (double)(para->imuFreq_);
+  VioDatasInterface::recordImuMotionState(ImuMotionState(),"test.csv",true);
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     if(dt < para->end_t_) {
       ImuMotionState imuState = imuModel.simImuMotion(t);
+      VioDatasInterface::recordImuMotionState(imuState,"test.csv",false);
       t += dt; 
       Eigen::Matrix3d Rwb(imuState.qwi_);
       Eigen::Matrix3d Rwc = Rwb * para->Rbc_;

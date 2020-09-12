@@ -1,6 +1,7 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <random>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include "utilities/kinematic.hpp"
@@ -31,10 +32,14 @@ class ImuMotion {
   private:
     ImuMotionState init_state_;
     const MotionParam* para_;
+    Eigen::Vector3d gyr_bias_,acc_bias_;
   public:
-    ImuMotion(const MotionParam* motionParam):para_(motionParam){};
+    ImuMotion(const MotionParam* motionParam):para_(motionParam){
+      gyr_bias_.setZero();
+      acc_bias_.setZero();
+    };
     ~ImuMotion(){};
     ImuMotionState simImuMotion(double t);
-    void addImuNoise(ImuMotionState& data);
+    ImuMotionState addImuNoise(const ImuMotionState& data);
     void testImuMotionData();
 };

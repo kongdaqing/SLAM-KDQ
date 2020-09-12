@@ -10,8 +10,9 @@ include_directories(inc ${OpenCV_INCLUDE_DIRS})
 add_library(libvizscene STATIC src/viz_scene/viz_scene.cpp
             src/imu_motion/imu_motion.cpp)
 target_link_libraries(libvizscene ${OpenCV_LIBS} -lpthread -lm)
-add_executable(test src/main.cpp)
-target_link_libraries(test libvizscene)
+
+add_executable(testCameraMotion src/testCameraMotion.cpp)
+target_link_libraries(testCameraMotion libvizscene)
 
 
 
