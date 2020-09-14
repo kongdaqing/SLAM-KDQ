@@ -1,4 +1,5 @@
 #include "imu_motion/imu_motion.hpp"
+#include "utilities/access_file.hpp"
 
 ImuMotionState ImuMotion::addImuNoise(const ImuMotionState& data) {
   std::random_device rd;
@@ -34,8 +35,8 @@ ImuMotionState ImuMotion::simImuMotion(double t) {
   {
     //Pos Model = k * sin(a*t) + b
     stateNow.pos_[i] = para_->Skew_[0][i] * sin(para_->Phase_[0][i] * t) + para_->Bias_[0][i];
-    stateNow.vel_[i] = para_->Skew_[0][i] * cos(para_->Phase_[0][i] * t);
-    acc[i] = -para_->Skew_[0][i] * sin(para_->Phase_[0][i] * t);
+    stateNow.vel_[i] = para_->Skew_[0][i] * para_->Phase_[0][i] * cos(para_->Phase_[0][i] * t);
+    acc[i] = -para_->Skew_[0][i] * para_->Phase_[0][i] * para_->Phase_[0][i] * sin(para_->Phase_[0][i] * t);
   }
   //step 2 : calculate euler angle and rate 
   Eigen::Vector3d eulerAngleDeg,eulerRateDeg;
@@ -43,7 +44,7 @@ ImuMotionState ImuMotion::simImuMotion(double t) {
   {
     //Att Model = k * sin(a*t) + b
     eulerAngleDeg[i] = para_->Skew_[1][i] * sin(para_->Phase_[1][i] * t) + para_->Bias_[1][i];
-    eulerRateDeg[i] = para_->Skew_[1][i] * cos(para_->Phase_[1][i] * t);
+    eulerRateDeg[i] = para_->Skew_[1][i] * para_->Phase_[1][i] * cos(para_->Phase_[1][i] * t);
   }
   Eigen::Vector3d eulerAngleRad = eulerAngleDeg * M_PI / 180.0;
   Eigen::Vector3d eulerRateRad = eulerRateDeg * M_PI / 180.0;
@@ -65,5 +66,32 @@ ImuMotionState ImuMotion::simImuMotion(double t) {
   return stateNow;
 }
 
+void ImuMotion::testImuMotionData(const std::string rawDataFile,const std::string outDataFile) {
+  std::vector<ImuMotionState> dataVec;
+  VioDatasInterface::readImuMotionState(dataVec,rawDataFile);
+  if(dataVec.size() < 2) {
+    printf("%s is empty!\n",rawDataFile.c_str());
+    return;
+  }
+  VioDatasInterface::recordPoseAsTum(ImuMotionState(),outDataFile,true);
+  ImuMotionState state = dataVec[0];
+  Eigen::Vector3d g(0.0,0.0,-9.8);
+  for(auto data:dataVec) {
+    double dt = data.timestamp_ - state.timestamp_;
+    Eigen::Vector3d gyr = (data.gyr_ + state.gyr_) * dt * 0.5;
+    Eigen::Vector3d acc_last_enu = state.qwi_ * state.acc_ + g;
+    state.qwi_ = state.qwi_ * Eigen::Quaterniond(1.0,0.5 * gyr[0],0.5 * gyr[1],0.5 * gyr[2]);
+    Eigen::Vector3d acc_now_enu = state.qwi_ * data.acc_ + g;
+    Eigen::Vector3d acc_enu = 0.5 * (acc_now_enu + acc_last_enu);
+    state.pos_ += state.vel_ * dt + 0.5 * dt * dt * acc_enu;
+    state.vel_ += acc_enu * dt;
+    state.gyr_ = data.gyr_;
+    state.acc_ = data.acc_;
+    state.timestamp_ = data.timestamp_;
+    state.qwi_.normalize();
+    VioDatasInterface::recordPoseAsTum(state,outDataFile,false);
+  }
+
+}
 
 

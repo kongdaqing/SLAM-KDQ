@@ -51,5 +51,5 @@ class ImuMotion {
     ~ImuMotion(){};
     ImuMotionState simImuMotion(double t);
     ImuMotionState addImuNoise(const ImuMotionState& data);
-    void testImuMotionData();
+    void testImuMotionData(const std::string rawDataFile,const std::string outDataFile);
 };
