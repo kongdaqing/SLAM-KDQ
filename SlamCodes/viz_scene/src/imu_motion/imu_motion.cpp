@@ -75,7 +75,7 @@ void ImuMotion::testImuMotionData(const std::string rawDataFile,const std::strin
   }
   VioDatasInterface::recordPoseAsTum(ImuMotionState(),outDataFile,true);
   ImuMotionState state = dataVec[0];
-  Eigen::Vector3d g(0.0,0.0,-9.8);
+  Eigen::Vector3d g(0.0,0.0,-9.81);
   for(auto data:dataVec) {
     double dt = data.timestamp_ - state.timestamp_;
     Eigen::Vector3d gyr = (data.gyr_ + state.gyr_) * dt * 0.5;
@@ -89,7 +89,7 @@ void ImuMotion::testImuMotionData(const std::string rawDataFile,const std::strin
     state.acc_ = data.acc_;
     state.timestamp_ = data.timestamp_;
     state.qwi_.normalize();
-    VioDatasInterface::recordPoseAsTum(state,outDataFile,false);
+    VioDatasInterface::recordPoseAsTum(state,outDataFile);
   }
 
 }

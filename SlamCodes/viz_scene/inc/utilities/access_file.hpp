@@ -12,7 +12,7 @@ public:
   VioDatasInterface(/* args */);
   ~VioDatasInterface();
 
-  static void recordImuMotionState(const ImuMotionState& data,const std::string fileName,bool title) {
+  static void recordImuMotionState(const ImuMotionState& data,const std::string fileName,bool title = false) {
     if(title) {
       std::fstream file(fileName,std::ios::out);
       file << "t,px,py,pz,qw,qx,qy,qz,vx,vy,vz,ax,ay,az,wx,wy,wz,bax,bay,baz,bwx,bwy,bwz\n";
@@ -82,7 +82,7 @@ public:
       std::cout << fileName << " can't be open" << std::endl;
     }
   }
-  static void recordPoseAsTum(const ImuMotionState& data,const std::string fileName,bool title) {
+  static void recordPoseAsTum(const ImuMotionState& data,const std::string fileName,bool title = false) {
     if(title) {
       std::fstream file(fileName,std::ios::out);
       file << "t px py pz qx qy qz qw\n";

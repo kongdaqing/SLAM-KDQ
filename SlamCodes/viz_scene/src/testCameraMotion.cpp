@@ -16,11 +16,16 @@ int main(int argc,char** argv){
   double t = para->start_t_;
   double dt = 1.0 / (double)(para->imuFreq_);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"test.csv",true);
+  VioDatasInterface::recordImuMotionState(ImuMotionState(),"noise_test.csv",true);
+  VioDatasInterface::recordPoseAsTum(ImuMotionState(),"real_pose.csv",true);
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     if(t  < para->end_t_) {
       ImuMotionState imuState = imuModel.simImuMotion(t);
-      VioDatasInterface::recordImuMotionState(imuState,"test.csv",false);
+      ImuMotionState imuNoiseState = imuModel.addImuNoise(imuState);
+      VioDatasInterface::recordImuMotionState(imuState,"test.csv");
+      VioDatasInterface::recordPoseAsTum(imuState,"real_pose.csv");
+      VioDatasInterface::recordImuMotionState(imuNoiseState,"noise_test.csv");
       t += dt; 
       Eigen::Matrix3d Rwb(imuState.qwi_);
       Eigen::Matrix3d Rwc = Rwb * para->Rbc_;
@@ -36,6 +41,7 @@ int main(int argc,char** argv){
       std::cout << "imu data size = " << imuData.size() << std::endl;
       (imuData.end()-1)->printData();
       imuModel.testImuMotionData("test.csv","pose.csv");
+      imuModel.testImuMotionData("noise_test.csv","noise_pose.csv");
       break;
     }
     usleep(100);
