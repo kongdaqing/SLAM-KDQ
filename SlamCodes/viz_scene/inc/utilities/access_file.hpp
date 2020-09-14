@@ -1,7 +1,9 @@
+#pragma once
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include "imu_motion/imu_motion.hpp"
+
 class VioDatasInterface
 {
 private:
@@ -41,6 +43,7 @@ public:
          << data.gyr_bias_.y() << " "
          << data.gyr_bias_.z() << "\n";
   }
+
   static void readImuMotionState(std::vector<ImuMotionState>& dataVec,const std::string fileName) {
     std::fstream file(fileName,std::ios::in);
 
@@ -78,5 +81,23 @@ public:
     } else {
       std::cout << fileName << " can't be open" << std::endl;
     }
+  }
+  static void recordPoseAsTum(const ImuMotionState& data,const std::string fileName,bool title) {
+    if(title) {
+      std::fstream file(fileName,std::ios::out);
+      file << "t px py pz qx qy qz qw\n";
+      return;
+    }
+    std::fstream file(fileName,std::ios::app);
+        file.precision(9);
+        file << data.timestamp_ << " ";
+        file.precision(5);
+        file << data.pos_.x() << " "
+             << data.pos_.y() << " "
+             << data.pos_.z() << " "
+             << data.qwi_.x() << " "
+             << data.qwi_.y() << " "
+             << data.qwi_.z() << " "
+             << data.qwi_.w() <<std::endl;
   }
 };
