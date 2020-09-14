@@ -35,6 +35,7 @@ int main(int argc,char** argv){
       VioDatasInterface::readImuMotionState(imuData,"test.csv");
       std::cout << "imu data size = " << imuData.size() << std::endl;
       (imuData.end()-1)->printData();
+      imuModel.testImuMotionData("test.csv","pose.csv");
       break;
     }
     usleep(100);
