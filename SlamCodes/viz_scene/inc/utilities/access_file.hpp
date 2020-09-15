@@ -100,4 +100,21 @@ public:
              << data.qwi_.z() << " "
              << data.qwi_.w() <<std::endl;
   }
+  static void recordCameraPixel(double t,std::map<int,Eigen::Matrix<double,5,1>>& ptsMap,const std::string fileName,bool title = false) {
+    if (title) {
+      std::fstream file(fileName,std::ios::out);
+      file << "t,id p1W_x p1W_y p1W_z pix1_x pix1_y, ...\n"; 
+      return;
+    }
+    std::fstream file(fileName,std::ios::app);
+    file.precision(9);
+    file << t << ",";
+    std::map<int,Eigen::Matrix<double,5,1>>::iterator it;
+    for (it = ptsMap.begin();it != ptsMap.end();it++) {
+      Eigen::Matrix<double,5,1> pt;
+      file << it->first << " " << pt(0,0) << " " << pt(1,0) << " " << pt(2,0) << " " << pt(3,0) << " " << pt(4,0) << " "; 
+    }
+    file << "\n";
+  }
+
 };
