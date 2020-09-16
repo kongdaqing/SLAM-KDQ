@@ -1,7 +1,8 @@
 #pragma once
 #include <iostream>
+#include <map>
 #include <fstream>
-#include <vector>
+#include <opencv2/opencv.hpp>
 #include "imu_motion/imu_motion.hpp"
 
 class VioDatasInterface
@@ -100,7 +101,7 @@ public:
              << data.qwi_.z() << " "
              << data.qwi_.w() <<std::endl;
   }
-  static void recordCameraPixel(double t,std::map<int,Eigen::Matrix<double,5,1>>& ptsMap,const std::string fileName,bool title = false) {
+  static void recordCameraPixel(double t,const std::map<int,std::pair<cv::Point3d,cv::Point2i>>& ptsMap,const std::string fileName,bool title = false) {
     if (title) {
       std::fstream file(fileName,std::ios::out);
       file << "t,id p1W_x p1W_y p1W_z pix1_x pix1_y, ...\n"; 
@@ -109,10 +110,10 @@ public:
     std::fstream file(fileName,std::ios::app);
     file.precision(9);
     file << t << ",";
-    std::map<int,Eigen::Matrix<double,5,1>>::iterator it;
+    std::map<int,std::pair<cv::Point3d,cv::Point2i> >::const_iterator it;
     for (it = ptsMap.begin();it != ptsMap.end();it++) {
-      Eigen::Matrix<double,5,1> pt;
-      file << it->first << " " << pt(0,0) << " " << pt(1,0) << " " << pt(2,0) << " " << pt(3,0) << " " << pt(4,0) << " "; 
+      std::pair<cv::Point3d,cv::Point2i> pt = it->second;
+      file << it->first << " " << pt.first.x << " " << pt.first.y << " " << pt.first.z << " " << pt.second.x << " " << pt.second.y << ","; 
     }
     file << "\n";
   }
