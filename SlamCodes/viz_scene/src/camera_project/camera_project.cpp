@@ -1,6 +1,6 @@
 #include <map>
 #include "camera_project/camera_project.hpp"
-#include "utilities/access_file.hpp"
+
 CameraProject::CameraProject(bool addNoise,float pixelNoise,std::string cameraConfigFile,std::string outputPtsFile) {
   if(cameraConfigFile.empty()) {
     camPtr_ = nullptr;
@@ -16,13 +16,13 @@ CameraProject::~CameraProject() {
 
 }
 
-void CameraProject::projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos) {
+ProjectPointInfo CameraProject::projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos) {
   if(ptsCloud.empty()) {
-    return;
+    return ProjectPointInfo();
   }
   if (camPtr_ == nullptr) {
     std::cout << "camera is not create" << std::endl;
-    return;
+    return ProjectPointInfo();
   }
   std::mt19937 gen{12345};
   std::normal_distribution<> d{0.0, pixelNoise_};
@@ -49,6 +49,7 @@ void CameraProject::projectVizPoints(double t,const cv::Mat& ptsCloud,const Eige
     }
   }
   VioDatasInterface::recordCameraPixel(ptsInfo,outPtsFile_);
+  return ptsInfo;
 }
 
 bool CameraProject::inBorder(const cv::Point2i& pt)

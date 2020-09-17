@@ -2,6 +2,8 @@
 #include <fstream>
 #include <random>
 #include "camodocal/camera_models/CameraFactory.h"
+#include "utilities/access_file.hpp"
+
 using namespace camodocal;
 class CameraProject {
   private:
@@ -12,6 +14,6 @@ class CameraProject {
   public:
     CameraProject(bool addNoise,float pixelNoise,std::string cameraConfigFile,std::string outputPtsFile);
     ~CameraProject();
-    void projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos);
+    ProjectPointInfo projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos);
     CameraPtr camPtr_;
 };
