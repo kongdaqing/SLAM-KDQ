@@ -1,9 +1,16 @@
 #pragma once
 #include <iostream>
+#include <string>
 #include <map>
 #include <fstream>
 #include <opencv2/opencv.hpp>
 #include "imu_motion/imu_motion.hpp"
+
+struct ProjectPointInfo {
+  double t;
+  std::map<int,std::pair<cv::Point3d,cv::Point2i>> ptsMap;
+};
+
 
 class VioDatasInterface
 {
@@ -101,7 +108,7 @@ public:
              << data.qwi_.z() << " "
              << data.qwi_.w() <<std::endl;
   }
-  static void recordCameraPixel(double t,const std::map<int,std::pair<cv::Point3d,cv::Point2i>>& ptsMap,const std::string fileName,bool title = false) {
+  static void recordCameraPixel(const ProjectPointInfo& ptsInfo,const std::string fileName,bool title = false) {
     if (title) {
       std::fstream file(fileName,std::ios::out);
       file << "t,id p1W_x p1W_y p1W_z pix1_x pix1_y, ...\n"; 
@@ -109,13 +116,47 @@ public:
     }
     std::fstream file(fileName,std::ios::app);
     file.precision(9);
-    file << t << ",";
+    file << ptsInfo.t << ",";
     std::map<int,std::pair<cv::Point3d,cv::Point2i> >::const_iterator it;
-    for (it = ptsMap.begin();it != ptsMap.end();it++) {
+    for (it = ptsInfo.ptsMap.begin();it != ptsInfo.ptsMap.end();it++) {
       std::pair<cv::Point3d,cv::Point2i> pt = it->second;
       file << it->first << " " << pt.first.x << " " << pt.first.y << " " << pt.first.z << " " << pt.second.x << " " << pt.second.y << ","; 
     }
     file << "\n";
   }
-
+  static void readCameraPixel(std::string fileName,std::vector<ProjectPointInfo>& proInfoVec) {
+    std::fstream file(fileName,std::ios::in);
+    if(!file) {
+      std::cout << "can't openc file " << fileName << std::endl;
+    }
+    std::string strLine;
+    std::getline(file,strLine);
+    while (!file.eof())
+    {
+      ProjectPointInfo ptsInfo;
+      std::getline(file,strLine);
+      if (strLine.length() == 0) {
+        continue;
+      }
+      std::stringstream ss(strLine);
+      std::string tokenStr;
+      std::getline(ss,tokenStr,',');
+      std::stringstream tt(tokenStr);
+      tt >> ptsInfo.t;
+      while(std::getline(ss,tokenStr,',')) {
+        std::stringstream subStr(tokenStr);
+        int id;
+        cv::Point3f p3W;
+        cv::Point2i uv;
+        subStr >> id;
+        subStr >> p3W.x;
+        subStr >> p3W.y;
+        subStr >> p3W.z;
+        subStr >> uv.x;
+        subStr >> uv.y;
+        ptsInfo.ptsMap[id] = std::make_pair(p3W,uv);
+      }
+      proInfoVec.push_back(ptsInfo);
+    }
+  }
 };
