@@ -19,12 +19,17 @@ class MotionParam {
       gyr_bias_sigma_ = config["gyr_bias_sigma"];
       acc_bias_sigma_ = config["acc_bias_sigma"];
       pixel_noise_ = config["pixel_noise"];
+      addPixelNoiseFlg_ = config["add_pixel_noise"];
+      std::string cameraConfig = config["camera_yaml"];
+      cameraConfigFile_ = cameraConfig;
+
       cv::Mat Tbc,tbc;
       Eigen::Matrix4d Tbc_tmp;
       config["Tbc"] >> Tbc;
       cv::cv2eigen(Tbc,Tbc_tmp);
       Rbc_ = Tbc_tmp.block<3,3>(0,0);
       tbc_ = Tbc_tmp.block<3,1>(0,3);
+
       cv::Mat ModelPara;
       config["SimModel"] >> ModelPara;
       Eigen::Matrix<double,3,6> SimModel;
@@ -60,5 +65,6 @@ class MotionParam {
     Eigen::Vector3d Skew_[2];
     Eigen::Vector3d Phase_[2];
     Eigen::Vector3d Bias_[2];
-
+    int addPixelNoiseFlg_;
+    std::string cameraConfigFile_;
 };

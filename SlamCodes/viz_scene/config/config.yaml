@@ -3,12 +3,14 @@
 imuFreq: 200
 imageFreq: 30
 simStart: 0
-simEnd: 20
+simEnd: 5
 gyr_noise_sigma: 0.0001
 acc_noise_sigma: 0.001
 gyr_bias_sigma: 0.00001
 acc_bias_sigma: 0.0001
 pixel_noise: 2
+add_pixel_noise: 0
+camera_yaml: "/home/kdq/Workspace/SLAM-KDQ/SlamCodes/viz_scene/config/cam0_pinhole.yaml"
 
 Tbc: !!opencv-matrix
   rows: 4
