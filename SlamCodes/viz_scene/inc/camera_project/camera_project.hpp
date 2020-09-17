@@ -5,7 +5,7 @@
 using namespace camodocal;
 class CameraProject {
   private:
-    bool inBorder(const Eigen::Vector2d& pt);
+    bool inBorder(const cv::Point2i& pt);
     std::string outPtsFile_;
     float pixelNoise_;
     bool addNoise_;
