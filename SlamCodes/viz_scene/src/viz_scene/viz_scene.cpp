@@ -116,6 +116,14 @@ namespace viz_scene {
     viz::WCloud widgetCloud(sceneCloud_[name].cloudPoints_,sceneCloud_[name].color_);
     sceneWindowPtr_->showWidget(name,widgetCloud);
   }
+
+  cv::Mat VizScene::getScenePointCloud(string name) {
+    cv::Mat ans;
+    if (sceneCloud_.count(name)) {
+      ans = sceneCloud_[name].cloudPoints_.clone();
+    }
+    return ans;
+  }
 }
 
 

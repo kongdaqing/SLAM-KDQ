@@ -127,5 +127,12 @@ using namespace cv;
       void testIncreasePoints(string name);
 
 
+      /** \brief get point cloud through scene name
+       * 
+       * 
+       */
+      cv::Mat getScenePointCloud(string name);
+
+
   };
 }
