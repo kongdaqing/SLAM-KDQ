@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(vo_initialization)
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_FLAGS "-std=c++11")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(VIZ_SCENE_INCLUDE_DIR "/home/kdq/Workspace/SLAM-KDQ/SlamCodes/env/include/viz_scene")
+set(VIZ_SCENE_LIBS "/home/kdq/Workspace/SLAM-KDQ/SlamCodes/env/lib/viz_scene/libvizscene.a")
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
-set(Eigen3_DIR "/usr/include/eigen3")
-include_directories(inc ${Eigen3_DIR}
-${OpenCV_INCLUDE_DIRS})
-message(STATUS ${OpenCV_INCLUDE_DIRS})
+include_directories(inc 
+  ${EIGEN3_INCLUDE_DIR}                    
+  ${OpenCV_INCLUDE_DIRS}
+  ${VIZ_SCENE_INCLUDE_DIR})
 add_executable(vo_ini src/main.cpp)
-target_link_libraries(vo_ini ${OpenCV_LIBS})
+target_link_libraries(vo_ini
+  ${OpenCV_LIBS}
+  ${VIZ_SCENE_LIBS}
+  -lpthread -lm)
