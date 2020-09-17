@@ -1,6 +1,8 @@
 #include "viz_scene/viz_scene.hpp"
 #include "imu_motion/imu_motion.hpp"
 #include "utilities/access_file.hpp"
+#include "camera_project/camera_project.hpp"
+
 using namespace viz_scene;
 int main(int argc,char** argv){
   if(argc < 2) {
@@ -10,11 +12,14 @@ int main(int argc,char** argv){
   string configFile = argv[1];
   MotionParam* para = new MotionParam(configFile);
   ImuMotion imuModel(para);
+  CameraProject camProjector(para->addPixelNoiseFlg_,para->pixel_noise_,para->cameraConfigFile_,"points_test.csv");
   VizScene vizScene("test");
-  vizScene.createRandomPlanePoints("test plane",Vec3f(0,0,0),Vec3f(0,0,1),100,2,2,0.5);
+  VioDatasInterface::recordCameraPixel(ProjectPointInfo(),"points_test.csv",true);
+  vizScene.createRandomPlanePoints("test plane",Vec3f(0,0,0),Vec3f(0,0,1),100,4,4);
+  cv::Mat test_plane = vizScene.getScenePointCloud("test plane");
   vizScene.createCameraObject("test camera",0.3,Vec2f(0.3,0.4),Vec3f(0,0,0.2),Vec3f(0,0,0.1),Vec3f(0,1.0,0));
-  double t = para->start_t_;
-  double dt = 1.0 / (double)(para->imuFreq_);
+  double t = para->start_t_,last_image_t = para->start_t_;
+  double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"test.csv",true);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"noise_test.csv",true);
   VioDatasInterface::recordPoseAsTum(ImuMotionState(),"real_pose.csv",true);
@@ -34,6 +39,14 @@ int main(int argc,char** argv){
       eigen2cv(Rwc,Rwc_cv);
       Vec3d twc_cv(twc.x(),twc.y(),twc.z());
       Affine3d Twc_cv(Rwc_cv,twc_cv);
+      if (t - last_image_t > image_interval_time) {
+        Eigen::Isometry3d Twc;
+        Twc.setIdentity();
+        Twc.prerotate(Rwc);
+        Twc.pretranslate(twc);
+        camProjector.projectVizPoints(t,test_plane,Twc);
+        last_image_t = t;
+      }
       vizScene.updateCameraPose("test camera",Twc_cv);
     } else {
       std::vector<ImuMotionState> imuData;
@@ -42,6 +55,17 @@ int main(int argc,char** argv){
       (imuData.end()-1)->printData();
       imuModel.testImuMotionData("test.csv","pose.csv");
       imuModel.testImuMotionData("noise_test.csv","noise_pose.csv");
+      std::vector<ProjectPointInfo> proPtsVec;
+      VioDatasInterface::readCameraPixel("points_test.csv",proPtsVec);
+      for (size_t i = 0; i < proPtsVec.size(); i++)
+      {
+        ProjectPointInfo ptsInfo = proPtsVec[i];
+        std::cout << ptsInfo.t << std::endl;
+        for(auto &p:ptsInfo.ptsMap) {
+          std::cout << p.first << " " << p.second.first << " " << p.second.second << std::endl;
+        }
+      }
+      
       break;
     }
     usleep(100);

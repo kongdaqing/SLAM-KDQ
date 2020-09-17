@@ -29,10 +29,10 @@ add_library(camera_models
     src/camodocal/gpl/EigenQuaternionParameterization.cc)
 target_link_libraries(camera_models ${Boost_LIBRARIES} ${OpenCV_LIBS} ${CERES_LIBRARIES})
 add_library(libvizscene STATIC src/viz_scene/viz_scene.cpp
-            src/imu_motion/imu_motion.cpp)
+            src/imu_motion/imu_motion.cpp
+            src/camera_project/camera_project.cpp)
 target_link_libraries(libvizscene ${OpenCV_LIBS} -lpthread -lm)
-add_executable(testCameraMotion src/testCameraMotion.cpp
-src/camera_project/camera_project.cpp)
+add_executable(testCameraMotion src/testCameraMotion.cpp)
 target_link_libraries(testCameraMotion libvizscene camera_models)
 
 
