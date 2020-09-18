@@ -22,7 +22,7 @@ int main(int argc,char** argv){
   double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"test.csv",true);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"noise_test.csv",true);
-  VioDatasInterface::recordPoseAsTum(ImuMotionState(),"real_pose.csv",true);
+  VioDatasInterface::recordPoseAsTum(ImuMotionState(),"imu_pose.csv",true);
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     if(t  < para->end_t_) {
@@ -60,9 +60,13 @@ int main(int argc,char** argv){
       for (size_t i = 0; i < proPtsVec.size(); i++)
       {
         ProjectPointInfo ptsInfo = proPtsVec[i];
-        std::cout << ptsInfo.t << std::endl;
+        std::cout << ptsInfo.t << "\n" << ptsInfo.cameraPose.matrix() << std::endl ;
         for(auto &p:ptsInfo.ptsMap) {
-          std::cout << p.first << " " << p.second.first << " " << p.second.second << std::endl;
+          Eigen::Vector3d p3W(p.second.first.x,p.second.first.y,p.second.first.z);
+          Eigen::Vector2d p2D(p.second.second.x,p.second.second.y);
+          double scale = (ptsInfo.cameraPose.translation() - p3W).norm();
+          Eigen::Vector3d p3W_map = camProjector.pixelInverseProjectToWorld( ptsInfo.cameraPose,p2D,scale);
+          std::cout << p.first << " " << p.second.first << " " << p.second.second << " " << p3W_map.transpose() << std::endl;
         }
       }
       
