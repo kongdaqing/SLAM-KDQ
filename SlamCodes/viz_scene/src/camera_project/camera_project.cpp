@@ -32,6 +32,7 @@ ProjectPointInfo CameraProject::projectVizPoints(double t,const cv::Mat& ptsClou
   Eigen::Isometry3d Tcw = cameraPos.inverse();
   cv::Point3f* point = ptsClouds.ptr<cv::Point3f>();
   ProjectPointInfo ptsInfo;
+  ptsInfo.cameraPose = cameraPos;
   ptsInfo.t = t;
   for (size_t i = 0; i < ptsClouds.cols; i++) {
     Eigen::Vector3d pW(point[i].x,point[i].y,point[i].z);
@@ -58,4 +59,12 @@ bool CameraProject::inBorder(const cv::Point2i& pt)
     int img_x = pt.x;
     int img_y = pt.y;
     return BORDER_SIZE <= img_x && img_x < camPtr_->imageWidth() - BORDER_SIZE && BORDER_SIZE <= img_y && img_y < camPtr_->imageHeight() - BORDER_SIZE;
+}
+
+Eigen::Vector3d CameraProject::pixelInverseProjectToWorld(const Eigen::Isometry3d& cameraPos,Eigen::Vector2d uv,double scale) {
+  Eigen::Vector3d p3C;
+  camPtr_->liftSphere(uv,p3C);
+  p3C = p3C * scale;
+  Eigen::Vector3d p3W = cameraPos * p3C;
+  return p3W;
 }

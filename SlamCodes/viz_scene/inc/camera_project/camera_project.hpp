@@ -15,5 +15,6 @@ class CameraProject {
     CameraProject(bool addNoise,float pixelNoise,std::string cameraConfigFile,std::string outputPtsFile);
     ~CameraProject();
     ProjectPointInfo projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos);
+    Eigen::Vector3d pixelInverseProjectToWorld(const Eigen::Isometry3d& cameraPos,Eigen::Vector2d uv,double scale);
     CameraPtr camPtr_;
 };
