@@ -56,6 +56,10 @@ namespace viz_scene {
     for(int i = 0;i < nums;i++) {
       point[i].x = width_dis(gen);
       point[i].y = height_dis(gen);
+      if(point[i].x > width || point[i].x < -width || point[i].y > height || point[i].y < -height) {
+        i--;
+        continue;
+      }
       if(thick <= 0) {
         if(normal_vec[2] != 0) {
           point[i].z = -(normal_vec[0]/normal_vec[2])*(point[i].x - center_vec[0]) -
