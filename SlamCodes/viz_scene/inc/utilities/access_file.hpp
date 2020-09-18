@@ -9,6 +9,7 @@
 struct ProjectPointInfo {
   double t;
   std::map<int,std::pair<cv::Point3d,cv::Point2i>> ptsMap;
+  Eigen::Isometry3d cameraPose;
 };
 
 
@@ -116,7 +117,10 @@ public:
     }
     std::fstream file(fileName,std::ios::app);
     file.precision(9);
-    file << ptsInfo.t << ",";
+    Eigen::Quaterniond q(ptsInfo.cameraPose.rotation());
+    Eigen::Vector3d p(ptsInfo.cameraPose.translation());
+    file << ptsInfo.t << "," << p.x() << " " << p.y() << " " << p.z() << " " 
+         << q.w() << " " << q.x() << " " << q.y() << " " << q.z() << "," ;
     std::map<int,std::pair<cv::Point3d,cv::Point2i> >::const_iterator it;
     for (it = ptsInfo.ptsMap.begin();it != ptsInfo.ptsMap.end();it++) {
       std::pair<cv::Point3d,cv::Point2i> pt = it->second;
@@ -143,6 +147,20 @@ public:
       std::getline(ss,tokenStr,',');
       std::stringstream tt(tokenStr);
       tt >> ptsInfo.t;
+      std::getline(ss,tokenStr,',');
+      std::stringstream pp(tokenStr);
+      Eigen::Quaterniond quat;
+      Eigen::Vector3d trans;
+      pp >> trans(0);
+      pp >> trans(1);
+      pp >> trans(2);
+      pp >> quat.w();
+      pp >> quat.x();
+      pp >> quat.y();
+      pp >> quat.z();
+      ptsInfo.cameraPose.setIdentity();
+      ptsInfo.cameraPose.prerotate(quat);
+      ptsInfo.cameraPose.pretranslate(trans);   
       while(std::getline(ss,tokenStr,',')) {
         std::stringstream subStr(tokenStr);
         int id;
