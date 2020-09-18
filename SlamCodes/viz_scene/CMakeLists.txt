@@ -45,4 +45,6 @@ target_link_libraries(testCameraMotion vizscene)
  #      ARCHIVE DESTINATION include/lib)
 INSTALL(TARGETS vizscene 
         ARCHIVE DESTINATION lib/viz_scene)
+INSTALL(TARGETS camera_models 
+        ARCHIVE DESTINATION lib/viz_scene)
 INSTALL(DIRECTORY inc/ DESTINATION include/viz_scene) 
