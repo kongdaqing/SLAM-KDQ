@@ -26,7 +26,10 @@ namespace kinetic {
     Eigen::Matrix3d Rbw = Rx * Ry * Rz;
     Rwb = Rbw.inverse();
   }
-
+  /** @brief transform euler angle rate into body rate
+    * @param eulerRad - euler rate in rad 
+    * @return R - transform matrix 
+   */ 
   static void eulerRate2BodyRate(const Eigen::Vector3d& eulerRad,Eigen::Matrix3d& R) {
     double roll = eulerRad[0];
     double pitch = eulerRad[1];

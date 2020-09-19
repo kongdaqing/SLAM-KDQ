@@ -44,12 +44,34 @@ class ImuMotion {
     const MotionParam* para_;
     Eigen::Vector3d gyr_bias_,acc_bias_;
   public:
+
+    /** @brief Constructor
+     *  @param motionParam - parameter class which include all variables of simulated model
+    */
     ImuMotion(const MotionParam* motionParam):para_(motionParam){
       gyr_bias_.setZero();
       acc_bias_.setZero();
     };
+
+    /** @brief Destructor
+     */ 
     ~ImuMotion(){};
+
+    /** @brief simulate imu state through sin function
+     *  @param t - timestamp of model
+     *  @return imu state include pos,vel,attitude and acc,gyro 
+     */ 
     ImuMotionState simImuMotion(double t);
+    
+    /** @brief add noise setted by parameters into imu state  
+     *  @param data - imu state without noise
+     *  @return imu state whose gyro,acc with nose
+     */ 
     ImuMotionState addImuNoise(const ImuMotionState& data);
+
+    /** @brief propagate imu state using acc,gyro to test imu infos good or not 
+     *  @param rawDataFile including acc,gyro
+     *  @param outDataFile recording imu state include pose vel attitude propagated by acc gyro
+     */ 
     void testImuMotionData(const std::string rawDataFile,const std::string outDataFile);
 };

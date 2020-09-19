@@ -18,9 +18,21 @@ class VioDatasInterface
 private:
   
 public:
+  /** @brief Constructor 
+   * 
+   */ 
   VioDatasInterface(/* args */);
-  ~VioDatasInterface();
 
+  /** @brief Destructor
+   * 
+   */ 
+  ~VioDatasInterface();
+ 
+  /** @brief record imu state include pose vel attitude acc gyro etc.
+   *  @param data - imu state
+   *  @param fileName - recording file name
+   *  @param title - true: record title; false : record data
+   */ 
   static void recordImuMotionState(const ImuMotionState& data,const std::string fileName,bool title = false) {
     if(title) {
       std::fstream file(fileName,std::ios::out);
@@ -53,9 +65,12 @@ public:
          << data.gyr_bias_.z() << "\n";
   }
 
+  /** @brief read imu state from file
+   *  @param dateVec - vector of ImuMotionState
+   *  @param fileName - file recorded with imu state
+   */  
   static void readImuMotionState(std::vector<ImuMotionState>& dataVec,const std::string fileName) {
     std::fstream file(fileName,std::ios::in);
-
     if (file.is_open()) {
       std::string tmp;
       std::getline(file,tmp);
@@ -91,6 +106,12 @@ public:
       std::cout << fileName << " can't be open" << std::endl;
     }
   }
+
+  /** @brief record pose and attitude of imu with tum format for evo evaluate
+    * @param data - imu state
+    * @param fileName - file used to record pose
+    * @param title - 1: record tilte ; 0 - record data
+   */ 
   static void recordPoseAsTum(const ImuMotionState& data,const std::string fileName,bool title = false) {
     if(title) {
       std::fstream file(fileName,std::ios::out);
@@ -109,6 +130,12 @@ public:
              << data.qwi_.z() << " "
              << data.qwi_.w() <<std::endl;
   }
+
+  /** @brief record 3D point and pixel infos 
+    * @param ptsInfo - which include camera pose,timestamp,3D points' coordinates in world and corrsponding pixel coordinates
+    * @param fileName - file used to record infos
+    * @param title - 1: record tilte ; 0 - record data
+   */   
   static void recordCameraPixel(const ProjectPointInfo& ptsInfo,const std::string fileName,bool title = false) {
     if (title) {
       std::fstream file(fileName,std::ios::out);
@@ -128,6 +155,11 @@ public:
     }
     file << "\n";
   }
+
+  /** @brief read points infos
+    * @param fileName - file which record all infos
+    * @param proInfoVec - vector used to store all infos 
+   */ 
   static void readCameraPixel(std::string fileName,std::vector<ProjectPointInfo>& proInfoVec) {
     std::fstream file(fileName,std::ios::in);
     if(!file) {
