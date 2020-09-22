@@ -1,6 +1,7 @@
 #include "imu_motion/imu_motion.hpp"
 #include "viz_scene/viz_scene.hpp"
 #include "camera_project/camera_project.hpp"
+#include "Initialization/Initializator.hpp"
 
 #define VIZ_RANDOM_POINTS_NAME "plane_scene"
 #define VIZ_CAMERA_NAME "camera0"
@@ -21,6 +22,7 @@ int main(int argc,char** argv) {
   ImuMotion imuModel(para);
   CameraProject camProjector(para->addPixelNoiseFlg_,para->pixel_noise_,para->cameraConfigFile_,PLANE_POINT_FILE); 
   VizScene planeViz("windows");
+  Initializator voInitializator(camProjector.camPtr_,460.0);
   //create plane points and camera object
   planeViz.createRandomPlanePoints(VIZ_RANDOM_POINTS_NAME,Vec3f(0,0,0),Vec3f(0,0,1),50,1,1);
   planeViz.createCameraObject(VIZ_CAMERA_NAME,0.3,Vec2f(0.3,0.4),Vec3f(0,0,0.2),Vec3f(0,0,0.1),Vec3f(0,1.0,0));
@@ -61,7 +63,20 @@ int main(int argc,char** argv) {
         Twc.prerotate(Rwc);
         Twc.pretranslate(twc);
         //project and record 
-        camProjector.projectVizPoints(t,planeScene,Twc);
+        ProjectPointInfo proPts = camProjector.projectVizPoints(t,planeScene,Twc);
+        std::map<int,std::pair<cv::Point3d,cv::Point2i>>::iterator it;
+        std::map<int,cv::Point2f> pixelMap;
+        for(it = proPts.ptsMap.begin();it != proPts.ptsMap.end();it++){
+          pixelMap[it->first] = (cv::Point2f)(it->second.second);
+        }
+        Frame* kf = new Frame(proPts.t,false,pixelMap);
+        Eigen::Matrix3d rotate;
+        Eigen::Vector3d trans;
+        if(voInitializator.shouldResetReference()) {
+          voInitializator.setReferenceFrame(kf);
+        } else {
+          voInitializator.runInitialization(kf,rotate,trans);
+        }
         last_image_t = t;
       }
     } 
