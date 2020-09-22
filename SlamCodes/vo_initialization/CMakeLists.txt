@@ -14,7 +14,9 @@ include_directories(inc
   ${EIGEN3_INCLUDE_DIR}                    
   ${OpenCV_INCLUDE_DIRS}
   ${VIZ_SCENE_INCLUDE_DIR})
-add_executable(vo_ini src/main.cpp)
+add_executable(vo_ini src/main.cpp
+               src/Frame/frame.cpp
+               src/Initialization/Initializator.cpp)
 target_link_libraries(vo_ini
   ${OpenCV_LIBS}
   ${VIZ_SCENE_LIBS}
