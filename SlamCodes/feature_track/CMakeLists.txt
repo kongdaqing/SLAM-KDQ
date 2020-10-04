@@ -12,7 +12,7 @@ find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Protobuf REQUIRED)
 
-include_directories(inc
+include_directories(inc/feature_track
   ${OPENCV_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${PROTOBUF_INCLUDE_DIR}
