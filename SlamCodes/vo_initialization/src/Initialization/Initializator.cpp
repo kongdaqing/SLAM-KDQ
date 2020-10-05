@@ -110,6 +110,10 @@ bool Initializator::runInitialization(const Frame* cur,Eigen::Matrix3d& rotate,E
   return true;
 }
 
+float Initializator::checkFundmentalMatrix(cv::Mat F) {
+  
+}
+
 
 
 void Initializator::checkParallex(float& parallexAver,float& parallexVar) {

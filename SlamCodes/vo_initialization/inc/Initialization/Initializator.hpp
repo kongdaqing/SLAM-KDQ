@@ -29,4 +29,8 @@ class Initializator {
       return resetReferFlg_;
     }
 
+    float checkFundmentalMatrix(cv::Mat F);
+
+    float checkHomography(cv::Mat& H);
+
 };
