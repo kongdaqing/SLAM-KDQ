@@ -75,31 +75,27 @@ bool Initializator::runInitialization(const Frame* cur,Eigen::Matrix3d& rotate,E
   cv::Mat R,t;
   cv::Mat K = (cv::Mat_<double>(3,3)  << 1.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0);
   int inlierSize = cv::recoverPose(F,refKeyPoints_,curKeyPoints_,K,R,t,mask);
+  std::cout << "mask-F = " << mask << std::endl;
   if(inlierSize > 15) {
     cv::cv2eigen(R,rotate);
     cv::cv2eigen(t,trans);
     std::cout << "F : \n" << "R = \n" << rotate  << std::endl << "t = " << trans.transpose() << std::endl; 
   }
-/*
-  std::vector<uchar> mask2;
-  cv::Mat H = cv::findHomography(refKeyPoints_,curKeyPoints_,mask2,cv::FM_RANSAC,3.0/focalLength_);
-  cv::Mat R2,t2,normal;
-  cv::decomposeHomographyMat(H,K,R2,t2,normal);
-  int inlierSize2 = 0;
+
+  cv::Mat mask2;
+  cv::Mat H = cv::findHomography(refKeyPoints_,curKeyPoints_,cv::RANSAC,3.0/focalLength_,mask2);
+  std::cout << "mask-H = " << mask2 << std::endl;
+  std::vector<cv::Mat> R2,t2,normal;
+  int inlierSize2 = cv::decomposeHomographyMat(H,K,R2,t2,normal);
+  //int inlierSize2 = 0;
+  /*
   for (size_t i = 0; i < mask2.size(); i++) {
     if (mask2[i]) {
       inlierSize2++;
     }
-  }
-  Eigen::Matrix3d rorate2;
-  Eigen::Vector3d trans2;
-  if (inlierSize2 > 15) {
-    cv::cv2eigen(R2,rorate2);
-    cv::cv2eigen(t2,trans2);
-    std::cout << "H : \n" << "R = \n" << rorate2 << "t = " << trans2.transpose() << std::endl; 
   }*/
-  int inlierSize2 = 10;
-  if(inlierSize2 < 15 && inlierSize < 15) {
+
+  if(inlierSize2 < 15 && inlierSize2 < 15) {
     return false;
   }
   if(inlierSize2 > inlierSize) {
