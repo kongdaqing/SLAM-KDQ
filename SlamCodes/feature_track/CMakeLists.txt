@@ -28,3 +28,11 @@ target_link_libraries(test
   ${PROTOBUF_LIBRARIES}
   ${DATA_INTERFACE_LIBS})
 
+  add_executable(gftt_track
+  src/gftt_test.cpp
+  src/optiflow_track/vins_optitrack.cpp)
+
+  target_link_libraries(gftt_track
+  ${OpenCV_LIBS}
+  ${PROTOBUF_LIBRARIES}
+  ${DATA_INTERFACE_LIBS})
