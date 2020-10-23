@@ -34,6 +34,7 @@ featureSize_(featSize),fastResponseThreshold_(thres),min_dist_(minDist),trackBac
       }
     }
   }
+  //cv::namedWindow("track",CV_WINDOW_AUTOSIZE);
 }
 
 OptiflowTrackByVINS::~OptiflowTrackByVINS() {
@@ -173,7 +174,12 @@ void OptiflowTrackByVINS::drawTrack() {
     if(expandDisplayFlg) {
       cur_pt *=2.0; 
     } 
-    cv::circle(cur_img_clr, cur_pt, 2, cv::Scalar(255 * (1 - len), 0, 255 * len), 2);
+    int b_c = 255, g_c = 0;
+    if(track_cnt_[j] > 0) {
+      b_c = 0;
+      g_c = 255 * (1 - len);
+    }
+    cv::circle(cur_img_clr, cur_pt, 2, cv::Scalar(b_c, g_c, 255 * len), 2);
     char id_str[5],track_cnt[3];
     snprintf(id_str, 5, "%d", ids_[j]);
     snprintf(track_cnt, 3, "%d",track_cnt_[j]);
@@ -186,10 +192,11 @@ void OptiflowTrackByVINS::drawTrack() {
   snprintf(track_sum[0], 12, "%3d", cur_pts_.size());
   snprintf(track_sum[1], 12, "%3d", track_size_);
 
-  cv::putText(cur_img_clr, "getFts:" + std::string(track_sum[0]),cv::Point2f(10, 10),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
-  cv::putText(cur_img_clr, "trkFts:" + std::string(track_sum[1]),cv::Point2f(10, 25),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
-  cv::putText(cur_img_clr, "trkCst:" + std::string(cost_time[0]),cv::Point2f(10, 40),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
-  cv::putText(cur_img_clr, "detCst:" + std::string(cost_time[1]),cv::Point2f(10, 55),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
+  cv::putText(cur_img_clr, "time-s:" + std::to_string(t_),cv::Point2f(10, 10),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
+  cv::putText(cur_img_clr, "getFts:" + std::string(track_sum[0]),cv::Point2f(10, 25),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
+  cv::putText(cur_img_clr, "trkFts:" + std::string(track_sum[1]),cv::Point2f(10, 40),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
+  cv::putText(cur_img_clr, "trkCst:" + std::string(cost_time[0]),cv::Point2f(10, 55),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
+  cv::putText(cur_img_clr, "detCst:" + std::string(cost_time[1]),cv::Point2f(10, 70),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));
 
   track_img_ = cur_img_clr.clone();
   if(!save_image_path_.empty()) {
