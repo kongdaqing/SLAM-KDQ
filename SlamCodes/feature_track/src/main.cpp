@@ -10,8 +10,8 @@ int main(int argc,char** argv) {
 
 
   std::string replay_folder = argv[1];
-  OptiflowTrackByVINS vinsFeatTracker(25,0.1,30,replay_folder,1);
-  double replay_skip_time = 0;
+  OptiflowTrackByVINS vinsFeatTracker(25,0.03,40,replay_folder,1);
+  double replay_skip_time = 85;
   if(argc == 3) {
     std::string skip_time = argv[2];
      std::stringstream ss(skip_time);

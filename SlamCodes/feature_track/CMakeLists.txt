@@ -9,16 +9,22 @@ get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(DATA_INTERFACE_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/data_interface")
 set(DATA_INTERFACE_LIBS "${PARENT_DIRECTORY}/env/lib/data_interface/libZeroZeroImu.a")
+set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
+set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
+
+
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(Protobuf REQUIRED)
 
 include_directories(inc/feature_track
+  inc/interface
   ${OPENCV_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIR}
   ${PROTOBUF_INCLUDE_DIR}
-  ${DATA_INTERFACE_INCLUDE_DIR})
+  ${DATA_INTERFACE_INCLUDE_DIR}
+  ${REPLAYKIT_INCLUDE_DIR})
 
 add_executable(test 
   src/main.cpp
@@ -36,3 +42,14 @@ target_link_libraries(test
   ${OpenCV_LIBS}
   ${PROTOBUF_LIBRARIES}
   ${DATA_INTERFACE_LIBS})
+
+
+  add_executable(replayFalcon
+  src/falcon_test.cpp
+  src/optiflow_track/vins_optitrack.cpp)
+
+  target_link_libraries(replayFalcon
+  ${OpenCV_LIBS}
+  ${PROTOBUF_LIBRARIES}
+  ${DATA_INTERFACE_LIBS}
+  ${REPLAYKIT_LIBS})

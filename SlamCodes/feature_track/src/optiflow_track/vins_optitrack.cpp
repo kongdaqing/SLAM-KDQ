@@ -169,7 +169,7 @@ void OptiflowTrackByVINS::drawTrack() {
     cv::resize(cur_img_clr,cur_img_clr,cv::Size(cols_*2,rows_*2));
   }
   for (size_t j = 0; j < cur_pts_.size(); j++) {
-    double len = std::min(1.0, 1.0 * track_cnt_[j] / 10);
+    double len = std::min(1.0, 1.0 * track_cnt_[j] / 5);
     cv::Point2f cur_pt = cur_pts_[j];
     if(expandDisplayFlg) {
       cur_pt *=2.0; 
@@ -177,9 +177,9 @@ void OptiflowTrackByVINS::drawTrack() {
     int b_c = 255, g_c = 0;
     if(track_cnt_[j] > 0) {
       b_c = 0;
-      g_c = 255 * (1 - len);
+      g_c = 255;
     }
-    cv::circle(cur_img_clr, cur_pt, 2, cv::Scalar(b_c, g_c, 255 * len), 2);
+    cv::circle(cur_img_clr, cur_pt, 2, cv::Scalar(b_c, 0, g_c), 2);
     char id_str[5],track_cnt[3];
     snprintf(id_str, 5, "%d", ids_[j]);
     snprintf(track_cnt, 3, "%d",track_cnt_[j]);
