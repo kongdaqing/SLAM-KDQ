@@ -1,0 +1,10 @@
+%YAML:1.0
+
+#common parameters
+imu_topic: "/imu0"
+image_topic: "/cam0/image_raw"
+replay_folder: "/home/kdq/Workspace/Falcon_ENV/Log/test/20201025/my_test/fly_with_max_speed/rovio.replay.3"
+output_path: "/home/tony-ws1/output/"
+skip_time: 20.0
+write_bag: 0
+speed_k: 1.0
