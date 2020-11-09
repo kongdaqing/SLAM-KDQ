@@ -1,8 +1,0 @@
-prefix=/home/kdq/Workspace/SLAM-KDQ/SlamCodes/zz_replay_ros/devel
-
-Name: zz_replay
-Description: Description of zz_replay
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 
