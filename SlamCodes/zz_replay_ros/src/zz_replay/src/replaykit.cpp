@@ -13,7 +13,8 @@ using namespace std;
 
 string IMU_TOPIC = "/imu";
 string IMAGE_TOPIC = "/image";
-string REPLAY_FOLDER = "/";
+string REPLAY_FOLDER = "./";
+string OUTPUT_PATH = "./";
 double SKIP_TIME_S = 0;
 double SPEED_K = 1.0;
 int WRITE_BAG_FLG = false;
@@ -45,12 +46,14 @@ void readParameters(const string configFile)
     fs["imu_topic"] >> IMU_TOPIC;
     fs["image_topic"] >> IMAGE_TOPIC;
     fs["replay_folder"] >> REPLAY_FOLDER;
+    fs["output_path"] >> OUTPUT_PATH;
     fs["skip_time"] >> SKIP_TIME_S;
     fs["write_bag"] >> WRITE_BAG_FLG;
     fs["speed_k"] >> SPEED_K;
-    if(WRITE_BAG_FLG) {
-        string rosBagName = REPLAY_FOLDER + "/dataset.bag";
-        bagOut.open(rosBagName,rosbag::bagmode::Write);
+    if (WRITE_BAG_FLG)
+    {
+      string rosBagName = OUTPUT_PATH + "/dataset.bag";
+      bagOut.open(rosBagName, rosbag::bagmode::Write);
     }
 }
 
@@ -95,6 +98,7 @@ int main(int argc, char **argv)
   if (argc < 2)
   {
       ROS_ERROR("Please input config file path!");
+
       ros::shutdown();
       return -1;
   }
@@ -152,7 +156,9 @@ int main(int argc, char **argv)
   });
   reader.Start();
   printf("Rovio replay finished!\n");
-  replay_thread.join();
+  while(ros::ok()) {
+    usleep(1000);
+  }
   ros::spin();
   return 0;
 }
