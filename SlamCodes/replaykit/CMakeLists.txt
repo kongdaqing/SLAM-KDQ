@@ -11,7 +11,7 @@ if (NOT DEFINED ENV{HOVER_REPO_ROOT})
   link_directories(/usr/local/lib)
 
   find_package(Protobuf REQUIRED)
-
+  find_package(OpenCV REQUIRED)
   if(PROTOBUF_FOUND)
   else()
       message (FATAL_ERROR "Cannot find Protobuf")
@@ -36,6 +36,10 @@ if (NOT DEFINED ENV{HOVER_REPO_ROOT})
 
   add_executable(nanobag test/nanobag.cpp)
   target_link_libraries(nanobag replay_proto replaykit nanomsg)
+  
+  include_directories(include  ${OpenCV_INCLUDE_DIRS} )
+  add_executable(svorecord test/record_svo_format.cpp)
+  target_link_libraries(svorecord replay_proto replaykit nanomsg ${OpenCV_LIBS})
 
   INSTALL(TARGETS replaykit 
         ARCHIVE DESTINATION lib/replaykit)
