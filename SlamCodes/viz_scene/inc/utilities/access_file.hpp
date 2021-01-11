@@ -36,7 +36,7 @@ public:
   static void recordImuMotionState(const ImuMotionState& data,const std::string fileName,bool title = false) {
     if(title) {
       std::fstream file(fileName,std::ios::out);
-      file << "t,px,py,pz,qw,qx,qy,qz,vx,vy,vz,ax,ay,az,wx,wy,wz,bax,bay,baz,bwx,bwy,bwz\n";
+      file << "t px py pz qw qx qy qz vx vy vz ax ay az wx wy wz bax bay baz bwx bwy bwz\n";
       return;
     }
     std::fstream file(fileName,std::ios::app);
