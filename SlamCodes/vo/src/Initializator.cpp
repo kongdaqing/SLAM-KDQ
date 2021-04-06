@@ -3,11 +3,11 @@
 namespace ov {
 
 Initializator::Initializator(const Config* cfg,Camera* cam):
-MinDisparity(cfg->iniParam_.minDisparity),
-InitialMinMatchedPointNum(cfg->iniParam_.minMatchedFeatNum),
-InitialReprojectErr(cfg->iniParam_.reprojectErr),
-HomographyTransformErr(cfg->iniParam_.homographyTransformErr),
-camera_(cam) {
+    MinDisparity(cfg->iniParam_.minDisparity),
+    InitialMinMatchedPointNum(cfg->iniParam_.minMatchedFeatNum),
+    InitialReprojectErr(cfg->iniParam_.reprojectErr),
+    HomographyTransformErr(cfg->iniParam_.homographyTransformErr),
+    camera_(cam) {
 
 };
 
@@ -154,10 +154,13 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
                         const std::vector<cv::Point2f> &refFeatures,
                         const std::vector<cv::Point2f> &curFeatures) {
   const size_t num = R.size();
+  assert(num > 0);
   int maxCountIndex = 0;
   int maxCount = 0;
-  int goodPtsCount[num] = {0};
-  float sumDistance[num] = {0.};
+  int goodPtsCount[num];
+  memset(goodPtsCount,0,sizeof(goodPtsCount));
+  float sumDistance[num];
+  memset(sumDistance,0.,sizeof(sumDistance));
   cv::Mat KF;
   K.convertTo(KF,CV_32F);
   ptsInWorld.clear();
