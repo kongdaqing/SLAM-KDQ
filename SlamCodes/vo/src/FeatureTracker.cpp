@@ -2,13 +2,13 @@
 namespace ov {
 
 FeatureTracker::FeatureTracker(const Config* cfg):
-MaxPointSize(cfg->optParam_.maxPoints),
-QualityLevel(cfg->optParam_.qualityLevel),
-MinDist(cfg->optParam_.minDist),
-TrackBack(cfg->optParam_.trackBack),
-PyramidLevel(cfg->optParam_.pyramidLevel),
-CriterIterations(cfg->optParam_.iterations),
-CriterEPS(cfg->optParam_.eps) {
+    MaxPointSize(cfg->optParam_.maxPoints),
+    QualityLevel(cfg->optParam_.qualityLevel),
+    MinDist(cfg->optParam_.minDist),
+    TrackBack(cfg->optParam_.trackBack),
+    PyramidLevel(cfg->optParam_.pyramidLevel),
+    CriterIterations(cfg->optParam_.iterations),
+    CriterEPS(cfg->optParam_.eps) {
   id_ = 0;
 };
 
