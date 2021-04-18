@@ -48,6 +48,22 @@ struct InitialParam {
     std::cout << "homographyTransformErr = " << homographyTransformErr << std::endl;
   }
 };
+
+struct SimulatorParam {
+  cv::Vec3f length;
+  cv::Vec3f origin;
+  int featureSize;
+  void print() {
+    std::cout << "=========Simulator Parameters==========" << std::endl;
+    std::cout << "x_length = " << length[0] << std::endl;
+    std::cout << "y_length = " << length[1] << std::endl;
+    std::cout << "z_length = " << length[2] << std::endl;
+    std::cout << "x_origin = " << origin[0] << std::endl;
+    std::cout << "y_origin = " << origin[1] << std::endl;
+    std::cout << "z_origin = " << origin[2] << std::endl;
+    std::cout << "featureSize = " << featureSize << std::endl;
+  }
+};
 class Config {
  public:
 
@@ -80,10 +96,21 @@ class Config {
     iniParam_.reprojectErr = fs["Init.ReprojectErr"];
     iniParam_.homographyTransformErr = fs["Init.HomographyTransformErr"];
     iniParam_.print();
+
+    simParam_.length[0] = fs["Sim.Length.x"];
+    simParam_.length[1] = fs["Sim.Length.y"];
+    simParam_.length[2] = fs["Sim.Length.z"];
+    simParam_.origin[0] = fs["Sim.Origin.x"];
+    simParam_.origin[1] = fs["Sim.Origin.y"];
+    simParam_.origin[2] = fs["Sim.Origin.z"];
+    simParam_.featureSize = fs["Sim.FeatureSize"];
+    simParam_.print();
+      
   };
   OptitrackParam optParam_;
   CameraParam camParam_;
   InitialParam iniParam_;
+  SimulatorParam simParam_;
 };
 
 }
