@@ -58,6 +58,7 @@ class FeatureTracker{
         cv::circle(mask,feat[i],MinDist,0);
       }
     }
+    return mask;
   } 
 };
 }
