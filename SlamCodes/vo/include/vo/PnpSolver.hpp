@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 #include <opencv2/calib3d.hpp>
 namespace ov {
 class PnpSolver {
