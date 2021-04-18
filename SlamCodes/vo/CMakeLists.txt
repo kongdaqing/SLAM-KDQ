@@ -52,15 +52,18 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
 project(vo)
 
 find_package(OpenCV REQUIRED)
+message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
 
 include_directories(
   include/vo
-  ${OPENCV_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp
                   src/Estimator.cpp
-                  src/FeatureTracker.cpp)
+                  src/FeatureTracker.cpp
+                  src/Simulator.cpp
+                  src/VizScene.cpp)
 target_link_libraries(volib ${OpenCV_LIBS})     
 
 add_executable(vo app/main.cpp)
@@ -71,5 +74,8 @@ target_link_libraries(test_camera ${OpenCV_LIBS} volib)
 
 add_executable(test_initializator app/test_initializator.cpp)
 target_link_libraries(test_initializator ${OpenCV_LIBS} volib)
+
+add_executable(test_vizScene app/test_vizScene.cpp)
+target_link_libraries(test_vizScene ${OpenCV_LIBS} volib)
 
 endif()
