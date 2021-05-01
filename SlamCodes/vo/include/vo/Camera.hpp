@@ -42,6 +42,9 @@ class Camera {
    * @param CtW    --- translate vector from world to Camera
    */ 
   void project(const std::vector<cv::Point3f> &pts3D,std::vector<cv::Point2f> &uv,cv::Mat CrW,cv::Mat CtW) {
+    if (pts3D.empty()) {
+      return;
+    }
     if (is_fisheye_) {
       cv::fisheye::projectPoints(pts3D,uv,CrW,CtW,K_,D_);
     } else {
@@ -94,6 +97,8 @@ class Camera {
     return pt_out;
   };
 
+  /** \brief get rectify map  
+  */
   void getRectifyMap(cv::Mat &map1,cv::Mat &map2,double scale = 1.0) {
     if (is_fisheye_) {
       cv::Mat new_M;

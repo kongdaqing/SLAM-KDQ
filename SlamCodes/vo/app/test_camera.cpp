@@ -42,7 +42,7 @@ int main() {
     std::cout << "[3D]: " << pts3DVec[i] << " vs " << normlizedPt << " vs " << Wnpt.t() << std::endl;
   }
   cv::Point2f origin = radtanCam.project(cv::Point3f(0.5, 0.5, 1),rcw,CtW);
-  cv::Point2f originFish = fishCam.project(cv::Point3f(0.5,0.5,1),rcw,CtW);
+  cv::Point2f originFish = fishCam.project(cv::Point3f(0.5, 0.5, 1),rcw,CtW);
   std::cout << "origin = " << origin << std::endl; 
   cv::Point2f normalizedOrigin = radtanCam.normalized(origin);
   cv::Point2f normalizedOrigin2 = fishCam.normalized(originFish);
