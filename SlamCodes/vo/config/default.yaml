@@ -14,13 +14,13 @@ Init.MinMatchedFeatNum: 20
 Init.ReprojectErr: 1
 Init.HomographyTransformErr: 3
 
-Sim.Length.x: 2.0
-Sim.Length.y: 2.0
+Sim.Length.x: 1.0
+Sim.Length.y: 1.0
 Sim.Length.z: 0.2
-Sim.Origin.x: 0.0
-Sim.Origin.y: 0.0
+Sim.Origin.x: 1.0
+Sim.Origin.y: 1.0
 Sim.Origin.z: 0.0
-Sim.FeatureSize: 50
+Sim.FeatureSize: 20
 
 Camera.Intrinisic: !!opencv-matrix
   rows: 3
