@@ -76,8 +76,8 @@ bool Estimator::estimatePose() {
     return false;
   } 
   cv::Mat R,t;
-  std::vector<uchar> inlier;
-  if (pnpSolver_.solveByPnp(matchedUV,matchedPts3D,cam_->fx(),R,t,inlier)) {
+  std::vector<int> inlier;
+  if (pnpSolver_.solveByPnp(matchedUV,matchedPts3D,cam_->fx(),R,t,inlier,0.8)) {
     curFramePtr->setPoseInWorld(R,t);
     return true;
   } 

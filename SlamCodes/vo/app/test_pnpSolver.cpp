@@ -20,7 +20,9 @@ int main(int argc,char **argv) {
  VizScene vizWindow("test viz");
  vizWindow.createPointClouds("pts",pts3D,cv::viz::Color::green(),4);
  vizWindow.createCameraObject("cam1",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(1.0,1.0,1.0),cv::Vec3f(1.0,1.0,-1.),cv::Vec3f(0,1.0,0));
+ vizWindow.createCameraObject("cam2",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(1.0,1.0,1.0),cv::Vec3f(1.0,1.0,-1.),cv::Vec3f(0,1.0,0));
  cv::Affine3d curPose = vizWindow.sceneCamera_["cam1"].cameraPose_;
+ cv::Affine3d solvedPose = curPose;
  float period = CV_PI/100.0;
  float cnt = 0;
  while (!vizWindow.sceneWindowPtr_->wasStopped()) {
@@ -57,15 +59,18 @@ int main(int argc,char **argv) {
    std::cout << "match size = " << uv.size() << std::endl;
    if (uv.size() > 5) {
      cv::Mat r,t;
-     std::vector<uchar> inlier;
-     solver.solveByPnp(uv,pts3d,cam->fx(),r,t,inlier);
+     std::vector<int> inlier;
+     solver.solveByPnp(uv,pts3d,cam->fx(),r,t,inlier,0.9);
+     solvedPose.rotation(r);
+     cv::Mat tt = t + (cv::Mat_<double>(3,1) << 0,0,0.2);
+     solvedPose.translation(tt);
+     vizWindow.updateCameraPose("cam2",solvedPose.inv()); 
      std::cout << "r = " << r  << "\n" << " t = " << t << std::endl; 
    }
-   cv::waitKey(1000);
    vizWindow.updateCameraPose("cam1",newPose);
    vizWindow.showSceneAllCamera();
    vizWindow.showSceneAllPointClouds();
-   cv::waitKey(10);
+   cv::waitKey(30);
  }
  return 0;
 }
