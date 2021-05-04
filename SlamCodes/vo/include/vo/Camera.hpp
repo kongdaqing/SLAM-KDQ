@@ -13,10 +13,10 @@ class Camera {
     is_fisheye_ = cfg->camParam_.is_fisheye;
     cfg->camParam_.K.convertTo(K_,CV_64F);
     cfg->camParam_.D.convertTo(D_,CV_64F);
-    fx_ = K_.at<float>(0,0);
-    fy_ = K_.at<float>(1,1);
-    cx_ = K_.at<float>(0,2);
-    cy_ = K_.at<float>(1,2);
+    fx_ = K_.at<double>(0,0);
+    fy_ = K_.at<double>(1,1);
+    cx_ = K_.at<double>(0,2);
+    cy_ = K_.at<double>(1,2);
   };
   /** \brief Construct Function
    * @param K         ---   intrinisic matrix
@@ -29,10 +29,10 @@ class Camera {
     is_fisheye_ = isFishEye;
     K.convertTo(K_,CV_64F);
     D.convertTo(D_,CV_64F);
-    fx_ = K_.at<float>(0,0);
-    fy_ = K_.at<float>(1,1);
-    cx_ = K_.at<float>(0,2);
-    cy_ = K_.at<float>(1,2);
+    fx_ = K_.at<double>(0,0);
+    fy_ = K_.at<double>(1,1);
+    cx_ = K_.at<double>(0,2);
+    cy_ = K_.at<double>(1,2);
   }
 
   /** \brief project 3D points into image plane
