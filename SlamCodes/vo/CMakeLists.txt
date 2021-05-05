@@ -82,4 +82,8 @@ target_link_libraries(test_vizScene ${OpenCV_LIBS} volib)
 add_executable(test_pnpSolver app/test_pnpSolver.cpp)
 target_link_libraries(test_pnpSolver ${OpenCV_LIBS} volib)
 
+
+add_executable(test_estimator app/test_estimator.cpp)
+target_link_libraries(test_estimator ${OpenCV_LIBS} volib)
+
 endif()
