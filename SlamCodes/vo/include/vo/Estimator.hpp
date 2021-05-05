@@ -36,6 +36,16 @@ class Estimator {
   inline EstState getEstimatorState() const{
     return state;
   }
+
+  /** \brief get current pose
+   */ 
+  bool getCurrentPose(cv::Mat& Rwc,cv::Mat& WtC) {
+    if (!slideWindows_.empty()) {
+      slideWindows_.back()->getPoseInWorld(Rwc,WtC);
+      return true;
+    }
+    return false;
+  }
  private:
   EstState state;
   Config* cfg_;
