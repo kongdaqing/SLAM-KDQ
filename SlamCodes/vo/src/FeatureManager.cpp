@@ -6,7 +6,7 @@ void FeatureManager::removeFrame(Frame *f) {
     it->second.removeFrame(f);
   }
 }
-bool FeatureManager::triangulate(uint64 id,cv::Point3f &pt3d) {
+bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) {
   if (!feats_.count(id) || feats_[id].getTrackCount() < 2) {
     return false;
   }
@@ -19,7 +19,7 @@ bool FeatureManager::triangulate(uint64 id,cv::Point3f &pt3d) {
     cv::Mat P(3,4,CV_32F);
     R.copyTo(P.colRange(0,3));
     t.copyTo(P.col(3));
-    cv::Point2f kp = camera_->normalized(it->second);
+    cv::Point2f kp = cam->normalized(it->second);
     A.row(i) = kp.x*P.row(2) - P.row(0);
     A.row(i+1) = kp.y*P.row(2) - P.row(1);
     i +=2;
@@ -28,7 +28,7 @@ bool FeatureManager::triangulate(uint64 id,cv::Point3f &pt3d) {
   cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A| cv::SVD::FULL_UV);
   x3D = vt.row(3).t();
   x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
-  if (x3D.at<float>(2) < 0.1) {
+  if (x3D.at<float>(2) < 0.1 || isnan(x3D.at<float>(0)) || !isfinite(x3D.at<float>(0))) {
     return false;
   }
   pt3d.x = x3D.at<float>(0);
@@ -37,7 +37,7 @@ bool FeatureManager::triangulate(uint64 id,cv::Point3f &pt3d) {
   return true;
 }
 
-void FeatureManager::featureMatching(const Frame *f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts) {
+void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts) {
   const std::map<uint64,cv::Point2f> &corners = f->getCorners();
   std::vector<std::pair<int,uint64>> candiFeats;
   matchedNormalizedUV.clear();
@@ -47,17 +47,17 @@ void FeatureManager::featureMatching(const Frame *f,std::vector<cv::Point2f>& ma
     if (feats_.count(id)) {
       //Condition1: 如果该特征点已经三角化了，可以参与Pnp求解
       if (feats_[id].valid3D()) {
-        cv::Point2f normlizedUV = camera_->normalized(it->second);
+        cv::Point2f normlizedUV = cam->normalized(it->second);
         matchedNormalizedUV.push_back(normlizedUV);
         matched3DPts.push_back(feats_[id].getPts3DInWorld());
       } else if (feats_[id].getTrackCount() > 4) {
       //Condition2: 如果该点track次数超过4次，但是没有被三角化，那么可以直接三角化  
         cv::Point3f pt3d;
-        if (triangulate(id,pt3d)) {
+        if (triangulate(cam,id,pt3d)) {
           feats_[id].setPtsInWorld(pt3d);
         }
         if(feats_[id].valid3D()) {
-          cv::Point2f normlizedUV = camera_->normalized(it->second);
+          cv::Point2f normlizedUV = cam->normalized(it->second);
           matchedNormalizedUV.push_back(normlizedUV);
           matched3DPts.push_back(feats_[id].getPts3DInWorld());
         }
@@ -76,11 +76,11 @@ void FeatureManager::featureMatching(const Frame *f,std::vector<cv::Point2f>& ma
     std::vector<std::pair<int,uint64>>::const_iterator it = candiFeats.begin();
     while (it != candiFeats.end() && matchedNormalizedUV.size() < 30) {
       cv::Point3f pt3d;
-      if (triangulate(it->second,pt3d)) {
+      if (triangulate(cam,it->second,pt3d)) {
         feats_[it->second].setPtsInWorld(pt3d);
       }
       if (feats_[it->second].valid3D()) {
-        cv::Point2f normlizedUV = camera_->normalized(corners.at(it->second));
+        cv::Point2f normlizedUV = cam->normalized(corners.at(it->second));
         matchedNormalizedUV.push_back(normlizedUV);
         matched3DPts.push_back(feats_[it->second].getPts3DInWorld()); 
       }
