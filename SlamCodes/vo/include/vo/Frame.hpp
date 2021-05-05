@@ -31,7 +31,9 @@ class Frame {
    */ 
   Frame(double timestamp,std::map<uint64,cv::Point2f>& corners): 
   timestamp_(timestamp),corners_(corners) {
-   
+    cv::Mat R = cv::Mat::eye(3,3,CV_64F);
+    cv::Mat t = cv::Mat::zeros(3,1,CV_64F);
+    setPoseInWorld(R,t);
   }
   
   /** \brief initializing with frame object
