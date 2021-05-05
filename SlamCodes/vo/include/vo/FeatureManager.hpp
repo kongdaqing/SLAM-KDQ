@@ -108,8 +108,8 @@ class FeatureManager {
 
   /** \brief remove feature with it's iterator
    */ 
-  void removeFeature(std::map<uint64,Feature>::iterator& it) {
-    it = feats_.erase(it);
+  void removeFeature(std::map<uint64,Feature>::iterator it) {
+    feats_.erase(it);
   }
   /** \brief remove fram from feature pixel map
    * @param  f   --- frame ptr
@@ -121,14 +121,14 @@ class FeatureManager {
    * @param pts3d --- 3D coordinate in world frame
    * @return if success return true otherwise return false
    */ 
-  bool triangulate(uint64 id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them 
+  bool triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them 
   
   /** \brief get features in the FM which matching feature in the input frame
    * @param f      --- input frame f
    * @param curUV  --- matched feature' pixel coordinates in input frame f
    * @param matched3DPts  ---  matched feature 3D coordinate in FM
    */ 
-  void featureMatching(const Frame* f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
+  void featureMatching(const Camera *cam,const Frame* f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
 
   /** \brief add feature in the FM
    * @param id  ---  id of feature
@@ -172,8 +172,6 @@ class FeatureManager {
   }
 
  private:
-  Camera* camera_; 
   std::map<uint64,Feature> feats_;
-  
 };
 }
