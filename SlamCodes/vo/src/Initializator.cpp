@@ -190,7 +190,7 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
       triangulate(refUndistPt,curUndistPt,P1,P2,pts3d);
       //Note:如果c1P3D声明为double型,就不能用c1P3D.at<float>,这样将得到一个错误的值
       cv::Mat c1P3D = (cv::Mat_<double>(3,1) << pts3d.x,pts3d.y,pts3d.z);
-      if (c1P3D.at<double>(2) < 0.1) {
+      if (c1P3D.at<double>(2) < 0.1 || !isfinite(pts3d.x) || !isfinite(pts3d.y) || !isfinite(pts3d.z)) {
         continue;
       }
       cv::Mat crw0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
@@ -203,7 +203,7 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
       cv::Rodrigues(R[i],crw1);
       //Note:因为旋转矩阵直接使用了double型的,所以必须也用double型的c1P3D,保持一致
       cv::Mat c2P3D = R[i] * c1P3D + t[i]; 
-      if (c2P3D.at<double>(2) < 0.1) {
+      if (c2P3D.at<double>(2) < 0.1 || !isfinite(c2P3D.at<double>(0)) || !isfinite(c2P3D.at<double>(1)) || !isfinite(c2P3D.at<double>(2)) ) {
         continue;
       }
       cv::Point2f uv1 = camera_->project(pts3d,crw1,t[i]);
