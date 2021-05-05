@@ -78,7 +78,7 @@ class Camera {
    * @param uv   --- pixel
    * @return return point in the normalized plane
    */ 
-  cv::Point2f normalized(const cv::Point2f &uv) {
+  cv::Point2f normalized(const cv::Point2f &uv) const{
     cv::Mat mat(1, 2, CV_32F);
     mat.at<float>(0, 0) = uv.x;
     mat.at<float>(0, 1) = uv.y;
