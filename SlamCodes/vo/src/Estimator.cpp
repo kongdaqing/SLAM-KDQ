@@ -6,6 +6,7 @@ Estimator::Estimator(std::string configFile) {
   cam_ = new Camera(cfg_);
   init_ = new Initializator(cfg_,cam_);
   feaTrcker = new FeatureTracker(cfg_);
+  reset();
 }
 
 Estimator::~Estimator() {
@@ -29,22 +30,23 @@ void Estimator::update(FramePtr frame) {
   switch (state)
   {
   case EstState::Waiting:
-    reset();
     if (slideWindows_.size() >= 2) {
       state = EstState::Initing;
     }
     break;
   case EstState::Initing:
-    if (init_->initPoseAndMap(lastFramePtr.get(),frame.get(),fsm_)) {
-      state = EstState::Runing;
-    } else {
-      state = EstState::Waiting;
+    for (auto ref : slideWindows_) {
+      if (init_->initPoseAndMap(ref.get(),frame.get(),fsm_)) {
+        state = EstState::Runing;
+        break;
+      }
     }
     break;
   case EstState::Runing:
-    if (estimatePose() && checkPose()) {
+    if (fsm_.getFeatureSize() > 5 && estimatePose() && checkPose()) {
       updateFeature();
     } else {
+      reset();
       state = EstState::Waiting;
     }
     break;
@@ -69,28 +71,42 @@ void Estimator::reset() {
 
 bool Estimator::estimatePose() {
   Frame* curFramePtr = slideWindows_.back().get();
-  std::vector<cv::Point2f> matchedUV;
+  std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
-  fsm_.featureMatching(curFramePtr,matchedUV,matchedPts3D);
+  fsm_.featureMatching(cam_,curFramePtr,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
     return false;
   } 
-  cv::Mat R,t;
+  cv::Mat rcw,CtW,Rcw;
   std::vector<int> inlier;
-  if (pnpSolver_.solveByPnp(matchedUV,matchedPts3D,cam_->fx(),R,t,inlier,0.8)) {
-    curFramePtr->setPoseInWorld(R,t);
+  if (pnpSolver_.solveByPnp(matchedNormalizedUV,matchedPts3D,cam_->fx(),rcw,CtW,inlier,0.8)) {
+    cv::Mat Rwc,WtC;
+    cv::Rodrigues(rcw,Rcw);
+    Rwc = Rcw.t();
+    WtC = - Rwc * CtW;
+    curFramePtr->setPoseInWorld(Rwc,WtC);
     return true;
   } 
+  std::cout << "[Estimator-Pose]:Failure!" << std::endl;
   return false;
 }
 
 bool Estimator::checkPose() {
-  FramePtr curFramePtr = *slideWindows_.end();
-  FramePtr oldestFramePtr = *slideWindows_.begin();
+  if (slideWindows_.size() < 2) {
+    return true;
+  }
+  FramePtr curFramePtr = slideWindows_.back();
+  FramePtr oldestFramePtr = slideWindows_.front();
   double dt = curFramePtr->timestamp_ - oldestFramePtr->timestamp_;
-  double spd = cv::norm(curFramePtr->WtC() - oldestFramePtr->WtC()) / dt;
-  if (!isfinite(spd) && spd > 20) {
-    return false;
+  cv::Mat cur_wtc = curFramePtr->WtC();
+  cv::Mat old_wtc = oldestFramePtr->WtC();
+  if (cur_wtc.size() == old_wtc.size() && cur_wtc.type() == old_wtc.type()) {
+    cv::Mat dT = cur_wtc - old_wtc;
+    cv::Mat dtNorm = dT.t() * dT;
+    double spd = dtNorm.at<double>(0,0) / dt;
+    if (!isfinite(spd) && spd > 20) {
+      return false;
+    }
   }
   return true;
 }
@@ -126,10 +142,12 @@ void Estimator::updateFeature() {
     }
   }
   //step2: remove untracked features
-  for (auto it = features.begin(); it != features.end(); it++) {
+  for (auto it = features.begin(); it != features.end();) {
     if (!it->second.isInFrame(curFramePtr.get())) {
-      fsm_.removeFeature(it);
+      fsm_.removeFeature(it++);
+      continue;
     }
+    it++;
   }
 }
 
