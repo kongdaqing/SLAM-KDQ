@@ -13,7 +13,11 @@ class Frame {
 
   /** \brief construct 
    */ 
-  Frame() {};
+  Frame() {
+    cv::Mat R = cv::Mat::eye(3,3,CV_64F);
+    cv::Mat t = cv::Mat::zeros(3,1,CV_64F);
+    setPoseInWorld(R,t);
+  };
   /** \brief construct function
    * @param timestamp --- timestamp of current frame
    * @param img       --- image data 
