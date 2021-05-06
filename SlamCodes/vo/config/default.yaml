@@ -9,7 +9,7 @@ OptiTrack.Iterations: 20
 OptiTrack.EPS: 0.01
 
 
-Init.MinDisparity: 8
+Init.MinDisparity: 6
 Init.MinMatchedFeatNum: 20
 Init.ReprojectErr: 1
 Init.HomographyTransformErr: 3

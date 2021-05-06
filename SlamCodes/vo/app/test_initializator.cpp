@@ -21,8 +21,8 @@ int main(int argc,char **argv) {
   cv::Rodrigues(rwc0,Rwc0);
   refFrame->setPoseInWorld(Rwc0,WtC0);
   //Note:注意如果设置的角度看不到特征点,会死在循环里
-  cv::Mat rwc1 = (cv::Mat_<double>(3,1) << M_PI/8.,-M_PI/6.,M_PI/2.);
-  cv::Mat WtC1 = (cv::Mat_<double>(3,1) << 0.1,0.2,0.3);
+  cv::Mat rwc1 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
+  cv::Mat WtC1 = (cv::Mat_<double>(3,1) << 0.2,0.25,0.1);
   cv::Mat Rwc1;
   cv::Rodrigues(rwc1,Rwc1);
   curFrame->setPoseInWorld(Rwc1,WtC1);
@@ -60,6 +60,7 @@ int main(int argc,char **argv) {
     i++;
     refCorners[i] = refCorner;
     curCorners[i] = curCorner;
+    std::cout << refCorner << " vs " << curCorner << std::endl;
   }
   std::map<uint64,cv::Point3f> pt3DMap;
   std::cout << "Real Pose:" << std::endl;

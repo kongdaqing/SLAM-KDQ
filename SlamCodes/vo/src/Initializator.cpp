@@ -61,6 +61,7 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
   for (size_t i = 0; i < size; i++) {
     disparities.push_back(cv::norm(refCorners[i] - curCorners[i]));
   }
+  std::cout << std::endl;
   std::sort(disparities.begin(),disparities.end());
   if (disparities[size/2] < MinDisparity) {
     printf("[Disparity-Check]:Failed! Middle Disparity is %3.2f less than threshold %3.2f!\n",disparities[size/2],MinDisparity);
@@ -74,13 +75,17 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
 bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std::map<uint64,cv::Point3f>& pts3D) {
 
   cv::Mat H;
-  cv::Mat K = camera_->K();
+  cv::Mat K = cv::Mat::eye(3,3,CV_64F);
   std::vector<uchar> inliers;
   std::vector<uint64> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
   curFrame->getMatchedFeatures(refFrame,idVec,refFeatures,curFeatures);
   if (refFeatures.size() < InitialMinMatchedPointNum || !checkCornerDisparities(refFeatures,curFeatures)) {
     return false;
+  }
+  for (size_t i = 0; i < refFeatures.size(); i++) {
+    refFeatures[i] = camera_->normalized(refFeatures[i]);
+    curFeatures[i] = camera_->normalized(curFeatures[i]); 
   }
   //KDQ: homography initialization
   if (!calHomography(H,inliers,K,refFeatures,curFeatures)) {
@@ -111,7 +116,7 @@ bool Initializator::calHomography(cv::Mat &H,
     return false;
   }
   H = cv::findHomography(refFeatures, curFeatures);
-  if (!checkHomography(H)) { 
+  if (!checkHomography(H) && false) { 
     printf("[Homography]:check homography self failed!\n"); 
     return false;
   }
