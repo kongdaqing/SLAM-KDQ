@@ -58,8 +58,8 @@ class Frame {
    * @param WtC  ---  translate matrix from frame to world 
    */ 
   void setPoseInWorld(cv::Mat Rwc,cv::Mat WtC) {
-    Rwc.copyTo(Rwc_);
-    WtC.copyTo(WtC_);
+    Rwc.convertTo(Rwc_,CV_64F);
+    WtC.convertTo(WtC_,CV_64F);
   }
 
   /** \brief get pose from frame to world
