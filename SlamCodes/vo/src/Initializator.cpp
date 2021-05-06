@@ -223,7 +223,7 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
   if (maxCount < refFeatures.size() * 0.75) {
     bestIndex = -1;
   } else {
-    //Note:有可能次优的解和真值具有相同的goodPtsCount,但是真值的averDist一定比次有解要小
+    //Note:有可能次优的解和真值具有相同的goodPtsCount,但是真值的averDist一定比次优解要小
     float miniDist = 100.;
     for (size_t i = 0; i < num; i++) {
       if (goodPtsCount[i] > 0.9 * maxCount && miniDist > sumDistance[i]/goodPtsCount[i]) {
