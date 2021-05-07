@@ -151,6 +151,12 @@ class Camera {
   inline float cy() const {
     return cy_;
   }
+
+  /** \brief get flg of is fisheye model
+   */ 
+  inline bool isFisheye() const {
+    return is_fisheye_;
+  }
  private:
   bool is_fisheye_;
   cv::Mat K_;
