@@ -64,7 +64,7 @@ add_library(volib src/FeatureManager.cpp
                   src/FeatureTracker.cpp
                   src/Simulator.cpp
                   src/VizScene.cpp)
-target_link_libraries(volib ${OpenCV_LIBS})     
+target_link_libraries(volib ${OpenCV_LIBS} -lpthread)     
 
 add_executable(vo app/main.cpp)
 target_link_libraries(vo ${OpenCV_LIBS} volib)
