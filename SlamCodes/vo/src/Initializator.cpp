@@ -115,7 +115,7 @@ bool Initializator::calHomography(cv::Mat &H,
     printf("[Homography]:matched features is not enough!\n");
     return false;
   }
-  H = cv::findHomography(refFeatures, curFeatures);
+  H = cv::findHomography(refFeatures, curFeatures, cv::noArray(), cv::RANSAC, 3.0/camera_->fx());
   if (!checkHomography(H)) { 
     printf("[Homography]:check homography self failed!\n"); 
     return false;
