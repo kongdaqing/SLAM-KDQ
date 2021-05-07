@@ -6,7 +6,7 @@ VizScene::VizScene(std::string windowName) {
   sceneWindowPtr_ = new cv::viz::Viz3d(windowName);
   sceneWindowPtr_->showWidget("widget coordinate",cv::viz::WCoordinateSystem());
 #ifndef __APPLE__
-  windowLoopThread_ = new std::thread(&VizScene::windowShowLoopRun,this);
+  //windowLoopThread_ = new std::thread(&VizScene::windowShowLoopRun,this);
 #endif
   //windowLoopThread_->join();//如果主线程执行很快就结束，必须加join来强行插入进程，否则主线程很快直接运行结束，导致无法运行该线程
 }
