@@ -6,6 +6,7 @@ Estimator::Estimator(std::string configFile) {
   cam_ = new Camera(cfg_);
   init_ = new Initializator(cfg_,cam_);
   feaTrcker = new FeatureTracker(cfg_);
+  state = EstState::Waiting;
   reset();
 }
 
