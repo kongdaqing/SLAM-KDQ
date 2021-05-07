@@ -22,7 +22,7 @@ int main(int argc,char **argv) {
  vizWindow.createCameraObject("cam2",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(1.0,1.0,1.0),cv::Vec3f(1.0,1.0,-1.),cv::Vec3f(0,1.0,0));
  cv::Affine3d curPose = vizWindow.sceneCamera_["cam1"].cameraPose_;
  cv::Affine3d solvedPose = curPose;
- float period = 0.066;
+ float period = 0.033;
  float cnt = 0;
  double timestamp = 0.;
  while (!vizWindow.sceneWindowPtr_->wasStopped()) {

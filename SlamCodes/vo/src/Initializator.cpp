@@ -116,7 +116,7 @@ bool Initializator::calHomography(cv::Mat &H,
     return false;
   }
   H = cv::findHomography(refFeatures, curFeatures);
-  if (!checkHomography(H) && false) { 
+  if (!checkHomography(H)) { 
     printf("[Homography]:check homography self failed!\n"); 
     return false;
   }
