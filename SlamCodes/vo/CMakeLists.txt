@@ -72,6 +72,9 @@ target_link_libraries(vo ${OpenCV_LIBS} volib)
 add_executable(test_camera app/test_camera.cpp)
 target_link_libraries(test_camera ${OpenCV_LIBS} volib)
 
+add_executable(test_camera2 app/test_camera2.cpp)
+target_link_libraries(test_camera2 ${OpenCV_LIBS} volib)
+
 add_executable(test_initializator app/test_initializator.cpp)
 target_link_libraries(test_initializator ${OpenCV_LIBS} volib)
 
