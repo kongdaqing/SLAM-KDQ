@@ -165,6 +165,19 @@ class FeatureManager {
     return feats_;
   }
 
+  /** \brief get features coordinates in the world  
+   */ 
+  std::vector<cv::Vec3f> getPointsInWorld() {
+    std::vector<cv::Vec3f> pts3D;
+    for (auto p : feats_) {
+      if (p.second.valid3D()) {
+        cv::Point3f p3D = p.second.getPts3DInWorld();
+        pts3D.push_back(cv::Vec3f(p3D.x,p3D.y,p3D.z));
+      }
+    }
+    return pts3D;
+  }
+
   /** \brief clear features' map
    */ 
   inline void reset() {

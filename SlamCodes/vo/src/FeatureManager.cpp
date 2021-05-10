@@ -13,15 +13,15 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
   const std::map<const Frame*,cv::Point2f>& uv = feats_[id].getFeatMap();
   cv::Mat A(2 * feats_[id].getTrackCount(),4,CV_32F);
   int i = 0;
-  for (auto it = uv.begin(); it != uv.begin(); it++) {
+  for (auto it = uv.begin(); it != uv.end(); it++) {
     cv::Mat R,t;
-    it->first->getPoseInWorld(R,t);
+    it->first->getInversePose(R,t);
     cv::Mat P(3,4,CV_32F);
-    R.copyTo(P.colRange(0,3));
-    t.copyTo(P.col(3));
+    R.convertTo(P.colRange(0,3),CV_32F);
+    t.convertTo(P.col(3),CV_32F);
     cv::Point2f kp = cam->normalized(it->second);
-    A.row(i) = kp.x*P.row(2) - P.row(0);
-    A.row(i+1) = kp.y*P.row(2) - P.row(1);
+    A.row(i) = kp.x * P.row(2) - P.row(0);
+    A.row(i+1) = kp.y * P.row(2) - P.row(1);
     i +=2;
   }
   cv::Mat u,w,vt,x3D;
@@ -42,6 +42,8 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
   std::vector<std::pair<int,uint64>> candiFeats;
   matchedNormalizedUV.clear();
   matched3DPts.clear();
+  int triCount = 0;
+  int oldCount = 0;
   for (auto it = corners.begin(); it != corners.end(); it++) {
     const uint64 id = it->first;
     if (feats_.count(id)) {
@@ -50,6 +52,7 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
         cv::Point2f normlizedUV = cam->normalized(it->second);
         matchedNormalizedUV.push_back(normlizedUV);
         matched3DPts.push_back(feats_[id].getPts3DInWorld());
+        oldCount++;
       } else if (feats_[id].getTrackCount() > 4) {
       //Condition2: 如果该点track次数超过4次，但是没有被三角化，那么可以直接三角化  
         cv::Point3f pt3d;
@@ -60,6 +63,7 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
           cv::Point2f normlizedUV = cam->normalized(it->second);
           matchedNormalizedUV.push_back(normlizedUV);
           matched3DPts.push_back(feats_[id].getPts3DInWorld());
+          triCount++;
         }
       } else if (feats_[id].getTrackCount() >= 2) {
       //Condition3: 如果该点track次数已经有2次或者以上，可以先作为候选点  
@@ -67,7 +71,6 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
       }
     }
   }
-
   if (matchedNormalizedUV.size() < 30 && !candiFeats.empty()) {
     auto cmp = [](std::pair<int,uint64>& a,std::pair<int,uint64>& b) {
       return a.first > b.first? true:false;
@@ -83,6 +86,7 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
         cv::Point2f normlizedUV = cam->normalized(corners.at(it->second));
         matchedNormalizedUV.push_back(normlizedUV);
         matched3DPts.push_back(feats_[it->second].getPts3DInWorld()); 
+        triCount++;
       }
       it++;
     }
