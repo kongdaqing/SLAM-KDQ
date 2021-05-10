@@ -78,9 +78,14 @@ bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std
   std::vector<uint64> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
   curFrame->getMatchedFeatures(refFrame,idVec,refFeatures,curFeatures);
-  if (refFeatures.size() < InitialMinMatchedPointNum || !checkCornerDisparities(refFeatures,curFeatures)) {
+  if (refFeatures.size() < InitialMinMatchedPointNum) {
+    printf("[Initialization]: match size %d is not enough!\n",static_cast<int>(refFeatures.size()));
     return false;
   }
+  if (!checkCornerDisparities(refFeatures,curFeatures)) {
+    return false;
+  }
+
   for (size_t i = 0; i < refFeatures.size(); i++) {
     refFeatures[i] = camera_->normalized(refFeatures[i]);
     curFeatures[i] = camera_->normalized(curFeatures[i]); 
