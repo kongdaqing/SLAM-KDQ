@@ -91,6 +91,10 @@ bool VizScene::updatePointClouds(std::string ptsName,const std::vector<cv::Vec3f
     printf("No %s pointcloud exist!\n",ptsName.c_str());
     return false;
   }
+  if (pts.empty()) {
+    printf("PointCloud empty!\n");
+    return false;
+  }
   sceneCloud_[ptsName].update(pts);
   return true;
 }
