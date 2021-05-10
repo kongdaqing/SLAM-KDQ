@@ -168,9 +168,9 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
   assert(refNormFeats.size() == inliers.size());
   assert(inliers.size() == idVec.size());
   std::map<int,cv::Point3f> localMap[num];
-  cv::Mat K = (cv::Mat_<double>(3,3) << 1.0, 0.0 , 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
-  cv::Mat D = (cv::Mat_<double>(4,1) << 0.0, 0.0, 0.0, 0.0);
-  Camera cam(K,D,false,camera_->W() / camera_->fx(), camera_->H() / camera_->fy());
+  cv::Mat K = cv::Mat::eye(3,3,CV_64F);
+  cv::Mat D = cv::Mat::zeros(1,4,CV_64F);
+  Camera cam(K,D,false,camera_->width() / camera_->fx(), camera_->height() / camera_->fy());
   for (size_t i = 0; i < num; i++) {
     cv::Mat P1(3,4,CV_32F,cv::Scalar(0));
     P1.colRange(0,3) = cv::Mat::eye(3,3,CV_32F);

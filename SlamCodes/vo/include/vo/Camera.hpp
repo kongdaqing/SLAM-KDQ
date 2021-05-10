@@ -74,6 +74,7 @@ class Camera {
     return cv::Point2f(uv.at<float>(0,0),uv.at<float>(0,1));
   } 
 
+
   /** \brief normalize feature from image plane into normalized plane
    * @param uv   --- pixel
    * @return return point in the normalized plane
@@ -152,10 +153,16 @@ class Camera {
     return cy_;
   }
 
-  /** \brief get flg of is fisheye model
+  /** \brief get image width
    */ 
-  inline bool isFisheye() const {
-    return is_fisheye_;
+  inline float width() const {
+    return Width;
+  }
+  
+  /** \brief get image height 
+   */ 
+  inline float height() const {
+    return Height;
   }
  private:
   bool is_fisheye_;
