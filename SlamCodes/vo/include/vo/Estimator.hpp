@@ -46,6 +46,12 @@ class Estimator {
     }
     return false;
   }
+
+  /** \brief get all features coordinate in world 
+   */ 
+  std::vector<cv::Vec3f> getFeatsInWorld() {
+    return fsm_.getPointsInWorld();
+  }
  private:
   EstState state;
   Config* cfg_;
@@ -63,7 +69,7 @@ class Estimator {
   /** \brief estimate pose of current frame
    * @return return true if estimator works well otherwise return false
    */   
-  bool estimatePose(); 
+  bool estimatePose(FramePtr framePtr); 
 
   /** \brief check pose ok or not
    * @return return true if current pose is ok

@@ -35,16 +35,29 @@ void Estimator::update(FramePtr frame) {
       state = EstState::Initing;
     }
     break;
-  case EstState::Initing:
-    for (auto ref : slideWindows_) {
-      if (init_->initPoseAndMap(ref.get(),frame.get(),fsm_)) {
-        state = EstState::Runing;
-        break;
+  case EstState::Initing: 
+    {
+      int i = 0;
+      for (auto ref : slideWindows_) {
+        i++;
+        if (state != EstState::Runing) {
+          if (init_->initPoseAndMap(ref.get(),frame.get(),fsm_)) {
+            state = EstState::Runing;
+          }
+        } else if (i < slideWindows_.size()) {
+          if (!estimatePose(ref)) {
+            reset();
+            state = EstState::Waiting;
+            break;
+          }
+          std::cout << "twc = " << ref->WtC().t() << std::endl;
+        }
       }
+      
+      break;
     }
-    break;
   case EstState::Runing:
-    if (fsm_.getFeatureSize() > 5 && estimatePose() && checkPose()) {
+    if (fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
       updateFeature();
     } else {
       reset();
@@ -70,12 +83,13 @@ void Estimator::reset() {
 }
 
 
-bool Estimator::estimatePose() {
-  Frame* curFramePtr = slideWindows_.back().get();
+bool Estimator::estimatePose(FramePtr framePtr) {
+  Frame* curFramePtr = framePtr.get();
   std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
   fsm_.featureMatching(cam_,curFramePtr,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
+    printf("[EstimatePose]: matched points is too few!\n");
     return false;
   } 
   cv::Mat rcw,CtW,Rcw;
@@ -88,7 +102,7 @@ bool Estimator::estimatePose() {
     curFramePtr->setPoseInWorld(Rwc,WtC);
     return true;
   } 
-  std::cout << "[Estimator-Pose]:Failure!" << std::endl;
+  std::cout << "[EstimatePose]:Failure!" << std::endl;
   return false;
 }
 
