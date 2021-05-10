@@ -18,8 +18,9 @@ int main(int argc,char **argv) {
  std::vector<cv::Vec3f>& pts3D = sim.getLandMarkers();
  VizScene vizWindow("test viz");
  vizWindow.createPointClouds("pts",pts3D,cv::viz::Color::green(),4);
- vizWindow.createCameraObject("cam1",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(1.0,1.0,1.0),cv::Vec3f(1.0,1.0,-1.),cv::Vec3f(0,1.0,0));
- vizWindow.createCameraObject("cam2",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(1.0,1.0,1.0),cv::Vec3f(1.0,1.0,-1.),cv::Vec3f(0,1.0,0));
+ vizWindow.createPointClouds("cameraPts",pts3D,cv::viz::Color::red(),4);
+ vizWindow.createCameraObject("cam1",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(0.0,0.0,0.0),cv::Vec3f(0.0,0.0,1.0),cv::Vec3f(0,1.0,0));
+ vizWindow.createCameraObject("cam2",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(0.0,0.0,0.0),cv::Vec3f(0.0,0.0,1.0),cv::Vec3f(0,1.0,0));
  cv::Affine3d curPose = vizWindow.sceneCamera_["cam1"].cameraPose_;
  cv::Affine3d solvedPose = curPose;
  float period = 0.033;
@@ -29,7 +30,7 @@ int main(int argc,char **argv) {
    cnt++;
    timestamp += cnt * period;
    vizWindow.sceneWindowPtr_->spinOnce(1,false);
-   cv::Vec3d t(cos(cnt * period),sin(cnt * period),cos(cnt * period) + sin(cnt * period));
+   cv::Vec3d t(3. * cos(cnt * period),3.0 * sin(cnt * period),0 * (cos(cnt * period) + sin(cnt * period)));
    cv::Affine3d newPose = curPose.translate(t);
    std::vector<cv::Point2f> pts2D;
    cv::Affine3d::Mat4 poseMat = newPose.inv().matrix;
@@ -52,10 +53,12 @@ int main(int argc,char **argv) {
    }
    Frame *frame = new Frame(timestamp,feats);
    estimator.update(FramePtr(frame));
+   std::cout << "state = " << estimator.getEstimatorState() << std::endl;
    cv::Mat Rwc,WtC;
-   if (estimator.getCurrentPose(Rwc,WtC)) {
+   if (estimator.getCurrentPose(Rwc,WtC) && estimator.getEstimatorState() == 2) {
      cv::Affine3d Twc(Rwc,WtC);
      vizWindow.updateCameraPose("cam2",Twc);
+     vizWindow.updatePointClouds("cameraPts",estimator.getFeatsInWorld());
    }
    vizWindow.updateCameraPose("cam1",newPose);
    vizWindow.showSceneAllCamera();
