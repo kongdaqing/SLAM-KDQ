@@ -35,6 +35,12 @@ class Camera {
     cy_ = K_.at<float>(1,2);
   }
 
+  /** \brief disable distortion for test 
+   */ 
+  void setNoDistortion() {
+    D_ = cv::Mat::zeros(1,4,CV_64F);
+  }
+
   /** \brief project 3D points into image plane
    * @param pts3D  --- array of 3D point in the world
    * @param uv     --- array of output pixel in the frame
