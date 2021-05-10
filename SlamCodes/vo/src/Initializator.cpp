@@ -73,9 +73,7 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
 
 
 bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std::map<uint64,cv::Point3f>& pts3D) {
-
   cv::Mat H;
-  cv::Mat K = cv::Mat::eye(3,3,CV_64F);
   std::vector<uchar> inliers;
   std::vector<uint64> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
@@ -88,15 +86,16 @@ bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std
     curFeatures[i] = camera_->normalized(curFeatures[i]); 
   }
   //KDQ: homography initialization
-  if (!calHomography(H,inliers,K,refFeatures,curFeatures)) {
+  if (!calHomography(H,inliers,camera_->fx(),refFeatures,curFeatures)) {
     return false;
   }
   std::vector<cv::Mat> R,t,n;
   //Note:这里虽然特征点是float的型的，但是计算出来的R,t,n全是double类型的mat
   //Note:这里R,t的含义是参考帧到当前帧的转换Tc1c0,而非Tc0c1
+  cv::Mat K = cv::Mat::eye(3,3,CV_64F);
   cv::decomposeHomographyMat(H,K,R,t,n);
   std::vector< std::map<uint64,cv::Point3f> > ptsInWorld;
-  int bestId = checkRt(ptsInWorld,R,t,n,K,inliers,idVec,refFeatures,curFeatures);
+  int bestId = checkRt(ptsInWorld,R,t,n,inliers,idVec,refFeatures,curFeatures);
   if (bestId < 0) {
     std::cout << "[CheckRT]:Can't find best pose" << std::endl;
     return false;
@@ -108,21 +107,20 @@ bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std
 
 bool Initializator::calHomography(cv::Mat &H,
                                   std::vector<uchar> &inliers,
-                                  const cv::Mat &K, 
-                                  const std::vector<cv::Point2f> &refFeatures,
-                                  const std::vector<cv::Point2f> &curFeatures) {
-  if (refFeatures.size() < InitialMinMatchedPointNum) {
+                                  float focalLength,
+                                  const std::vector<cv::Point2f> &refNormFeats,
+                                  const std::vector<cv::Point2f> &curNormFeats) {
+  if (refNormFeats.size() < InitialMinMatchedPointNum) {
     printf("[Homography]:matched features is not enough!\n");
     return false;
   }
-  H = cv::findHomography(refFeatures, curFeatures, cv::noArray(), cv::RANSAC, 3.0/camera_->fx());
-  if (!checkHomography(H)) { 
+  H = cv::findHomography(refNormFeats, curNormFeats, cv::RANSAC, 2.0 / focalLength);
+  if (!checkHomography(H) && false) { 
     printf("[Homography]:check homography self failed!\n"); 
     return false;
   }
-  cv::Mat norm_H = K.inv() * H * K;
   cv::Mat w,U,V;
-  cv::SVD::compute(norm_H, w,U,V);
+  cv::SVD::compute(H, w, U, V);
   double d1 = w.at<double>(0);
   double d2 = w.at<double>(1);
   double d3 = w.at<double>(2);
@@ -132,18 +130,18 @@ bool Initializator::calHomography(cv::Mat &H,
   }
   std::vector<cv::Point2f> ref2curFeats;
   int goodProjectSize = 0;
-  cv::perspectiveTransform(refFeatures,ref2curFeats,H);
+  cv::perspectiveTransform(refNormFeats,ref2curFeats,H);
   inliers.clear();
-  for (size_t i = 0; i < curFeatures.size(); i++ ) {
-    if (cv::norm(ref2curFeats[i] - curFeatures[i]) < HomographyTransformErr) {
+  for (size_t i = 0; i < curNormFeats.size(); i++ ) {
+    if (cv::norm(ref2curFeats[i] - curNormFeats[i]) < HomographyTransformErr / focalLength) {
       goodProjectSize++;
       inliers.push_back(1);
     } else {
       inliers.push_back(0);
     }
   }
-  if (goodProjectSize < refFeatures.size() * 0.75) {
-    printf("[Homography-Check]:Warning!Good reprojected point size %d is not enough in all size=%d!\n",goodProjectSize,static_cast<int>(refFeatures.size()));
+  if (goodProjectSize < refNormFeats.size() * 0.75) {
+    printf("[Homography-Check]:Warning!Good reprojected point size %d is not enough in all size=%d!\n",goodProjectSize,static_cast<int>(refNormFeats.size()));
     return false;
   }
   return true;
@@ -153,11 +151,10 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
                         const std::vector<cv::Mat> &R,
                         const std::vector<cv::Mat> &t,
                         const std::vector<cv::Mat> &n,
-                        const cv::Mat &K,
                         const std::vector<uchar> &inliers,
                         const std::vector<uint64> &idVec,
-                        const std::vector<cv::Point2f> &refFeatures,
-                        const std::vector<cv::Point2f> &curFeatures) {
+                        const std::vector<cv::Point2f> &refNormFeats,
+                        const std::vector<cv::Point2f> &curNormFeats) {
   const size_t num = R.size();
   assert(num > 0);
   int maxCountIndex = 0;
@@ -166,13 +163,14 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
   memset(goodPtsCount,0,sizeof(goodPtsCount));
   float sumDistance[num];
   memset(sumDistance,0.,sizeof(sumDistance));
-  cv::Mat KF;
-  K.convertTo(KF,CV_32F);
   ptsInWorld.clear();
   ptsInWorld.resize(num);
-  assert(refFeatures.size() == inliers.size());
+  assert(refNormFeats.size() == inliers.size());
   assert(inliers.size() == idVec.size());
   std::map<int,cv::Point3f> localMap[num];
+  cv::Mat K = (cv::Mat_<double>(3,3) << 1.0, 0.0 , 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0);
+  cv::Mat D = (cv::Mat_<double>(4,1) << 0.0, 0.0, 0.0, 0.0);
+  Camera cam(K,D,false,camera_->W() / camera_->fx(), camera_->H() / camera_->fy());
   for (size_t i = 0; i < num; i++) {
     cv::Mat P1(3,4,CV_32F,cv::Scalar(0));
     P1.colRange(0,3) = cv::Mat::eye(3,3,CV_32F);
@@ -185,14 +183,12 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
     t[i].convertTo(ts,CV_32F);    
     Rs.copyTo(P2.colRange(0,3));
     ts.copyTo(P2.col(3));
-    for (size_t j = 0; j < refFeatures.size(); j ++) {
+    for (size_t j = 0; j < refNormFeats.size(); j ++) {
       if (inliers[j] == 0) {
         continue;
       }
       cv::Point3f pts3d;
-      cv::Point2f refUndistPt = camera_->normalized(refFeatures[j]);
-      cv::Point2f curUndistPt = camera_->normalized(curFeatures[j]);
-      triangulate(refUndistPt,curUndistPt,P1,P2,pts3d);
+      triangulate(refNormFeats[j],curNormFeats[j],P1,P2,pts3d);
       //Note:如果c1P3D声明为double型,就不能用c1P3D.at<float>,这样将得到一个错误的值
       cv::Mat c1P3D = (cv::Mat_<double>(3,1) << pts3d.x,pts3d.y,pts3d.z);
       if (c1P3D.at<double>(2) < 0.1 || !isfinite(pts3d.x) || !isfinite(pts3d.y) || !isfinite(pts3d.z)) {
@@ -200,8 +196,8 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
       }
       cv::Mat crw0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
       cv::Mat CtW0 = crw0;
-      cv::Point2f uv0 = camera_->project(pts3d,crw0,CtW0);
-      if (cv::norm(refFeatures[j] - uv0) > InitialReprojectErr) {
+      cv::Point2f uv0 = cam.project(pts3d,crw0,CtW0);
+      if (cv::norm(refNormFeats[j] - uv0) > InitialReprojectErr / camera_->fx()) {
         continue;
       }
       cv::Mat crw1;
@@ -211,11 +207,11 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
       if (c2P3D.at<double>(2) < 0.1 || !isfinite(c2P3D.at<double>(0)) || !isfinite(c2P3D.at<double>(1)) || !isfinite(c2P3D.at<double>(2)) ) {
         continue;
       }
-      cv::Point2f uv1 = camera_->project(pts3d,crw1,t[i]);
-      if (cv::norm(curFeatures[j] - uv1) > InitialReprojectErr) {
+      cv::Point2f uv1 = cam.project(pts3d,crw1,t[i]);
+      if (cv::norm(curNormFeats[j] - uv1) > InitialReprojectErr / camera_->fx()) {
         continue;
       }
-      sumDistance[i] += cv::norm(refFeatures[j] - uv0) + cv::norm(curFeatures[j] - uv1);
+      sumDistance[i] += cv::norm(refNormFeats[j] - uv0) + cv::norm(curNormFeats[j] - uv1);
       goodPtsCount[i]++;
       ptsInWorld[i][idVec[j]] = pts3d;
     }
@@ -225,8 +221,9 @@ int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWor
     }
   }
   int bestIndex = maxCountIndex;
-  if (maxCount < refFeatures.size() * 0.75) {
+  if (maxCount < refNormFeats.size() * 0.75) {
     bestIndex = -1;
+    printf("[CheckRT]:Failure! Maxcount = %d is not enough!\n ",maxCount);
   } else {
     //Note:有可能次优的解和真值具有相同的goodPtsCount,但是真值的averDist一定比次优解要小
     float miniDist = 100.;

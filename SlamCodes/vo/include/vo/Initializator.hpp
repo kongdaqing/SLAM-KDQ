@@ -6,49 +6,61 @@ namespace ov {
 
 class Initializator {
  public:
+
+  /** \brief construction function
+   * @param cfg  ---  config object ptr
+   * @param cam  ---  camera object ptr 
+   */ 
   Initializator(const Config* cfg,Camera* cam);
 
+  /** \brief initialization of slam include pose and features
+   * @param refFrame   ---   reference frame ptr
+   * @param curFrame   ---   current frame ptr
+   * @param fm         ---   feature manager object
+   * @return return initialization success flag
+   */ 
   bool initPoseAndMap(Frame* refFrame,Frame* curFrame,FeatureManager& fm);
 
-  /** \brief Calculate pose of two frames with overlap features through decomposing homography matrix 
-   *  @param T           --- output transform matrix 
-   *  @param refFeatures --- pixel points in referance frame
-   *  @param curFeatures --- pixel points in curent frame
+  /** \brief Calculate pose of two frames with overlap features through decomposing homography matrix
+   *  @param refFrame  ---  referance frame ptr
+   *  @param curFrame  ---  current frame ptr
+   *  @param pts3D     ---  triangulating points 
    *  @return  success flag of calculating pose  
    */ 
   bool initializeFromHomography(Frame* refFrame,Frame* curFrame,std::map<uint64,cv::Point3f>& pts3D);
 
   /** \brief Calculate homography matrix of two frames with overlap features  
-   *  @param H           --- homegraphy matrix
-   *  @param inliers     --- inlier flg array that reprojected error less than @ReprojectErrThr_
-   *  @param K           --- camera intrinisic martrix 
-   *  @param refFeatures --- pixel points in referance frame
-   *  @param curFeatures --- pixel points in curent frame
+   *  @param H            --- homegraphy matrix
+   *  @param inliers      --- inlier flg array that reprojected error less than @ReprojectErrThr_
+   *  @param focalLength  --- focal length 
+   *  @param refNormFeats --- normalized points in referance frame
+   *  @param curNormFeats --- normalized points in curent frame
    *  @return  success flag of calculating homography
    */ 
   bool calHomography(cv::Mat &H,
                      std::vector<uchar> &inliers,
-                     const cv::Mat &K,
-                     const std::vector<cv::Point2f> &refFeatures,
-                     const std::vector<cv::Point2f> &curFeatures);
+                     float focalLength,
+                     const std::vector<cv::Point2f> &refNormFeats,
+                     const std::vector<cv::Point2f> &curNormFeats);
 
   /** \brief select best pose from pose vector through check all features 3d point is or not in the front of cameras
-   *  @param R         --- Rotation Matrix Array from reference to current frame
-   *  @param t         --- translate Matrix Array from reference to current frame
-   *  @param n         --- normal Vector Array
-   *  @param K         --- camera intrinsic matrix
-   *  @param refFeatures --- corner point array in reference frame
-   *  @param curFeatures --- corner point array matched with reference in the current frame
+   *  @param ptsInWorld   --- 3D points through triangulation
+   *  @param R            --- Rotation Matrix Array from reference to current frame
+   *  @param t            --- translate Matrix Array from reference to current frame
+   *  @param n            --- normal Vector Array
+   *  @param inliers      --- inliers at @calHomography
+   *  @param idVec        --- vector of features' index
+   *  @param refNormFeats --- normalized features in reference frame
+   *  @param curNormFeats --- normalized features matched with reference frame in the current frame
    */ 
   int checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWorld,
                         const std::vector<cv::Mat> &R,
                         const std::vector<cv::Mat> &t,
                         const std::vector<cv::Mat> &n,
-                        const cv::Mat &K,
                         const std::vector<uchar> &inliers,
                         const std::vector<uint64> &idVec,
-                        const std::vector<cv::Point2f> &refFeatures,
-                        const std::vector<cv::Point2f> &curFeatures);
+                        const std::vector<cv::Point2f> &refNormFeats,
+                        const std::vector<cv::Point2f> &curNormFeats);
   /** \brief Check homography properity 
    *  @param H --- homography matrix
    *  @return homography is ok or not
