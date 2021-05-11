@@ -87,14 +87,15 @@ bool Estimator::estimatePose(FramePtr framePtr) {
   Frame* curFramePtr = framePtr.get();
   std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
-  fsm_.featureMatching(cam_,curFramePtr,matchedNormalizedUV,matchedPts3D);
+  std::vector<uint64_t> matchedIds;
+  fsm_.featureMatching(cam_,curFramePtr,matchedIds,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
     printf("[EstimatePose]: matched points is too few!\n");
     return false;
   } 
   cv::Mat rcw,CtW,Rcw;
-  std::vector<int> inlier;
-  if (pnpSolver_.solveByPnp(matchedNormalizedUV,matchedPts3D,cam_->fx(),rcw,CtW,inlier,0.8)) {
+  std::vector<int> inliers;
+  if (pnpSolver_.solveByPnp(matchedNormalizedUV,matchedPts3D,inliers,cam_->fx(),rcw,CtW,0.8)) {
     cv::Mat Rwc,WtC;
     cv::Rodrigues(rcw,Rcw);
     Rwc = Rcw.t();
@@ -152,14 +153,22 @@ void Estimator::updateFeature() {
   for(size_t i = 0; i < idx.size(); i++) {
     if (cv::norm(proPtVec[i] - ptVec[i]) > 3.0) {
       corners.erase(idx[i]);
+      fsm_.updateBadCount(idx[i]);
     } else {
       fsm_.addFeature(idx[i],curFramePtr.get());
     }
   }
+
   //step2: remove untracked features
   for (auto it = features.begin(); it != features.end();) {
     if (!it->second.isInFrame(curFramePtr.get())) {
       fsm_.removeFeature(it++);
+      continue;
+    }
+    if (it->second.getBadCount() >= 3) {
+      fsm_.removeFeature(it++);
+      cv::Point3f pt3d = it->second.getPts3DInWorld();
+      printf("[Features]:Remove %d feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
       continue;
     }
     it++;
