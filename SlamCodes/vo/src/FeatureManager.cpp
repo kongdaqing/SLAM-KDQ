@@ -37,13 +37,16 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
   return true;
 }
 
-void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts) {
+void FeatureManager::featureMatching(const Camera *cam,
+                                     const Frame *f,
+                                     std::vector<uint64_t>& matchedIds,
+                                     std::vector<cv::Point2f>& matchedNormalizedUV,
+                                     std::vector<cv::Point3f>& matched3DPts) {
   const std::map<uint64,cv::Point2f> &corners = f->getCorners();
   std::vector<std::pair<int,uint64>> candiFeats;
   matchedNormalizedUV.clear();
   matched3DPts.clear();
-  int triCount = 0;
-  int oldCount = 0;
+  matchedIds.clear();
   for (auto it = corners.begin(); it != corners.end(); it++) {
     const uint64 id = it->first;
     if (feats_.count(id)) {
@@ -52,7 +55,7 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
         cv::Point2f normlizedUV = cam->normalized(it->second);
         matchedNormalizedUV.push_back(normlizedUV);
         matched3DPts.push_back(feats_[id].getPts3DInWorld());
-        oldCount++;
+        matchedIds.push_back(id);
       } else if (feats_[id].getTrackCount() > 4) {
       //Condition2: 如果该点track次数超过4次，但是没有被三角化，那么可以直接三角化  
         cv::Point3f pt3d;
@@ -63,7 +66,7 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
           cv::Point2f normlizedUV = cam->normalized(it->second);
           matchedNormalizedUV.push_back(normlizedUV);
           matched3DPts.push_back(feats_[id].getPts3DInWorld());
-          triCount++;
+          matchedIds.push_back(id);
         }
       } else if (feats_[id].getTrackCount() >= 2) {
       //Condition3: 如果该点track次数已经有2次或者以上，可以先作为候选点  
@@ -79,14 +82,15 @@ void FeatureManager::featureMatching(const Camera *cam,const Frame *f,std::vecto
     std::vector<std::pair<int,uint64>>::const_iterator it = candiFeats.begin();
     while (it != candiFeats.end() && matchedNormalizedUV.size() < 30) {
       cv::Point3f pt3d;
-      if (triangulate(cam,it->second,pt3d)) {
-        feats_[it->second].setPtsInWorld(pt3d);
+      const uint64_t id = it->second;
+      if (triangulate(cam,id,pt3d)) {
+        feats_[id].setPtsInWorld(pt3d);
       }
-      if (feats_[it->second].valid3D()) {
-        cv::Point2f normlizedUV = cam->normalized(corners.at(it->second));
+      if (feats_[id].valid3D()) {
+        cv::Point2f normlizedUV = cam->normalized(corners.at(id));
         matchedNormalizedUV.push_back(normlizedUV);
-        matched3DPts.push_back(feats_[it->second].getPts3DInWorld()); 
-        triCount++;
+        matched3DPts.push_back(feats_[id].getPts3DInWorld()); 
+        matchedIds.push_back(id);
       }
       it++;
     }

@@ -10,6 +10,7 @@ class Feature {
    */
   Feature() {
     valid3D_ = false;
+    badCount_ = 0;
   }
 
   /** \brief construct function include set id and add feature pixel
@@ -20,6 +21,7 @@ class Feature {
     id = idx;
     addFrame(f);
     valid3D_ = false;
+    badCount_ = 0;
   }
 
   /** \brief add frame and pixel coordinate
@@ -80,10 +82,22 @@ class Feature {
     return (uv.count(f));
   }
 
+  /** \brief increase bad Count
+   */ 
+  void incBadCount() {
+    badCount_++;
+  }
+
+  /** \brief get badCount 
+   */ 
+  int getBadCount() const {
+    return badCount_;
+  }
  private:
   uint64 id;
   std::map<const Frame*,cv::Point2f> uv;
   cv::Point3f p3D;
+  int badCount_;
   bool valid3D_;
 };
 
@@ -128,7 +142,7 @@ class FeatureManager {
    * @param curUV  --- matched feature' pixel coordinates in input frame f
    * @param matched3DPts  ---  matched feature 3D coordinate in FM
    */ 
-  void featureMatching(const Camera *cam,const Frame* f,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
+  void featureMatching(const Camera *cam,const Frame* f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
 
   /** \brief add feature in the FM
    * @param id  ---  id of feature
@@ -143,6 +157,14 @@ class FeatureManager {
     }
   }
   
+  /** \brief update bad count of id feature
+   */
+  void updateBadCount(uint64_t id) {
+    if (feats_.count(id)) {
+      feats_[id].incBadCount();
+    }
+  } 
+
   /** \brief set feature 3D coordinate in the world frame
    * @param id    ---  id of the feature
    * @param pts3D ---  3D coordinate 
