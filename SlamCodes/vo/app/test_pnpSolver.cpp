@@ -60,7 +60,7 @@ int main(int argc,char **argv) {
    if (uv.size() > 5) {
      cv::Mat r,t;
      std::vector<int> inlier;
-     solver.solveByPnp(uv,pts3d,cam->fx(),r,t,inlier,0.9);
+     solver.solveByPnp(uv,pts3d,inlier,cam->fx(),r,t,0.9);
      solvedPose.rotation(r);
      cv::Mat tt = t + (cv::Mat_<double>(3,1) << 0,0,0.2);
      solvedPose.translation(tt);
