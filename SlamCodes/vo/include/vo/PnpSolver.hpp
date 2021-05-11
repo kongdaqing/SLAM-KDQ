@@ -24,13 +24,16 @@ class PnpSolver {
     }
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
     bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW,false,100,2.0/focalLength,0.9,inlier);
-//#define VERBOOSE
+#define VERBOOSE
 #ifdef VERBOOSE    
     std::cout << "result flg = " << resultFlg << ",Feature size = " << matchedPts3D.size() << ",Inlier = " << inlier.size() << ":\n" ;
     for (int i = 0; i < matchedPts3D.size(); i++) {
       cv::Affine3d T(rcw,CtW);
       cv::Point3f ptInCam =  T * matchedPts3D[i];
-      std::cout << ptInCam/ptInCam.z << " vs " << normalizedUV[i] << std::endl;
+      cv::Point2f ptInCamUV(ptInCam.x / ptInCam.z, ptInCam.y / ptInCam.z);
+      cv::Point2f reproErr = normalizedUV[i] - ptInCamUV;
+      int inlier = cv::norm(reproErr) < 2.0 / focalLength;
+      std::cout << " Inlier: " << inlier << ", " << ptInCamUV << " vs " << normalizedUV[i] << " vs " << cv::norm(reproErr) << std::endl;
     }
 #endif
     return resultFlg && inlier.size() > ratio * normalizedUV.size();

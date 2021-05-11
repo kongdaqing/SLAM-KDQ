@@ -9,14 +9,14 @@ OptiTrack.Iterations: 20
 OptiTrack.EPS: 0.01
 
 
-Init.MinDisparity: 6
+Init.MinDisparity: 8
 Init.MinMatchedFeatNum: 20
 Init.ReprojectErr: 1
 Init.HomographyTransformErr: 3
 
 Sim.Length.x: 10.0
 Sim.Length.y: 10.0
-Sim.Length.z: 0.2
+Sim.Length.z: 0.01
 Sim.Origin.x: 0.0
 Sim.Origin.y: 0.0
 Sim.Origin.z: 1.0
