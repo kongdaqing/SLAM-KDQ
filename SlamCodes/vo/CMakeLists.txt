@@ -51,8 +51,13 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
 project(vo)
 
-find_package(OpenCV REQUIRED)
+if (APPLE)
+find_package(OpenCV 4.0 REQUIRED)
+else()
+set(OpenCV_DIR "/home/kdq/packages/opencv4/opencv/build")
+find_package(OpenCV 4.0 REQUIRED)
 message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
+endif()
 
 include_directories(
   include/vo
