@@ -52,7 +52,7 @@ int main(int argc,char **argv) {
      } 
    }
    Frame *frame = new Frame(timestamp,feats);
-   estimator.update(FramePtr(frame));
+   estimator.update(FramePtr(frame),false);
    std::cout << "state = " << estimator.getEstimatorState() << std::endl;
    cv::Mat Rwc,WtC;
    if (estimator.getCurrentPose(Rwc,WtC) && estimator.getEstimatorState() == 2) {

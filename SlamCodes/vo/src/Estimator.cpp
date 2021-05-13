@@ -18,8 +18,7 @@ Estimator::~Estimator() {
   delete feaTrcker;
 }
 
-void Estimator::update(FramePtr frame) {
-  bool trackEnable = false;
+void Estimator::update(FramePtr frame,bool trackEnable) {
   FramePtr lastFramePtr = nullptr;
   if (!slideWindows_.empty()) {
     lastFramePtr = slideWindows_.back();

@@ -27,9 +27,10 @@ class Estimator {
   void reset();
 
   /** \brief estimator update 
-   * @param FramePtr  --- frame shared_ptr 
+   * @param FramePtr    --- frame shared_ptr 
+   * @param trackEnable --- enable track features
    */
-  void update(FramePtr frame);
+  void update(FramePtr frame,bool trackEnable);
 
   /** \brief get estimator state
    */ 
