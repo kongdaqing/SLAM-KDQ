@@ -49,6 +49,10 @@ cmake_minimum_required(VERSION 2.8.3)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
+get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
+message(STATUS ${PARENT_DIRECTORY})
+set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
+set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.a")
 project(vo)
 
 if (APPLE)
@@ -62,6 +66,7 @@ endif()
 include_directories(
   include/vo
   ${OpenCV_INCLUDE_DIRS}
+  ${D435I_INCLUDE_DIR}
 )
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp
@@ -93,5 +98,8 @@ target_link_libraries(test_pnpSolver ${OpenCV_LIBS} volib)
 
 add_executable(test_estimator app/test_estimator.cpp)
 target_link_libraries(test_estimator ${OpenCV_LIBS} volib)
+
+add_executable(test_d435i_feature_track app/test_d435i_feature_track.cpp)
+target_link_libraries(test_d435i_feature_track ${OpenCV_LIBS} ${D435I_LIBS})
 
 endif()

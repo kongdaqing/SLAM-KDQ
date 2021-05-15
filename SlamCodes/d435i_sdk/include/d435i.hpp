@@ -7,8 +7,8 @@ class D435I {
  public:  
   D435I() {
     cfg_.disable_stream(RS2_STREAM_DEPTH);
-    cfg_.enable_stream(RS2_STREAM_INFRARED, 1, 640, 480,RS2_FORMAT_Y8,30);
-    cfg_.enable_stream(RS2_STREAM_INFRARED, 2, 640, 480,RS2_FORMAT_Y8,30);
+    cfg_.enable_stream(RS2_STREAM_INFRARED, 1, 640, 480, RS2_FORMAT_Y8, 30);
+    cfg_.enable_stream(RS2_STREAM_INFRARED, 2, 640, 480, RS2_FORMAT_Y8, 30);
   }
 
   void start();
