@@ -6,7 +6,14 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_INSTALL_PREFIX "../../env/")
 
 
-find_package(OpenCV REQUIRED)
+if (APPLE)
+find_package(OpenCV 4.0 REQUIRED)
+else()
+set(OpenCV_DIR "/home/kdq/packages/opencv4/opencv/build")
+find_package(OpenCV 4.0 REQUIRED)
+message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
+endif()
+
 find_package(realsense2 REQUIRED)
 
 message(STATUS "realsense2_INCLUDE_DIR = ${realsense2_INCLUDE_DIR}")

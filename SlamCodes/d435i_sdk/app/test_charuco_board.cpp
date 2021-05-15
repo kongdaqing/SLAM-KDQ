@@ -22,8 +22,8 @@ static bool readCameraParameters(std::string filename, cv::Mat& camMatrix, cv::M
 }
 void createBoard()
 {
-    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
-    cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(6, 6, 0.05f, 0.04f, dictionary);
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(8, 5, 0.03f, 0.0225f, dictionary);
     cv::Mat boardImage;
     board->draw(cv::Size(800, 800), boardImage, 10, 1);
     cv::imwrite("BoardImage.jpg", boardImage);
@@ -38,8 +38,8 @@ void detectCharucoBoardWithCalibrationPose()
     if (!readOk) {
         std::cerr << "Invalid camera file" << std::endl;
     } else {
-        cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
-        cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(6, 6, 0.05f, 0.04f, dictionary);
+        cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+        cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(8, 5, 0.03f, 0.0225f, dictionary);
         cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
         while (1) {
             cv::Mat leftImg,rightImg;
@@ -80,8 +80,8 @@ void detectCharucoBoardWithoutCalibration()
 {
     D435I d435i;
     d435i.start();
-    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
-    cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(6, 6, 0.05f, 0.04f, dictionary);
+    cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_4X4_50);
+    cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(8, 5, 0.03f, 0.0225f, dictionary);
     cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
     params->cornerRefinementMethod = cv::aruco::CORNER_REFINE_NONE;
     while (1) {
