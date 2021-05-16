@@ -22,8 +22,10 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     curCorners = refCorners; 
     if (refCorners.size() > 5) {
       std::vector<uchar> status;
+      std::cout << "pyramid = " << CV_8UC1 << std::endl;
       cv::calcOpticalFlowPyrLK(refFrame->image_,curFrame->image_,refCorners,curCorners,status,cv::Mat(),
                               cv::Size(21,21),PyramidLevel,cv::TermCriteria(1,CriterIterations,CriterEPS));
+      std::cout << "track over" << std::endl;
       remove(status,refCorners);
       remove(status,curCorners);
       remove(status,idx);
@@ -49,6 +51,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   curFrame->getCornerVector(idx,curCorners);
   cv::Mat mask = setMask(curFrame->image_,curCorners);
   const int needFeatSize = MaxPointSize - curCorners.size();
+  std::cout << "needFeatsize = " << needFeatSize << std::endl;
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
     cv::goodFeaturesToTrack(curFrame->image_,feats,needFeatSize,QualityLevel,MinDist,mask);
@@ -59,6 +62,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     }
     curFrame->setCornerMap(newIdx,feats);
   }
+  std::cout << "corner size : " << curFrame->getCorners().size() << std::endl;
 }
 
 }
