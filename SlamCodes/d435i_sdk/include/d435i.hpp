@@ -14,7 +14,7 @@ class D435I {
   void start();
 
 
-  void getInfraredImages(cv::Mat& leftImg,cv::Mat& rightImg);
+  bool getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightImg);
 
  private:
   rs2::pipeline pipe_;

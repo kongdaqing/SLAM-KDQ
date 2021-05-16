@@ -9,14 +9,17 @@ void D435I::start() {
   }
 }
 
-void D435I::getInfraredImages(cv::Mat& leftImg,cv::Mat& rightImg) {
+bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightImg) {
   rs2::frameset data = pipe_.wait_for_frames();
   if (data) {
     rs2::video_frame infrared1 = data.get_infrared_frame(1);
     rs2::video_frame infrared2 = data.get_infrared_frame(2);
+    timestamp = infrared1.get_timestamp();
     cv::Mat infraredImg1(infrared1.get_height(),infrared1.get_width(),CV_8UC1,(void *)infrared1.get_data());
     infraredImg1.copyTo(leftImg);
     cv::Mat infraredImg2(infrared2.get_height(),infrared2.get_width(),CV_8UC1,(void *)(infrared2.get_data()));
     infraredImg2.copyTo(rightImg);
+    return true;
   }
+  return false;
 }

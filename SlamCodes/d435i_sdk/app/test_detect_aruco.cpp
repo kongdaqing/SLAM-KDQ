@@ -5,8 +5,11 @@ int main(int argc,char **argv) {
   D435I d435i;
   d435i.start();
   while(1) {
+    double timestamp;
     cv::Mat leftImg,rightImg;
-    d435i.getInfraredImages(leftImg,rightImg);
+    if (!d435i.getInfraredImages(timestamp,leftImg,rightImg)) {
+      continue;
+    }
     if (!leftImg.empty()) {
       std::vector<int> markerIds;
       std::vector<std::vector<cv::Point2f>> markerCorners, rejectedCandidates;

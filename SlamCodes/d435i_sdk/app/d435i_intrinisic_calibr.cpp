@@ -171,8 +171,11 @@ int main(int argc, char *argv[]) {
     Size imgSize;
 
     while(1) {
+        double timestamp;
         cv::Mat leftImg,rightImg;
-        d435i.getInfraredImages(leftImg,rightImg);
+        if (!d435i.getInfraredImages(timestamp,leftImg,rightImg)) {
+          continue;
+        }
 
         Mat image, imageCopy;
         leftImg.copyTo(image);

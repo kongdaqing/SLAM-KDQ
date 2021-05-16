@@ -42,8 +42,11 @@ void detectCharucoBoardWithCalibrationPose()
         cv::Ptr<cv::aruco::CharucoBoard> board = cv::aruco::CharucoBoard::create(8, 5, 0.03f, 0.0225f, dictionary);
         cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
         while (1) {
+            double timestamp;
             cv::Mat leftImg,rightImg;
-            d435i.getInfraredImages(leftImg,rightImg);
+            if (!d435i.getInfraredImages(timestamp,leftImg,rightImg)) {
+              continue;
+            }
             cv::Mat image;
             cv::Mat imageCopy;
             leftImg.copyTo(image);
@@ -85,8 +88,11 @@ void detectCharucoBoardWithoutCalibration()
     cv::Ptr<cv::aruco::DetectorParameters> params = cv::aruco::DetectorParameters::create();
     params->cornerRefinementMethod = cv::aruco::CORNER_REFINE_NONE;
     while (1) {
+        double timestamp;
         cv::Mat leftImg, rightImg;
-        d435i.getInfraredImages(leftImg, rightImg);
+        if (!d435i.getInfraredImages(timestamp,leftImg, rightImg)) {
+          continue;
+        }
         cv::Mat image, imageCopy;
         leftImg.copyTo(image);
         cvtColor(image,imageCopy,cv::COLOR_GRAY2BGR);
