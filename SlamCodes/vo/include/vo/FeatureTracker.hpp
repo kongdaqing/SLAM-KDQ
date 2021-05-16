@@ -2,7 +2,7 @@
 #include <opencv2/core.hpp>
 #include "Config.hpp"
 #include "Frame.hpp"
-
+#include "Camera.hpp"
 namespace ov {
 class FeatureTracker{
  public:
@@ -25,6 +25,7 @@ class FeatureTracker{
   const int PyramidLevel;
   const int CriterIterations;
   const double CriterEPS;
+  Camera* cam_; 
 
   uint64 id_;
 
@@ -42,6 +43,7 @@ class FeatureTracker{
         j++;
       }
     } 
+    data.resize(j);
   }
 
   /** \brief set mask at given features
@@ -49,13 +51,13 @@ class FeatureTracker{
    * @param feat ---  vector of featurs
    */ 
   cv::Mat setMask(const cv::Mat& img,const std::vector<cv::Point2f>& feat) {
-    cv::Mat mask(cv::Size(img.cols,img.rows),CV_8U,255);
+    cv::Mat mask(cv::Size(img.cols,img.rows),CV_8UC1,255);
     if (feat.empty()) {
       return mask;
     }
     for (size_t i = 0; i < feat.size(); i++) {
-      if (mask.at<uchar>(feat[i].x,feat[i].y) == 0) {
-        cv::circle(mask,feat[i],MinDist,0);
+      if (mask.at<uchar>(feat[i]) == 255) {
+        cv::circle(mask,feat[i],MinDist,0,-1);
       }
     }
     return mask;
