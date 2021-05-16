@@ -193,7 +193,7 @@ int main(int argc, char *argv[]) {
                                              currentCharucoIds);
 
         // draw results
-        image.copyTo(imageCopy);
+        cvtColor(image,imageCopy,COLOR_GRAY2BGR);
         if(ids.size() > 0) aruco::drawDetectedMarkers(imageCopy, corners);
 
         if(currentCharucoCorners.total() > 0)
