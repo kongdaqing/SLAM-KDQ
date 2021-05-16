@@ -11,18 +11,16 @@ void showAllFeature(const std::list<std::map<uint64,cv::Point2f>> &corners,cv::M
    
   std::map<uint64,cv::Point2f> cornerFront = corners.front();
   std::map<uint64,cv::Point2f> cornerBack = corners.back();
-  std::cout << "corner front size = " << cornerFront.size() << " back size = " << cornerBack.size() << std::endl;
   for(auto it = cornerBack.begin(); it != cornerBack.end(); it++) {
     uint64 id = it->first;
-    std::cout << "id = " << id << std::endl;
     if (cornerFront.count(id)) {
       cv::Point2f pointBegin = cornerFront[id];
       cv::Point2f pointEnd = cornerBack[id];
       cv::line(colorImg,pointBegin,pointEnd,cv::Scalar(0,255,0));
     }
   }
-  //cv::resize(colorImg,colorImg,cv::Size(colorImg.cols * scale, colorImg.rows * scale));
-  //cv::imshow("track test",colorImg);
+  cv::resize(colorImg,colorImg,cv::Size(colorImg.cols * scale, colorImg.rows * scale));
+  cv::imshow("track test",colorImg);
   cv::waitKey(1);
 }
 
@@ -48,13 +46,13 @@ int main(int argc,char **argv) {
       FramePtr curF(new Frame(time_s,leftImg));
       featTracker->detectAndTrackFeature(lastF,curF);
       lastF = curF;
-      // curF->imshowFeatures(2);
-      // std::map<uint64,cv::Point2f> curCorners = curF->getCornersCopy();
-      // windowsFeatures.push_back(curCorners);
-      // showAllFeature(windowsFeatures,curF->image_,1);
-      // if (windowsFeatures.size() > 5) {
-      //  windowsFeatures.pop_front();
-      // }
+      curF->imshowFeatures(2);
+      std::map<uint64,cv::Point2f> curCorners = curF->getCornersCopy();
+      windowsFeatures.push_back(curCorners);
+      showAllFeature(windowsFeatures,curF->image_,1);
+      if (windowsFeatures.size() > 5) {
+       windowsFeatures.pop_front();
+      }
     }
     cv::waitKey(10);
   }
