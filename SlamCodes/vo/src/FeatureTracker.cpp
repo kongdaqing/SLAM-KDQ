@@ -11,6 +11,7 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     CriterEPS(cfg->optParam_.eps) {
   id_ = 0;
   cam_ = new Camera(cfg);
+  trackCount_.clear();
 };
 
 
@@ -19,9 +20,9 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   if (curFrame == nullptr || curFrame->image_.empty()) {
     return;
   }
+  std::vector<uint64_t> idx;
+  std::vector<cv::Point2f> refCorners,curCorners;
   if (refFrame != nullptr) {
-    std::vector<uint64> idx;
-    std::vector<cv::Point2f> refCorners,curCorners;
     refFrame->getCornerVector(idx,refCorners);
     curCorners = refCorners; 
     if (refCorners.size() > 5) {
@@ -37,6 +38,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
       remove(status,refCorners);
       remove(status,curCorners);
       remove(status,idx);
+      remove(status,trackCount_);
       
       if (TrackBack) {
         std::vector<uchar> status;
@@ -51,15 +53,16 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
         }
         remove(status,curCorners);
         remove(status,idx);
+        remove(status,trackCount_);
       }
-      curFrame->setCornerMap(idx,curCorners);
+      for (size_t i = 0; i < trackCount_.size(); i++) {
+        trackCount_[i]++;
+      }
+      
     }
   } 
-
-  std::vector<uint64> idx;
-  std::vector<cv::Point2f> curCorners;
-  curFrame->getCornerVector(idx,curCorners);
-  cv::Mat mask = setMask(curFrame->image_,curCorners);
+  cv::Mat mask = setMask(curFrame->image_,idx,curCorners);
+  curFrame->setCornerMap(idx,curCorners);
   const int needFeatSize = MaxPointSize - curCorners.size();
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
@@ -68,6 +71,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     for (size_t i = 0;i < feats.size(); i++) {
       id_++;
       newIdx.push_back(id_);
+      trackCount_.push_back(1);
     }
     curFrame->setCornerMap(newIdx,feats);
   }

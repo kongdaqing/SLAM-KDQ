@@ -26,8 +26,8 @@ class FeatureTracker{
   const int CriterIterations;
   const double CriterEPS;
   Camera* cam_; 
-
-  uint64 id_;
+  uint64_t id_;
+  std::vector<uint64_t> trackCount_;
 
   /** \brief remove bad data in the vector
    * @param status  ---  status vector 1 is good,0 needs remove
@@ -50,14 +50,29 @@ class FeatureTracker{
    * @param img  ---  image size
    * @param feat ---  vector of featurs
    */ 
-  cv::Mat setMask(const cv::Mat& img,const std::vector<cv::Point2f>& feat) {
+  cv::Mat setMask(const cv::Mat& img,std::vector<uint64_t>& idx,std::vector<cv::Point2f>& feat) {
+    assert(trackCount_.size() == feat.size());
     cv::Mat mask(cv::Size(img.cols,img.rows),CV_8UC1,255);
-    if (feat.empty()) {
+    if (feat.size() < 2) {
       return mask;
     }
-    for (size_t i = 0; i < feat.size(); i++) {
-      if (mask.at<uchar>(feat[i]) == 255) {
-        cv::circle(mask,feat[i],MinDist,0,-1);
+    std::vector<std::pair<uint64_t,std::pair<uint64_t,cv::Point2f>>> sortVec;
+    for (size_t i = 0; i < idx.size(); i++) {
+      sortVec.push_back(std::make_pair(trackCount_[i],std::make_pair(idx[i],feat[i])));
+    }
+    std::sort(sortVec.begin(), sortVec.end(), [](const std::pair<uint64_t, std::pair<uint64_t, cv::Point2f>> &a, 
+      const std::pair<uint64_t, std::pair<uint64_t, cv::Point2f>> &b) {
+      return a.first > b.first;
+    });
+    idx.clear();
+    trackCount_.clear();
+    feat.clear();
+    for (size_t i = 0; i < sortVec.size(); i++) {
+      if (mask.at<uchar>(sortVec[i].second.second) == 255) {
+        cv::circle(mask,sortVec[i].second.second,MinDist,0,-1);
+        idx.push_back(sortVec[i].second.first);
+        feat.push_back(sortVec[i].second.second);
+        trackCount_.push_back(sortVec[i].first);
       }
     }
     return mask;
