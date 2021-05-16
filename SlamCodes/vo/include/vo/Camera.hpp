@@ -7,7 +7,7 @@ class Camera {
   /** \brief Construct Function
    * @param cfg  ---  config object
    */ 
-  Camera(Config* cfg):
+  Camera(const Config* cfg):
   Width(cfg->camParam_.width),
   Height(cfg->camParam_.height) {
     is_fisheye_ = cfg->camParam_.is_fisheye;
@@ -133,7 +133,9 @@ class Camera {
   /** \brief check pixel coordinate is in the camera
    */ 
   inline bool isInFrame(const cv::Point2f& uv) const{
-    return (uv.x > 0 && uv.x < Width && uv.y > 0 && uv.y < Height);
+    int x = cvRound(uv.x);
+    int y = cvRound(uv.y);
+    return (x > 2 && x < (Width - 2) && y > 2 && y < (Height - 2));
   }
   /** \brief get focal length in the x-axis
    */ 
