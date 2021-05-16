@@ -33,7 +33,7 @@ Camera.Distortion: !!opencv-matrix
   rows: 1
   cols: 4
   dt: d
-  data: [1.4136305444704679e-02, -2.9516089910934715e-02,1.0711762333815588e-04, 8.7513871102637506e-04,]
+  data: [0.2742372,-0.3608315,0.1168417,0.0000000]
 Camera.IsFisheye : 1
 Camera.Width: 320
 Camera.Height: 240

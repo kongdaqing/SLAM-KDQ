@@ -10,11 +10,15 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     CriterIterations(cfg->optParam_.iterations),
     CriterEPS(cfg->optParam_.eps) {
   id_ = 0;
+  cam_ = new Camera(cfg);
 };
 
 
 
 void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) {
+  if (curFrame == nullptr || curFrame->image_.empty()) {
+    return;
+  }
   if (refFrame != nullptr) {
     std::vector<uint64> idx;
     std::vector<cv::Point2f> refCorners,curCorners;
@@ -22,20 +26,26 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     curCorners = refCorners; 
     if (refCorners.size() > 5) {
       std::vector<uchar> status;
-      std::cout << "pyramid = " << CV_8UC1 << std::endl;
-      cv::calcOpticalFlowPyrLK(refFrame->image_,curFrame->image_,refCorners,curCorners,status,cv::Mat(),
+      cv::Mat err;
+      cv::calcOpticalFlowPyrLK(refFrame->image_,curFrame->image_,refCorners,curCorners,status,err,
                               cv::Size(21,21),PyramidLevel,cv::TermCriteria(1,CriterIterations,CriterEPS));
-      std::cout << "track over" << std::endl;
+      for (size_t i = 0; i < status.size(); i++) {
+        if (status[i] && !cam_->isInFrame(curCorners[i])) {
+          status[i] = 0;
+        } 
+      }
       remove(status,refCorners);
       remove(status,curCorners);
       remove(status,idx);
+      
       if (TrackBack) {
         std::vector<uchar> status;
         std::vector<cv::Point2f> refBackCorners = refCorners;
-        cv::calcOpticalFlowPyrLK(curFrame->image_,refFrame->image_,curCorners,refBackCorners,status,cv::Mat(),
+        cv::Mat err;
+        cv::calcOpticalFlowPyrLK(curFrame->image_,refFrame->image_,curCorners,refBackCorners,status,err,
                                  cv::Size(21,21),1,cv::TermCriteria(1,10,0.1));
         for (size_t i = 0; i < status.size(); i++) {
-          if (status[i] && cv::norm(refCorners[i] - refBackCorners[i]) > 2.0) {
+          if (status[i] && (!cam_->isInFrame(refBackCorners[i]) || cv::norm(refCorners[i] - refBackCorners[i]) > 2.0)) {
             status[i] = 0;
           } 
         }
@@ -51,7 +61,6 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   curFrame->getCornerVector(idx,curCorners);
   cv::Mat mask = setMask(curFrame->image_,curCorners);
   const int needFeatSize = MaxPointSize - curCorners.size();
-  std::cout << "needFeatsize = " << needFeatSize << std::endl;
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
     cv::goodFeaturesToTrack(curFrame->image_,feats,needFeatSize,QualityLevel,MinDist,mask);
@@ -62,7 +71,6 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     }
     curFrame->setCornerMap(newIdx,feats);
   }
-  std::cout << "corner size : " << curFrame->getCorners().size() << std::endl;
 }
 
 }
