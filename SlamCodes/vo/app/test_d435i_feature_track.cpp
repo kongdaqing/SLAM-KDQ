@@ -37,13 +37,11 @@ int main(int argc,char **argv) {
   D435I d435i_device;
   d435i_device.start();
   std::list<std::map<uint64,cv::Point2f> > windowsFeatures;
-  double time_s = 0;
   while (1) {
-    time_s++;
+    double timestamp;
     cv::Mat leftImg,rightImg;
-    d435i_device.getInfraredImages(leftImg,rightImg);
-    if (!leftImg.empty()) {
-      FramePtr curF(new Frame(time_s,leftImg));
+    if (d435i_device.getInfraredImages(timestamp,leftImg,rightImg)) {
+      FramePtr curF(new Frame(timestamp,leftImg));
       featTracker->detectAndTrackFeature(lastF,curF);
       lastF = curF;
       curF->imshowFeatures(2);
