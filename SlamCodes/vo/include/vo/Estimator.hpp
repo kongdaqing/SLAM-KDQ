@@ -58,7 +58,7 @@ class Estimator {
   Config* cfg_;
   Camera* cam_;
   Initializator* init_;
-  FeatureTracker* feaTrcker;
+  FeatureTracker* feaTrcker_;
   FeatureManager fsm_;
   PnpSolver pnpSolver_;
   std::vector<FramePtr> slideWindows_;

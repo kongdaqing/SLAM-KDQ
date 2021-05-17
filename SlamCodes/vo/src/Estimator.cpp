@@ -5,7 +5,7 @@ Estimator::Estimator(std::string configFile) {
   cfg_ = new Config(configFile);
   cam_ = new Camera(cfg_);
   init_ = new Initializator(cfg_,cam_);
-  feaTrcker = new FeatureTracker(cfg_);
+  feaTrcker_ = new FeatureTracker(cfg_);
   state = EstState::Waiting;
   reset();
 }
@@ -15,7 +15,7 @@ Estimator::~Estimator() {
   delete cfg_;
   delete cam_;
   delete init_;
-  delete feaTrcker;
+  delete feaTrcker_;
 }
 
 void Estimator::update(FramePtr frame,bool trackEnable) {
@@ -24,7 +24,8 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     lastFramePtr = slideWindows_.back();
   }
   if (trackEnable) {
-    feaTrcker->detectAndTrackFeature(lastFramePtr,frame);
+    feaTrcker_->detectAndTrackFeature(lastFramePtr,frame);
+    frame->imshowFeatures();
   } 
   slideWindows_.push_back(frame);
   switch (state)
@@ -79,6 +80,7 @@ void Estimator::slideWindow() {
 void Estimator::reset() {
   fsm_.reset();
   slideWindows_.clear();
+  feaTrcker_->reset();
 }
 
 
@@ -167,7 +169,7 @@ void Estimator::updateFeature() {
     if (it->second.getBadCount() >= 3) {
       fsm_.removeFeature(it++);
       cv::Point3f pt3d = it->second.getPts3DInWorld();
-      printf("[Features]:Remove %d feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
+      printf("[Features]:Remove %lld feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
       continue;
     }
     it++;
