@@ -40,7 +40,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
       remove(status,idx);
       remove(status,trackCount_);
       
-      if (TrackBack) {
+      if (TrackBack && curCorners.size() > 5) {
         std::vector<uchar> status;
         std::vector<cv::Point2f> refBackCorners = refCorners;
         cv::Mat err;
