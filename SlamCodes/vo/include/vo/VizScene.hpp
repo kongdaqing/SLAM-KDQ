@@ -110,7 +110,7 @@ class VizScene {
   std::mutex mCloud_;
   /** \brief construction function
    */ 
-  VizScene(std::string windowName);
+  VizScene(std::string windowName,double scale = 1.0);
 
   /** \brief disconstruction function
    */ 
@@ -159,5 +159,7 @@ class VizScene {
    */
   bool updateCameraPose(std::string cameraName,const cv::Affine3d& cameraPose);
  
+  void clearCameraPath(std::string cameraName);
+
 };
 }

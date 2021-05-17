@@ -1,10 +1,10 @@
 #include "VizScene.hpp"
 
 namespace ov {
-VizScene::VizScene(std::string windowName) {
+VizScene::VizScene(std::string windowName,double scale) {
   sceneCloud_.clear();
   sceneWindowPtr_ = new cv::viz::Viz3d(windowName);
-  sceneWindowPtr_->showWidget("widget coordinate",cv::viz::WCoordinateSystem());
+  sceneWindowPtr_->showWidget("widget coordinate",cv::viz::WCoordinateSystem(scale));
 #ifndef __APPLE__
   //windowLoopThread_ = new std::thread(&VizScene::windowShowLoopRun,this);
 #endif
@@ -108,6 +108,14 @@ bool VizScene::updateCameraPose(std::string cameraName,const cv::Affine3d& camer
   sceneCamera_[cameraName].updatePose(cameraPose);
   return true;
 }
+
+void VizScene::clearCameraPath(std::string cameraName) {
+  if (sceneCamera_.count(cameraName)) {
+    sceneCamera_[cameraName].path_.clear();
+  }
+}
+
+
 }
 
 
