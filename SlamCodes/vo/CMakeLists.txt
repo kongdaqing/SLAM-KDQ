@@ -105,4 +105,8 @@ target_link_libraries(test_estimator ${OpenCV_LIBS} volib)
 add_executable(test_d435i_feature_track app/test_d435i_feature_track.cpp)
 target_link_libraries(test_d435i_feature_track ${OpenCV_LIBS} volib ${realsense2_LIBRARY} ${D435I_LIBS})
 
+
+add_executable(d435i_estimator app/d435i_estimator.cpp)
+target_link_libraries(d435i_estimator ${OpenCV_LIBS} volib ${realsense2_LIBRARY} ${D435I_LIBS})
+
 endif()
