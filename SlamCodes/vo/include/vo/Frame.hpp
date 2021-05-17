@@ -163,7 +163,7 @@ class Frame {
     }
   }
 
-  void imshowFeatures(uint scale) {
+  void imshowFeatures(uint scale = 1) {
     if (image_.empty()) {
       return;
     }
