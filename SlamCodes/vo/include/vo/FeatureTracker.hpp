@@ -16,7 +16,17 @@ class FeatureTracker{
    * @param curFrame  --- current frame ptr
    */ 
   void detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame);
+
+
+  void showAllFeature(cv::Mat &img,uint8_t imgScale = 1); 
+
+  void reset() {
+    id_ = 0;
+    trackCount_.clear();
+    allCorners_.clear();
+  }
   
+
  private:
   const int MaxPointSize;
   const float QualityLevel;
@@ -25,10 +35,11 @@ class FeatureTracker{
   const int PyramidLevel;
   const int CriterIterations;
   const double CriterEPS;
+  const int ShowTrackFrames;
   Camera* cam_; 
   uint64_t id_;
   std::vector<uint64_t> trackCount_;
-
+  std::list<std::map<uint64,cv::Point2f>> allCorners_;
   /** \brief remove bad data in the vector
    * @param status  ---  status vector 1 is good,0 needs remove
    * @param data    ---  vector data 

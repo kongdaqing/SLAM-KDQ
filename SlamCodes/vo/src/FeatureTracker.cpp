@@ -8,10 +8,10 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     TrackBack(cfg->optParam_.trackBack),
     PyramidLevel(cfg->optParam_.pyramidLevel),
     CriterIterations(cfg->optParam_.iterations),
-    CriterEPS(cfg->optParam_.eps) {
-  id_ = 0;
+    CriterEPS(cfg->optParam_.eps),
+    ShowTrackFrames(cfg->optParam_.showTrackFrames) {
   cam_ = new Camera(cfg);
-  trackCount_.clear();
+  reset();
 };
 
 
@@ -63,6 +63,16 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   } 
   cv::Mat mask = setMask(curFrame->image_,idx,curCorners);
   curFrame->setCornerMap(idx,curCorners);
+
+  if (ShowTrackFrames > 0) {
+    std::map<uint64,cv::Point2f> curFeats = curFrame->getCornersCopy();
+    allCorners_.push_back(curFeats);
+    if (allCorners_.size() > ShowTrackFrames) {
+      allCorners_.pop_front();
+    }
+    showAllFeature(curFrame->image_);
+  }
+
   const int needFeatSize = MaxPointSize - curCorners.size();
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
@@ -75,6 +85,26 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     }
     curFrame->setCornerMap(newIdx,feats);
   }
+}
+
+
+void FeatureTracker::showAllFeature(cv::Mat &img,uint8_t imgScale) {
+  cv::Mat colorImg;
+  cv::cvtColor(img,colorImg,cv::COLOR_GRAY2BGR);
+  std::map<uint64,cv::Point2f> cornerFront = allCorners_.front();
+  std::map<uint64,cv::Point2f> cornerBack = allCorners_.back();
+  for(auto it = cornerBack.begin(); it != cornerBack.end(); it++) {
+    uint64 id = it->first;
+    if (cornerFront.count(id)) {
+      cv::Point2f pointBegin = cornerFront[id];
+      cv::Point2f pointEnd = cornerBack[id];
+      cv::putText(colorImg,std::to_string(it->first),pointEnd,cv::FONT_HERSHEY_PLAIN,1,cv::Scalar(0,0,255));
+      cv::line(colorImg,pointBegin,pointEnd,cv::Scalar(0,255,0));
+    }
+  }
+  cv::resize(colorImg,colorImg,cv::Size(colorImg.cols * imgScale, colorImg.rows * imgScale));
+  cv::imshow("all features",colorImg);
+  cv::waitKey(1);
 }
 
 }
