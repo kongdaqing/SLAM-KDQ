@@ -1,18 +1,23 @@
 %YAML:1.0
 
-OptiTrack.TrackBack: 0
+OptiTrack.TrackBack: 1
+OptiTrack.TrackBackPixelErr: 20
 OptiTrack.MaxPoints: 200
-OptiTrack.MinDist: 30
+OptiTrack.MinDist: 20
 OptiTrack.QualityLevel: 0.03
 OptiTrack.PyramidLevel: 3
 OptiTrack.Iterations: 20
 OptiTrack.EPS: 0.01
-
+OptiTrack.ShowTrackFrames: 5
 
 Init.MinDisparity: 8
 Init.MinMatchedFeatNum: 20
 Init.ReprojectErr: 1
 Init.HomographyTransformErr: 3
+
+PnpSolver.ReprojectErr: 6.0
+PnpSolver.SuccessRatio: 0.7
+PnpSolver.ShowDebugInfo: 1
 
 Sim.Length.x: 10.0
 Sim.Length.y: 10.0
