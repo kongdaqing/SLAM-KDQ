@@ -6,6 +6,7 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     QualityLevel(cfg->optParam_.qualityLevel),
     MinDist(cfg->optParam_.minDist),
     TrackBack(cfg->optParam_.trackBack),
+    TrackBackPixelErr(cfg->optParam_.trackBackPixelErr),
     PyramidLevel(cfg->optParam_.pyramidLevel),
     CriterIterations(cfg->optParam_.iterations),
     CriterEPS(cfg->optParam_.eps),
@@ -45,9 +46,9 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
         std::vector<cv::Point2f> refBackCorners = refCorners;
         cv::Mat err;
         cv::calcOpticalFlowPyrLK(curFrame->image_,refFrame->image_,curCorners,refBackCorners,status,err,
-                                 cv::Size(21,21),1,cv::TermCriteria(1,10,0.1));
+                                 cv::Size(21,21),1,cv::TermCriteria(1,10,0.1),1);
         for (size_t i = 0; i < status.size(); i++) {
-          if (status[i] && (!cam_->isInFrame(refBackCorners[i]) || cv::norm(refCorners[i] - refBackCorners[i]) > 2.0)) {
+          if (status[i] && (!cam_->isInFrame(refBackCorners[i]) || cv::norm(refCorners[i] - refBackCorners[i]) > TrackBackPixelErr)) {
             status[i] = 0;
           } 
         }
