@@ -6,6 +6,7 @@ Estimator::Estimator(std::string configFile) {
   cam_ = new Camera(cfg_);
   init_ = new Initializator(cfg_,cam_);
   feaTrcker_ = new FeatureTracker(cfg_);
+  pnpSolver_ = new PnpSolver(cfg_);
   state = EstState::Waiting;
   reset();
 }
@@ -16,6 +17,7 @@ Estimator::~Estimator() {
   delete cam_;
   delete init_;
   delete feaTrcker_;
+  delete pnpSolver_;
 }
 
 void Estimator::update(FramePtr frame,bool trackEnable) {
@@ -96,7 +98,7 @@ bool Estimator::estimatePose(FramePtr framePtr) {
   } 
   cv::Mat rcw,CtW,Rcw;
   std::vector<int> inliers;
-  if (pnpSolver_.solveByPnp(matchedNormalizedUV,matchedPts3D,inliers,cam_->fx(),rcw,CtW,0.8)) {
+  if (pnpSolver_->solveByPnp(matchedNormalizedUV,matchedPts3D,cam_->fx(),rcw,CtW,inliers)) {
     cv::Mat Rwc,WtC;
     cv::Rodrigues(rcw,Rcw);
     Rwc = Rcw.t();

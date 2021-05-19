@@ -60,7 +60,7 @@ class Estimator {
   Initializator* init_;
   FeatureTracker* feaTrcker_;
   FeatureManager fsm_;
-  PnpSolver pnpSolver_;
+  PnpSolver* pnpSolver_;
   std::vector<FramePtr> slideWindows_;
 
   /** \brief slide window to remove oldest frame and features

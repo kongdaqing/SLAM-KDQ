@@ -20,8 +20,8 @@ int main(int argc,char **argv) {
  std::vector<cv::Vec3f> pts3D;
  pts3D.emplace_back(0,0,0);
  pts3D.emplace_back(0,0,0);
- VizScene vizWindow("test viz",0.2);
- vizWindow.createCameraObject("d435i",0.2,0.2,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(0.0,0.0,0.0),cv::Vec3f(0.0,0.0,1.0),cv::Vec3f(0,1.0,0));
+ VizScene vizWindow("test viz",0.05);
+ vizWindow.createCameraObject("d435i",0.05,0.05,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(0.0,0.0,0.0),cv::Vec3f(0.0,0.0,1.0),cv::Vec3f(0,1.0,0));
  vizWindow.createPointClouds("cameraPts",pts3D,cv::viz::Color::red(),4);
 
  while (!vizWindow.sceneWindowPtr_->wasStopped()) {
