@@ -1,9 +1,15 @@
 #pragma once
 #include <opencv2/calib3d.hpp>
+#include "Config.hpp"
 namespace ov {
 class PnpSolver {
  public:
-  PnpSolver(){};
+  PnpSolver(const Config* cfg):
+  ReprojectErr(cfg->pnpParam_.reprojectErr),
+  SuccessRatio(cfg->pnpParam_.successRatio),
+  ShowDebugInfo(cfg->pnpParam_.showDebugInfo) {
+
+  };
 
   /** \brief Solve pose using pnp solver ransac method
    * @param normalizedUV  ---  normalized features vector  
@@ -12,34 +18,36 @@ class PnpSolver {
    * @param rcw           ---  rotation vec from world to camera coordinate
    * @param CtW           ---  translate vec from world to camera coordinate
    * @param inlier        ---  inlier vector of reproject 
-   * @param ratio         ---  rotio of inlier/total
    * @return return success otherwise false
    */ 
   bool solveByPnp(const std::vector<cv::Point2f>& normalizedUV,
                   const std::vector<cv::Point3f>& matchedPts3D,
-                  std::vector<int>& inliers,
-                  double focalLength,cv::Mat &rcw,cv::Mat &CtW,
-                  double ratio) {
+                  double focalLength,
+                  cv::Mat &rcw,
+                  cv::Mat &CtW,
+                  std::vector<int>& inliers) {
     if (normalizedUV.size() < 4) {
       return false;
     }
     std::vector<int> rawInliers;
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
-    bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW,false,100,2.0/focalLength,0.9,inliers);
-#define VERBOOSE
-#ifdef VERBOOSE    
-    std::cout << "result flg = " << resultFlg << ",Feature size = " << matchedPts3D.size() << ",Inlier = " << inliers.size() << ":\n" ;
-    for (int i = 0; i < matchedPts3D.size(); i++) {
-      cv::Affine3d T(rcw,CtW);
-      cv::Point3f ptInCam =  T * matchedPts3D[i];
-      cv::Point2f ptInCamUV(ptInCam.x / ptInCam.z, ptInCam.y / ptInCam.z);
-      cv::Point2f reproErr = normalizedUV[i] - ptInCamUV;
-      int isInlier = cv::norm(reproErr) < 2.0 / focalLength;
-      std::cout << " Inlier: "<< isInlier << ", " << ptInCamUV << " vs " << normalizedUV[i] << " vs " << cv::norm(reproErr) << std::endl;
-    }
-#endif
-    return resultFlg && inliers.size() > ratio * normalizedUV.size();
+    bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW,false,100,ReprojectErr/focalLength,0.9,inliers);
+    if (ShowDebugInfo) {
+      std::cout << "result flg = " << resultFlg << ",Feature size = " << matchedPts3D.size() << ",Inlier = " << inliers.size() << ":\n" ;
+      for (int i = 0; i < matchedPts3D.size(); i++) {
+        cv::Affine3d T(rcw,CtW);
+        cv::Point3f ptInCam =  T * matchedPts3D[i];
+        cv::Point2f ptInCamUV(ptInCam.x / ptInCam.z, ptInCam.y / ptInCam.z);
+        cv::Point2f reproErr = normalizedUV[i] - ptInCamUV;
+        int isInlier = cv::norm(reproErr) < ReprojectErr / focalLength;
+        std::cout << " Inlier: "<< isInlier << ", " << ptInCamUV << " vs " << normalizedUV[i] << " vs " << cv::norm(reproErr) << std::endl;
+      }
+    }  
+    return resultFlg && inliers.size() > SuccessRatio * normalizedUV.size();
   }
-
+ private:
+  const float ReprojectErr;
+  const float SuccessRatio;
+  int ShowDebugInfo;
 };
 }

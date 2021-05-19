@@ -7,6 +7,7 @@ struct OptitrackParam {
   float qualityLevel;
   int maxPoints; 
   int trackBack;
+  int trackBackPixelErr;
   double pyramidLevel;
   int iterations;
   double eps;
@@ -14,6 +15,7 @@ struct OptitrackParam {
   void print() {
     std::cout << "========OptiTrack Parameters========" << std::endl;
     std::cout << "trackBack = " << trackBack << std::endl;
+    std::cout << "trackBackPixelErr = " << trackBackPixelErr << std::endl;
     std::cout << "qualityLevel = " << qualityLevel << std::endl;
     std::cout << "maxPoints = " << maxPoints << std::endl;
     std::cout << "minDist = " << minDist << std::endl;
@@ -51,6 +53,18 @@ struct InitialParam {
   }
 };
 
+struct PnpSolverParam {
+  float reprojectErr;
+  float successRatio;
+  int showDebugInfo;
+  void print() {
+    std::cout << "==========PnpSolver Parameters==========" << std::endl;
+    std::cout << "reprojectErr = " << reprojectErr << std::endl;
+    std::cout << "successRatio = " << successRatio << std::endl;
+    std::cout << "showDebugInfo = " << showDebugInfo << std::endl;
+  }
+};
+
 struct SimulatorParam {
   cv::Vec3f length;
   cv::Vec3f origin;
@@ -78,6 +92,7 @@ class Config {
       return;
     }
     optParam_.trackBack = fs["OptiTrack.TrackBack"];
+    optParam_.trackBackPixelErr = fs["OptiTrack.TrackBackPixelErr"];
     optParam_.maxPoints = fs["OptiTrack.MaxPoints"];
     optParam_.minDist = fs["OptiTrack.MinDist"];
     optParam_.qualityLevel = fs["OptiTrack.QualityLevel"];
@@ -100,6 +115,11 @@ class Config {
     iniParam_.homographyTransformErr = fs["Init.HomographyTransformErr"];
     iniParam_.print();
 
+    pnpParam_.reprojectErr = fs["PnpSolver.ReprojectErr"];
+    pnpParam_.successRatio = fs["PnpSolver.SuccessRatio"];
+    pnpParam_.showDebugInfo = fs["PnpSolver.ShowDebugInfo"];
+    pnpParam_.print();
+
     simParam_.length[0] = fs["Sim.Length.x"];
     simParam_.length[1] = fs["Sim.Length.y"];
     simParam_.length[2] = fs["Sim.Length.z"];
@@ -108,12 +128,15 @@ class Config {
     simParam_.origin[2] = fs["Sim.Origin.z"];
     simParam_.featureSize = fs["Sim.FeatureSize"];
     simParam_.print();
+
+
       
   };
   OptitrackParam optParam_;
   CameraParam camParam_;
   InitialParam iniParam_;
   SimulatorParam simParam_;
+  PnpSolverParam pnpParam_;
 };
 
 }
