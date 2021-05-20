@@ -61,10 +61,10 @@ bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightI
     rs2::video_frame infrared1 = data.get_infrared_frame(1);
     rs2::video_frame infrared2 = data.get_infrared_frame(2);
     timestamp = infrared1.get_timestamp() * 1e-3;
-    std::cout << std::setprecision(13);
-    double exp_time = data.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE);
-    double frame_time = data.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP) * 1e-6;
-    std::cout << "frame_time  = " << frame_time <<  "  Real Stamp: " <<  exp_time << std::endl;
+    std::cout << std::setprecision(13) << "timestamp: " << timestamp << std::endl;
+    // double exp_time = data.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE);
+    // double frame_time = data.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP) * 1e-6;
+    // std::cout << "frame_time  = " << frame_time <<  "  Real Stamp: " <<  exp_time << std::endl;
     cv::Mat infraredImg1(infrared1.get_height(),infrared1.get_width(),CV_8UC1,(void *)infrared1.get_data());
     infraredImg1.copyTo(leftImg);
     cv::Mat infraredImg2(infrared2.get_height(),infrared2.get_width(),CV_8UC1,(void *)(infrared2.get_data()));

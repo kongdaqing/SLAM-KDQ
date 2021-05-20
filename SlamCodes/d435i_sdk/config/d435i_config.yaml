@@ -7,4 +7,4 @@ stereo.frame_rate: 90
 stereo.auto_exposure: 1
 stereo.exposure_time: 500
 stereo.exposure_gain: 100
-stereo.ae_point: 100
+stereo.ae_point: 1500
