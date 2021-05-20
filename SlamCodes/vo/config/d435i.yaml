@@ -1,12 +1,11 @@
 %YAML:1.0
-
 OptiTrack.TrackBack: 1
 OptiTrack.TrackBackPixelErr: 20
 OptiTrack.MaxPoints: 200
 OptiTrack.MinDist: 20
 OptiTrack.QualityLevel: 0.03
-OptiTrack.PyramidLevel: 3
-OptiTrack.Iterations: 20
+OptiTrack.PyramidLevel: 2
+OptiTrack.Iterations: 10
 OptiTrack.EPS: 0.01
 OptiTrack.ShowTrackFrames: 5
 
@@ -27,6 +26,15 @@ Sim.Origin.y: 0.0
 Sim.Origin.z: 1.0
 Sim.FeatureSize: 1000
 
+#d435i parameters
+stereo.stream: 0
+stereo.width: 640
+stereo.height: 480
+stereo.frame_rate: 90
+stereo.auto_exposure: 1
+stereo.exposure_time: 500
+stereo.exposure_gain: 100
+stereo.ae_point: 1500
 Camera.Intrinisic: !!opencv-matrix
   rows: 3
   cols: 3

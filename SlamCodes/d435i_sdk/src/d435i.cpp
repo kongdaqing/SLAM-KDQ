@@ -56,8 +56,8 @@ void D435I::start() {
 }
 
 bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightImg) const{
-  rs2::frameset data;
-  if (pipe_.poll_for_frames(&data)) {
+  rs2::frameset data = pipe_.wait_for_frames();
+  if (data) {
     rs2::video_frame infrared1 = data.get_infrared_frame(1);
     rs2::video_frame infrared2 = data.get_infrared_frame(2);
     timestamp = infrared1.get_timestamp() * 1e-3;
@@ -67,7 +67,7 @@ bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightI
     // std::cout << "frame_time  = " << frame_time <<  "  Real Stamp: " <<  exp_time << std::endl;
     cv::Mat infraredImg1(infrared1.get_height(),infrared1.get_width(),CV_8UC1,(void *)infrared1.get_data());
     infraredImg1.copyTo(leftImg);
-    cv::Mat infraredImg2(infrared2.get_height(),infrared2.get_width(),CV_8UC1,(void *)(infrared2.get_data()));
+    cv::Mat infraredImg2(infrared2.get_height(),infrared2.get_width(),CV_8UC1,(void *)infrared2.get_data());
     infraredImg2.copyTo(rightImg);
     return true;
   }

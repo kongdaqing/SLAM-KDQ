@@ -34,7 +34,7 @@ int main(int argc,char **argv) {
   Camera* cam = new Camera(cfg);
   FeatureTracker *featTracker = new FeatureTracker(cfg);
   FramePtr lastF = nullptr;
-  D435I d435i_device;
+  D435I d435i_device(cfgFile);
   d435i_device.start();
   std::list<std::map<uint64,cv::Point2f> > windowsFeatures;
   while (1) {
