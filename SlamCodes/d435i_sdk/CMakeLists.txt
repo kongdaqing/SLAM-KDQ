@@ -15,12 +15,13 @@ message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
 endif()
 
 find_package(realsense2 REQUIRED)
-
 message(STATUS "realsense2_INCLUDE_DIR = ${realsense2_INCLUDE_DIR}")
+message(STATUS "realsense2_LIBRARY = ${realsense2_LIBRARY}")
+
 
 include_directories(include ${OpenCV_INCLUDE_DIRS} ${realsense2_INCLUDE_DIR})
 
-add_library(d435i src/d435i.cpp)
+add_library(d435i SHARED src/d435i.cpp)
 target_link_libraries(d435i ${realsense2_LIBRARY} ${OpenCV_LIBS})
 
 add_executable(test_infrared app/test_infrared.cpp)
@@ -35,6 +36,7 @@ target_link_libraries(test_detect_aruco d435i)
 add_executable(test_charuco_board app/test_charuco_board.cpp)
 target_link_libraries(test_charuco_board d435i)
 
-INSTALL(TARGETS d435i 
-        ARCHIVE DESTINATION lib/d435i)
+INSTALL(TARGETS d435i  
+        LIBRARY DESTINATION lib/d435i)
+
 INSTALL(DIRECTORY include/ DESTINATION include/d435i) 
