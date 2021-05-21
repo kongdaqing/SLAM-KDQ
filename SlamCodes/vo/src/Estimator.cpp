@@ -27,7 +27,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   }
   if (trackEnable) {
     feaTrcker_->detectAndTrackFeature(lastFramePtr,frame);
-    frame->imshowFeatures();
+    //frame->imshowFeatures();
   } 
   slideWindows_.push_back(frame);
   switch (state)

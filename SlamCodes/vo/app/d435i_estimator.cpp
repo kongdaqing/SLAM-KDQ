@@ -43,7 +43,7 @@ int main(int argc,char **argv) {
    } 
    vizWindow.showSceneAllCamera();
    vizWindow.showSceneAllPointClouds();
-   cv::waitKey(30);
+   //cv::waitKey(30);
  }
  return 0;
 }
