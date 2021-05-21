@@ -21,11 +21,14 @@ message(STATUS "realsense2_LIBRARY = ${realsense2_LIBRARY}")
 
 include_directories(include ${OpenCV_INCLUDE_DIRS} ${realsense2_INCLUDE_DIR})
 
-add_library(d435i SHARED src/d435i.cpp)
+add_library(d435i SHARED src/d435i.cpp include/d435iConfig.hpp)
 target_link_libraries(d435i ${realsense2_LIBRARY} ${OpenCV_LIBS})
 
 add_executable(test_infrared app/test_infrared.cpp)
 target_link_libraries(test_infrared d435i)
+
+add_executable(test_all_stream app/test_all_stream.cpp)
+target_link_libraries(test_all_stream d435i)
 
 add_executable(d435i_calibr app/d435i_intrinisic_calibr.cpp)
 target_link_libraries(d435i_calibr d435i)

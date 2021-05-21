@@ -14,21 +14,27 @@ D435I::D435I(const std::string &cfgFile) {
     stereoConfigParam_.exposure_gain = fs["stereo.exposure_gain"];
     stereoConfigParam_.ae_point = fs["stereo.ae_point"];
     stereoConfigParam_.print();
+    imuConfigParam_.enable = fs["imu.enable"];
+    imuConfigParam_.sync_enable = fs["imu.sync_enable"];
   }
 }
 
 void D435I::start() {
   rs2::config cfg;
-  if (stereoConfigParam_.streamType == D435IConfigParam::Stream::infrared) {
-    cfg.disable_all_streams();
+  cfg.disable_all_streams();
+  if (stereoConfigParam_.streamType == D435IStreamConfigParam::Stream::infrared) {
     cfg.enable_stream(RS2_STREAM_INFRARED, 1,
                       stereoConfigParam_.width, stereoConfigParam_.height,
                       RS2_FORMAT_Y8, stereoConfigParam_.framerate);
     cfg.enable_stream(RS2_STREAM_INFRARED, 2,
                       stereoConfigParam_.width, stereoConfigParam_.height, RS2_FORMAT_Y8,
                       stereoConfigParam_.framerate);
-
   }
+  if (imuConfigParam_.enable) {
+    cfg.enable_stream(RS2_STREAM_ACCEL,RS2_FORMAT_MOTION_XYZ32F,250);
+    cfg.enable_stream(RS2_STREAM_GYRO,RS2_FORMAT_MOTION_XYZ32F,400);
+  }
+
   rs2::pipeline_profile selection = pipe_.start(cfg);
   rs2::device selected_device = selection.get_device();
   auto depth_sensor = selected_device.first<rs2::depth_sensor>();
@@ -56,8 +62,8 @@ void D435I::start() {
 }
 
 bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightImg) const{
-  rs2::frameset data = pipe_.wait_for_frames();
-  if (data) {
+  rs2::frameset data;
+  if (pipe_.poll_for_frames(&data)) {
     rs2::video_frame infrared1 = data.get_infrared_frame(1);
     rs2::video_frame infrared2 = data.get_infrared_frame(2);
     timestamp = infrared1.get_timestamp() * 1e-3;
@@ -69,6 +75,40 @@ bool D435I::getInfraredImages(double& timestamp,cv::Mat& leftImg,cv::Mat& rightI
     infraredImg1.copyTo(leftImg);
     cv::Mat infraredImg2(infrared2.get_height(),infrared2.get_width(),CV_8UC1,(void *)infrared2.get_data());
     infraredImg2.copyTo(rightImg);
+    return true;
+  }
+  return false;
+}
+
+bool D435I::getD435IStreamDatas(StereoStream & stereoInfos, ImuStream & imuInfos) const {
+  //wait_for_frames for single pipeline/frame_queue object,cpu keep wait for stream,otherwise use poll_for_frame to avoid miss other streams
+  rs2::frameset data;
+  if (pipe_.poll_for_frames(&data)) {
+    ImuStream accel,gyro;
+    rs2::motion_frame accData = data.first(RS2_STREAM_ACCEL,RS2_FORMAT_MOTION_XYZ32F);
+    if (accData) {
+      accel.timestamp = accData.get_timestamp() * 1e-6;
+      accel.acc[0] = accData.get_motion_data().x;
+      accel.acc[1] = accData.get_motion_data().y;
+      accel.acc[2] = accData.get_motion_data().z;
+      std::cout << "[acc]:" << std::setprecision(13) << accel.timestamp << "," << accel.acc[0] << "," << accel.acc[1] << "," << accel.acc[2] << std::endl;
+    }
+    rs2::motion_frame gyrData = data.first(RS2_STREAM_GYRO,RS2_FORMAT_MOTION_XYZ32F);
+    if (gyrData) {
+      gyro.timestamp = gyrData.get_timestamp() * 1e-6;
+      gyro.gyr[0] = gyrData.get_motion_data().x;
+      gyro.gyr[1] = gyrData.get_motion_data().y;
+      gyro.gyr[2] = gyrData.get_motion_data().z;
+      std::cout << "[gyr]:" << std::setprecision(13) << gyro.timestamp << "," << gyro.gyr[0] << "," << gyro.gyr[1] << "," << gyro.gyr[2] << std::endl;
+    }
+    rs2::video_frame infrared1 = data.get_infrared_frame(1);
+    if (infrared1) {
+      std::cout << "[leftImg]:" << std::setprecision(13) << infrared1.get_timestamp() * 1e-6 << "," << infrared1.get_data_size() << std::endl;
+    }
+    rs2::video_frame infrared2 = data.get_infrared_frame(2);
+    if (infrared2) {
+      std::cout << "[rightImg]:" << std::setprecision(13) << infrared2.get_timestamp() * 1e-6 << "," << infrared2.get_data_size() << std::endl;
+    }
     return true;
   }
   return false;
