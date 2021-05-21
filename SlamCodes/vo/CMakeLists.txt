@@ -53,7 +53,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
 get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
-set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.a")
+set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.so")
 
 if (APPLE)
 find_package(OpenCV 4.0 REQUIRED)
@@ -80,33 +80,33 @@ add_library(volib src/FeatureManager.cpp
 target_link_libraries(volib ${OpenCV_LIBS} -lpthread)     
 
 add_executable(vo app/main.cpp)
-target_link_libraries(vo ${OpenCV_LIBS} volib)
+target_link_libraries(vo volib)
 
 add_executable(test_camera app/test_camera.cpp)
-target_link_libraries(test_camera ${OpenCV_LIBS} volib)
+target_link_libraries(test_camera volib)
 
 add_executable(test_camera2 app/test_camera2.cpp)
-target_link_libraries(test_camera2 ${OpenCV_LIBS} volib)
+target_link_libraries(test_camera2  volib)
 
 add_executable(test_initializator app/test_initializator.cpp)
-target_link_libraries(test_initializator ${OpenCV_LIBS} volib)
+target_link_libraries(test_initializator volib)
 
 add_executable(test_vizScene app/test_vizScene.cpp)
-target_link_libraries(test_vizScene ${OpenCV_LIBS} volib)
+target_link_libraries(test_vizScene volib)
 
 
 add_executable(test_pnpSolver app/test_pnpSolver.cpp)
-target_link_libraries(test_pnpSolver ${OpenCV_LIBS} volib)
+target_link_libraries(test_pnpSolver volib)
 
 
 add_executable(test_estimator app/test_estimator.cpp)
 target_link_libraries(test_estimator ${OpenCV_LIBS} volib)
 
 add_executable(test_d435i_feature_track app/test_d435i_feature_track.cpp)
-target_link_libraries(test_d435i_feature_track ${OpenCV_LIBS} volib ${realsense2_LIBRARY} ${D435I_LIBS})
+target_link_libraries(test_d435i_feature_track  ${D435I_LIBS}  volib)
 
 
 add_executable(d435i_estimator app/d435i_estimator.cpp)
-target_link_libraries(d435i_estimator ${OpenCV_LIBS} volib ${realsense2_LIBRARY} ${D435I_LIBS})
+target_link_libraries(d435i_estimator ${realsense2_LIBRARY} ${D435I_LIBS}  volib)
 
 endif()
