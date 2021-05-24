@@ -54,22 +54,27 @@ get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
 set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.so")
+set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
+set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
 
 if (APPLE)
 find_package(OpenCV 4.0 REQUIRED)
 else()
 set(OpenCV_DIR "/home/kdq/packages/opencv4/opencv/build")
 find_package(OpenCV 4.0 REQUIRED)
-message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
+#message(STATUS "OpenCV_Path = ${OpenCV_INCLUDE_DIRS}")
 endif()
 find_package(realsense2 REQUIRED)
-
+find_package(Protobuf REQUIRED)
+find_package(nanomsg CONFIG REQUIRED)
 
 include_directories(
   include/vo
+  include/nnstation
   ${OpenCV_INCLUDE_DIRS}
   ${D435I_INCLUDE_DIR}
   ${realsense2_INCLUDE_DIR}
+  ${REPLAYKIT_INCLUDE_DIR}
 )
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp
@@ -105,8 +110,12 @@ target_link_libraries(test_estimator ${OpenCV_LIBS} volib)
 add_executable(test_d435i_feature_track app/test_d435i_feature_track.cpp)
 target_link_libraries(test_d435i_feature_track  ${D435I_LIBS}  volib)
 
+add_executable(test_replaykit_online app/test_replaykit_online.cpp)
+target_link_libraries(test_replaykit_online   ${PROTOBUF_LIBRARIES} nanomsg ${realsense2_LIBRARY} ${REPLAYKIT_LIBS} volib)
 
 add_executable(d435i_estimator app/d435i_estimator.cpp)
 target_link_libraries(d435i_estimator ${realsense2_LIBRARY} ${D435I_LIBS}  volib)
+
+
 
 endif()

@@ -171,7 +171,7 @@ void Estimator::updateFeature() {
     if (it->second.getBadCount() >= 3) {
       fsm_.removeFeature(it++);
       cv::Point3f pt3d = it->second.getPts3DInWorld();
-      printf("[Features]:Remove %lld feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
+      printf("[Features]:Remove %d feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
       continue;
     }
     it++;
