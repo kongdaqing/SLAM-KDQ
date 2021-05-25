@@ -37,6 +37,7 @@ class FeatureTracker{
   const int CriterIterations;
   const double CriterEPS;
   const int ShowTrackFrames;
+  const int ShowDebugInfos;
   Camera* cam_; 
   uint64_t id_;
   std::vector<uint64_t> trackCount_;

@@ -12,6 +12,7 @@ struct OptitrackParam {
   int iterations;
   double eps;
   int showTrackFrames;
+  int showDebugInfos;
   void print() {
     std::cout << "========OptiTrack Parameters========" << std::endl;
     std::cout << "trackBack = " << trackBack << std::endl;
@@ -23,6 +24,7 @@ struct OptitrackParam {
     std::cout << "iterations = " << iterations << std::endl;
     std::cout << "eps = " << eps << std::endl;
     std::cout << "showTrackFrames = " << showTrackFrames << std::endl;
+    std::cout << "showDebugInfos = " << showDebugInfos << std::endl;
   }
 };
 struct CameraParam {
@@ -100,6 +102,7 @@ class Config {
     optParam_.iterations = fs["OptiTrack.Iterations"];
     optParam_.eps = fs["OptiTrack.EPS"];
     optParam_.showTrackFrames = fs["OptiTrack.ShowTrackFrames"];
+    optParam_.showDebugInfos = fs["OptiTrack.ShowDebugInfos"];
     optParam_.print();
 
     fs["Camera.Intrinisic"] >> camParam_.K;

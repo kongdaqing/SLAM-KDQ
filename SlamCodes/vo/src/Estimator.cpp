@@ -21,6 +21,7 @@ Estimator::~Estimator() {
 }
 
 void Estimator::update(FramePtr frame,bool trackEnable) {
+  std::lock_guard<std::mutex> lock(m_filter_);
   FramePtr lastFramePtr = nullptr;
   if (!slideWindows_.empty()) {
     lastFramePtr = slideWindows_.back();

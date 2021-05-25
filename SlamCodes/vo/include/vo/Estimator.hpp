@@ -62,6 +62,8 @@ class Estimator {
   FeatureManager fsm_;
   PnpSolver* pnpSolver_;
   std::vector<FramePtr> slideWindows_;
+  std::mutex m_filter_;
+
 
   /** \brief slide window to remove oldest frame and features
    */ 

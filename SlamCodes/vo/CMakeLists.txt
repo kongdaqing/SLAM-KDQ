@@ -71,6 +71,7 @@ find_package(nanomsg CONFIG REQUIRED)
 include_directories(
   include/vo
   include/nnstation
+  include/utility
   ${OpenCV_INCLUDE_DIRS}
   ${D435I_INCLUDE_DIR}
   ${realsense2_INCLUDE_DIR}

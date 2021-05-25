@@ -1,4 +1,5 @@
 #include "FeatureTracker.hpp"
+#include "tictoc.hpp"
 namespace ov {
 
 FeatureTracker::FeatureTracker(const Config* cfg):
@@ -10,7 +11,8 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     PyramidLevel(cfg->optParam_.pyramidLevel),
     CriterIterations(cfg->optParam_.iterations),
     CriterEPS(cfg->optParam_.eps),
-    ShowTrackFrames(cfg->optParam_.showTrackFrames) {
+    ShowTrackFrames(cfg->optParam_.showTrackFrames),
+    ShowDebugInfos(cfg->optParam_.showDebugInfos) {
   cam_ = new Camera(cfg);
   reset();
 };
@@ -18,12 +20,16 @@ FeatureTracker::FeatureTracker(const Config* cfg):
 
 
 void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) {
+  Tictoc tictoc("track"),allTicToc("allCost");
+  double costTime[4] = {0.};
+  allTicToc.tic();
   if (curFrame == nullptr || curFrame->image_.empty()) {
     return;
   }
   std::vector<uint64_t> idx;
   std::vector<cv::Point2f> refCorners,curCorners;
   if (refFrame != nullptr) {
+    tictoc.tic();
     refFrame->getCornerVector(idx,refCorners);
     curCorners = refCorners; 
     if (refCorners.size() > 5) {
@@ -36,11 +42,12 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
           status[i] = 0;
         } 
       }
+      costTime[0] = tictoc.toc();
       remove(status,refCorners);
       remove(status,curCorners);
       remove(status,idx);
       remove(status,trackCount_);
-      
+      tictoc.tic();
       if (TrackBack && curCorners.size() > 5) {
         std::vector<uchar> status;
         std::vector<cv::Point2f> refBackCorners = refCorners;
@@ -52,6 +59,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
             status[i] = 0;
           } 
         }
+        costTime[1] = tictoc.toc();
         remove(status,curCorners);
         remove(status,idx);
         remove(status,trackCount_);
@@ -64,7 +72,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   } 
   cv::Mat mask = setMask(curFrame->image_,idx,curCorners);
   curFrame->setCornerMap(idx,curCorners);
-
+  tictoc.tic();
   if (ShowTrackFrames > 0) {
     std::map<uint64,cv::Point2f> curFeats = curFrame->getCornersCopy();
     allCorners_.push_back(curFeats);
@@ -73,7 +81,8 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
     }
     showAllFeature(curFrame->image_);
   }
-
+  costTime[2] = tictoc.toc();
+  tictoc.tic();
   const int needFeatSize = MaxPointSize - curCorners.size();
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
@@ -85,6 +94,16 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
       trackCount_.push_back(1);
     }
     curFrame->setCornerMap(newIdx,feats);
+  }
+  costTime[3] = tictoc.toc();
+  double allCostMs = allTicToc.toc();
+  if (ShowDebugInfos) {
+    std::cout << "[OptiTrack]:   All-Modules Cost(ms): " << allCostMs   << "\n"
+              << "             Forward-Track Cost(ms): " << costTime[0] << "\n"
+              << "                Back-Track Cost(ms): " << costTime[1] << "\n"
+              << "                    Imshow Cost(ms): " << costTime[2] << "\n"
+              << "             Extract-Point Cost(ms): " << costTime[3] << "\n";
+
   }
 }
 
