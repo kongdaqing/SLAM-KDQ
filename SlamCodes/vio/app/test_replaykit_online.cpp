@@ -43,7 +43,11 @@ int main(int argc,char **argv) {
   replaykit.Subscribe<1>([&](double now_time, const rovio::InputInfoPack &info_pack) {
     static double last_T = 0;
     for (size_t i = 0; i < info_pack.info_size(); i++) {
-      //std::cout << info_pack.info(i).t() << "," << info_pack.info(i).acc().x() << "," <<  info_pack.info(i).acc().y() << "," << info_pack.info(i).acc().z() << "," << std::endl;
+      const rovio::InputInfo info = info_pack.info(i);
+      double timestamp = info.t();
+      Eigen::Vector3d acc(info.acc().x(),info.acc().y(),info.acc().z());
+      Eigen::Vector3d gyr(info.gyr().x(),info.gyr().y(),info.gyr().z());
+      estimator.updateImuMeas(timestamp,IMU(timestamp,acc,gyr));
     }
   });
   bottomClient.connect(serverBaseUrl + ":18950");

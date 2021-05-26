@@ -4,6 +4,7 @@
 #include "Config.hpp"
 #include "PnpSolver.hpp"
 #include "FeatureTracker.hpp"
+#include "MeasurementTimeline.hpp"
 
 namespace vio{
 enum EstState {
@@ -53,6 +54,10 @@ class Estimator {
   std::vector<cv::Vec3f> getFeatsInWorld() {
     return fsm_.getPointsInWorld();
   }
+
+  void updateImuMeas(double t,const IMU & data) {
+    imuMeas_.addMeas(t,data);
+  }
  private:
   EstState state;
   Config* cfg_;
@@ -63,7 +68,7 @@ class Estimator {
   PnpSolver* pnpSolver_;
   std::vector<FramePtr> slideWindows_;
   std::mutex m_filter_;
-
+  MeasurementTimeline<IMU> imuMeas_;
 
   /** \brief slide window to remove oldest frame and features
    */ 

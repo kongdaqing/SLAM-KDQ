@@ -26,8 +26,14 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   if (!slideWindows_.empty()) {
     lastFramePtr = slideWindows_.back();
   }
+
   if (trackEnable) {
-    feaTrcker_->detectAndTrackFeature(lastFramePtr,frame);
+    cv::Mat R_cur_last;
+    if (!calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last)) {
+      feaTrcker_->detectAndTrackFeature(lastFramePtr, frame);
+    } else {
+      feaTrcker_->detectAndTrackFeatureWithRotationPrediction(lastFramePtr,frame,R_cur_last);
+    }
     //frame->imshowFeatures();
   } 
   slideWindows_.push_back(frame);
