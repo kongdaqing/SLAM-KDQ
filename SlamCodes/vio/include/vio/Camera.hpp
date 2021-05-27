@@ -64,7 +64,9 @@ class Camera {
    * @param CtW    --- translate vector from world to Camera
    * @return pixel coordinate 
    */ 
-  cv::Point2f project(const cv::Point3f &pts3D,cv::Mat CrW,cv::Mat CtW) {
+  cv::Point2f project(const cv::Point3f &pts3D,
+                      cv::Mat CrW = cv::Mat::zeros(cv::Size(1,3),CV_32F),
+                      cv::Mat CtW = cv::Mat::zeros(cv::Size(1,3),CV_32F)) {
     cv::Mat uv;
     cv::Mat mat(1,3,CV_32F);
     mat.at<float>(0,0) = pts3D.x;

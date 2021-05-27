@@ -15,7 +15,7 @@ class FeatureTracker{
    * @param refFrame  --- reference frame ptr
    * @param curFrame  --- current frame ptr
    */ 
-  void detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame);
+  void detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,const cv::Mat &RcurLast);
 
 
   void showAllFeature(cv::Mat &img,uint8_t imgScale = 1); 
@@ -89,7 +89,9 @@ class FeatureTracker{
       }
     }
     return mask;
-  } 
+  }
+
+  std::vector<cv::Point2f> predictFeatures(const std::vector<cv::Point2f>& lastCorners,const cv::Mat& RcurLast);
 };
 }
 

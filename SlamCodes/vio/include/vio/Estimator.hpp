@@ -1,10 +1,11 @@
-#pragma once 
+#pragma once
 #include "FeatureManager.hpp"
 #include "Initializator.hpp"
 #include "Config.hpp"
 #include "PnpSolver.hpp"
 #include "FeatureTracker.hpp"
 #include "MeasurementTimeline.hpp"
+#include "PreIntegration.hpp"
 
 namespace vio{
 enum EstState {
@@ -56,7 +57,11 @@ class Estimator {
   }
 
   void updateImuMeas(double t,const IMU & data) {
+    std::lock_guard<std::mutex> imuLock(m_imu_);
     imuMeas_.addMeas(t,data);
+    if (slideWindows_.size() > 5) {
+      imuMeas_.clean(slideWindows_[0]->timestamp_);
+    }
   }
  private:
   EstState state;
@@ -67,9 +72,11 @@ class Estimator {
   FeatureManager fsm_;
   PnpSolver* pnpSolver_;
   std::vector<FramePtr> slideWindows_;
-  std::mutex m_filter_;
+  std::mutex m_filter_,m_imu_;
   MeasurementTimeline<IMU> imuMeas_;
-
+  PreIntegration* preInteNow_;
+  Eigen::Matrix3d Rbc_;
+  Eigen::Vector3d tbc_;
   /** \brief slide window to remove oldest frame and features
    */ 
   void slideWindow();
@@ -87,6 +94,9 @@ class Estimator {
   /** \brief update features include removing untracked points and add new points
    */ 
   void updateFeature();
+
+
+  void calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last);
 
 };
 }

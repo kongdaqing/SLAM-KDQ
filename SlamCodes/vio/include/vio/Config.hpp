@@ -1,5 +1,6 @@
 #pragma once
 #include "opencv2/opencv.hpp"
+#include "eigen3/Eigen/Core"
 
 namespace vio{
 struct OptitrackParam {
@@ -41,6 +42,16 @@ struct CameraParam {
     std::cout << "Distortion Matrix : \n" << D << std::endl;
   }
 };
+struct ExtrinsicParam {
+  cv::Mat Rbc;
+  cv::Mat tbc;
+  void print() {
+    std::cout << "=========Extrinsic Parameters=========" << std::endl;
+    std::cout << "Rbc = \n" << Rbc << std::endl;
+    std::cout << "tbc = " << tbc.t() << std::endl;
+  }
+};
+
 struct InitialParam {
   float minDisparity;
   int minMatchedFeatNum;
@@ -112,6 +123,10 @@ class Config {
     camParam_.height = fs["Camera.Height"];
     camParam_.print();
 
+    fs["Rbc"] >> extrinsicParam_.Rbc;
+    fs["tbc"] >> extrinsicParam_.tbc;
+    extrinsicParam_.print();
+
     iniParam_.minDisparity = fs["Init.MinDisparity"];
     iniParam_.minMatchedFeatNum = fs["Init.MinMatchedFeatNum"];
     iniParam_.reprojectErr = fs["Init.ReprojectErr"];
@@ -140,6 +155,7 @@ class Config {
   InitialParam iniParam_;
   SimulatorParam simParam_;
   PnpSolverParam pnpParam_;
+  ExtrinsicParam extrinsicParam_;
 };
 
 }

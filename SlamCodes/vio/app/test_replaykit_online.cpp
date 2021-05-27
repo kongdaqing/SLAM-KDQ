@@ -37,7 +37,6 @@ int main(int argc,char **argv) {
            bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
     vio::FramePtr frame( new Frame(bottomImage.timestamp() + exp_time * 0.5,im));
     estimator.update(frame,true);
-    //rovioNode.imgCallback(bottomImage.timestamp() + exp_time * 0.5 + img_timestamp_offset, im, delay);
   });
 
   replaykit.Subscribe<1>([&](double now_time, const rovio::InputInfoPack &info_pack) {

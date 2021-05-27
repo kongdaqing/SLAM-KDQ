@@ -1,4 +1,5 @@
 #include "Estimator.hpp"
+#include <opencv2/core/eigen.hpp>
 
 namespace vio{
 Estimator::Estimator(std::string configFile) {
@@ -8,6 +9,9 @@ Estimator::Estimator(std::string configFile) {
   feaTrcker_ = new FeatureTracker(cfg_);
   pnpSolver_ = new PnpSolver(cfg_);
   state = EstState::Waiting;
+  preInteNow_ = nullptr;
+  cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
+  cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
   reset();
 }
 
@@ -29,12 +33,9 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 
   if (trackEnable) {
     cv::Mat R_cur_last;
-    if (!calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last)) {
-      feaTrcker_->detectAndTrackFeature(lastFramePtr, frame);
-    } else {
-      feaTrcker_->detectAndTrackFeatureWithRotationPrediction(lastFramePtr,frame,R_cur_last);
-    }
-    //frame->imshowFeatures();
+    if (lastFramePtr != nullptr)
+      calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
+    feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   } 
   slideWindows_.push_back(frame);
   switch (state)
@@ -185,6 +186,59 @@ void Estimator::updateFeature() {
   }
 }
 
+void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last) {
+  if (lastT > curT || curT - lastT > 1.0) {
+    printf("[calCameraRotationMatrix]:last timestamp: %12.4f and current timestamp: %12.4f have big interval or bad sequence!\n",lastT,curT);
+    return;
+  }
+  std::lock_guard<std::mutex> imuLck(m_imu_);
+  std::map<double,IMU>::const_iterator itBegin = imuMeas_.getLowIter(lastT);
+  std::map<double,IMU>::const_iterator itEnd = imuMeas_.getHighIter(curT);
+
+  if (itBegin == imuMeas_.measMap_.end() || itEnd == imuMeas_.measMap_.end()) {
+    printf("[calCameraRotationMatrix]:imu infos not includes data from %12.4f to %12.4f!\n",lastT,curT);
+    return;
+  }
+  IMU lastImu;
+  if (preInteNow_ != nullptr)
+    delete preInteNow_;
+  preInteNow_ = new PreIntegration(Eigen::Vector3d::Zero(),Eigen::Vector3d::Zero());
+  std::map<double,IMU>::const_iterator it = itBegin,lastIt = itBegin;
+  while (it != itEnd) {
+    IMU imu(it->second.timestamp_,it->second.acc_,it->second.gyro_);
+    if (it != itBegin) {
+      preInteNow_->midIntegration(imu);
+    }
+    lastImu = imu;
+    lastIt = it;
+    it++;
+    if (lastIt == itBegin ) {
+      IMU nexImu(it->second.timestamp_,it->second.acc_,it->second.gyro_);
+      Eigen::Vector3d acc = (lastImu.acc_ * (lastT - lastImu.timestamp_) + nexImu.acc_ * (nexImu.timestamp_ - lastImu.timestamp_)) / (nexImu.timestamp_ - lastT);
+      Eigen::Vector3d gyr = (lastImu.gyro_ * (lastT - lastImu.timestamp_) + nexImu.gyro_ * (nexImu.timestamp_ - lastImu.timestamp_)) / (nexImu.timestamp_ - lastT);
+      IMU nowImu(lastT,acc,gyr);
+      preInteNow_->midIntegration(nowImu);
+    } else if (it == itEnd) {
+      IMU nexImu(it->second.timestamp_,it->second.acc_,it->second.gyro_);
+      Eigen::Vector3d acc = (lastImu.acc_ * (curT - lastImu.timestamp_) + nexImu.acc_ * (nexImu.timestamp_ - curT)) / (nexImu.timestamp_ - lastImu.timestamp_);
+      Eigen::Vector3d gyr = (lastImu.gyro_ * (curT - lastImu.timestamp_) + nexImu.gyro_ * (nexImu.timestamp_ - curT)) / (nexImu.timestamp_ - lastImu.timestamp_);
+      IMU nowImu(curT,acc,gyr);
+      preInteNow_->midIntegration(nowImu);
+    }
+  }
+  preInteNow_->fix();
+  Eigen::Matrix3d R_lastB_curB = preInteNow_->rotationMatrix();
+
+  std::cout << "R = \n" << preInteNow_->eulerAngle() * 60. << std::endl;
+
+  Eigen::Matrix3d R = (R_lastB_curB * Rbc_).transpose();
+
+  cv::Mat cvR = (cv::Mat_<float>(3,3) << R(0,0), R(0,1), R(0,2),
+                                                     R(1,0), R(1,1), R(1,2),
+                                                     R(2,0), R(2,1), R(2,2));
+  cvR.copyTo(R_cur_last);
+
+}
 
 }
 

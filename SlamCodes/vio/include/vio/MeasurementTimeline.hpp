@@ -15,6 +15,9 @@ struct IMU {
     acc_ = imu.acc_;
     gyro_ = imu.gyro_;
   }
+  void print() {
+    std::cout << "[IMU]:timestamp = " << timestamp_ << " acc = " << acc_ << " gyro = " << gyro_ << std::endl;
+  }
 
   IMU(double t,const Eigen::Vector3d& acc,const Eigen::Vector3d& gyro) {
     timestamp_ = t;
@@ -45,6 +48,21 @@ class MeasurementTimeline {
   bool empty() {
     return measMap_.empty();
   }
- private:
+
+  typename std::map<double,Meas>::const_iterator getLowIter(double t) {
+    typename std::map<double,Meas>::const_iterator it = measMap_.lower_bound(t);
+    it--;
+    if (!measMap_.count(it->first)) {
+      it = measMap_.end();
+    }
+    return it;
+  }
+  typename std::map<double,Meas>::const_iterator getHighIter(double t) {
+    typename std::map<double,Meas>::const_iterator it = measMap_.upper_bound(t);
+    return it;
+  }
+
   std::map<double,Meas> measMap_;
+ private:
+
 };

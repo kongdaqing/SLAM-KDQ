@@ -68,6 +68,7 @@ find_package(realsense2 REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(nanomsg CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(kindr REQUIRED)
 
 include_directories(
   include/vio
@@ -78,6 +79,7 @@ include_directories(
   ${realsense2_INCLUDE_DIR}
   ${REPLAYKIT_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIRS}
+  ${kindr_INCLUDE_DIRS}
 )
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp

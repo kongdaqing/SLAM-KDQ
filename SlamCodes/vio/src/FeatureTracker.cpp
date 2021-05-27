@@ -17,9 +17,30 @@ FeatureTracker::FeatureTracker(const Config* cfg):
   reset();
 };
 
+std::vector<cv::Point2f> FeatureTracker::predictFeatures(const std::vector<cv::Point2f>& lastCorners,const cv::Mat& RcurLast) {
+  if (RcurLast.empty()) {
+    return lastCorners;
+  }
+  std::vector<cv::Point2f> curCorners;
+  for(auto p : lastCorners) {
+    cv::Point2f lastNormalized2D = cam_->normalized(p);
+    cv::Mat lastNormalized3D  = (cv::Mat_<float>(3,1) << lastNormalized2D.x,lastNormalized2D.y,1.);
+    cv::Mat curNormalized3D = RcurLast * lastNormalized3D;
+    cv::Point3f curCorner3D;
+    curCorner3D.x = curNormalized3D.at<float>(0) / curNormalized3D.at<float>(2);
+    curCorner3D.y = curNormalized3D.at<float>(1) / curNormalized3D.at<float>(2);
+    curCorner3D.z = 1.0;
+    cv::Point2f curCorner2D = cam_->project(curCorner3D);
+    if (cam_->isInFrame(curCorner2D)) {
+      curCorners.push_back(curCorner2D);
+    } else {
+      curCorners.push_back(p);
+    }
+  }
+  return curCorners;
+}
 
-
-void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) {
+void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,const cv::Mat &RcurLast) {
   Tictoc tictoc("track"),allTicToc("allCost");
   double costTime[4] = {0.};
   allTicToc.tic();
@@ -31,7 +52,16 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame) 
   if (refFrame != nullptr) {
     tictoc.tic();
     refFrame->getCornerVector(idx,refCorners);
-    curCorners = refCorners; 
+    curCorners = predictFeatures(refCorners,RcurLast);
+    if (ShowTrackFrames && !RcurLast.empty()) {
+      for(auto p : curCorners) {
+        cv::Mat showImg;
+        cv::cvtColor(curFrame->image_,showImg,cv::COLOR_GRAY2BGR);
+        cv::circle(showImg,p,2,cv::Scalar(0,0,255),2);
+        cv::imshow("predict corners",showImg);
+        cv::waitKey(1);
+      }
+    }
     if (refCorners.size() > 5) {
       std::vector<uchar> status;
       cv::Mat err;

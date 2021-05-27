@@ -43,3 +43,14 @@ Camera.Distortion: !!opencv-matrix
 Camera.IsFisheye : 1
 Camera.Width: 320
 Camera.Height: 240
+
+Rbc: !!opencv-matrix
+  rows: 3
+  cols: 3
+  dt: d
+  data: [0.0, 1.0, 0.0,1.0, 0.0, 0.0,0.0, 0.0, 1.0]
+tbc: !!opencv-matrix
+  rows: 3
+  cols: 1
+  dt: d
+  data: [0.02, 0.04, 0.005]

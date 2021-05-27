@@ -21,7 +21,8 @@ int main(int argc,char **argv) {
     cv::Mat leftImg,rightImg;
     if (d435i_device.getInfraredImages(timestamp,leftImg,rightImg)) {
       FramePtr curF(new Frame(timestamp,leftImg));
-      featTracker->detectAndTrackFeature(lastF,curF);
+      cv::Mat R_cur_last;
+      featTracker->detectAndTrackFeature(lastF,curF,R_cur_last);
       lastF = curF;
     }
   }
