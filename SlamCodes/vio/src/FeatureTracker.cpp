@@ -53,14 +53,17 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
     tictoc.tic();
     refFrame->getCornerVector(idx,refCorners);
     curCorners = predictFeatures(refCorners,RcurLast);
+    cv::Mat showImg;
+    cv::cvtColor(curFrame->image_,showImg,cv::COLOR_GRAY2BGR);
     if (ShowTrackFrames && !RcurLast.empty()) {
-      for(auto p : curCorners) {
-        cv::Mat showImg;
-        cv::cvtColor(curFrame->image_,showImg,cv::COLOR_GRAY2BGR);
-        cv::circle(showImg,p,2,cv::Scalar(0,0,255),2);
-        cv::imshow("predict corners",showImg);
-        cv::waitKey(1);
+      for(size_t i = 0; i < curCorners.size(); i++) {
+        cv::circle(showImg,refCorners[i],1,cv::Scalar(0,0,255),1);
+        cv::circle(showImg,curCorners[i],1,cv::Scalar(0,255,0),1);
+        cv::line(showImg,refCorners[i],curCorners[i],cv::Scalar(255,0,0),1);
       }
+      cv::Mat twiceImg;
+      cv::resize(showImg,twiceImg,cv::Size(2 * showImg.cols, 2 * showImg.rows));
+      cv::imwrite("image/" + std::to_string(curFrame->timestamp_) + ".png",twiceImg);
     }
     if (refCorners.size() > 5) {
       std::vector<uchar> status;

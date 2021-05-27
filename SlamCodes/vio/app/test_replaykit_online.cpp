@@ -18,25 +18,37 @@ int main(int argc,char **argv) {
   cmdline::parser parser;
   parser.add<std::string>("server_url", 'u', "Data server url.", false, "tcp://192.168.43.1");
   parser.add<std::string>("config_file",'c',"estimator config file",false,"../config/default.yaml");
+  parser.add<int>("div_freq",'f',"divide freqency(hz)", false,1);
+  parser.add<double>("time_offset",'o',"image time offset",false,0);
   parser.parse_check(argc, argv);
   std::string serverBaseUrl;
   std::string configFile;
+  int divideFreq = 1;
+  double timeoffset = 0.;
   serverBaseUrl = parser.get<std::string>("server_url");
   configFile = parser.get<std::string>("config_file");
+  divideFreq = parser.get<int>("div_freq");
+  timeoffset = parser.get<double>("time_offset");
   Estimator estimator(configFile);
 
   ReplayKitType replaykit;
   nnstation::BottomClient bottomClient;
   nnstation::ImuClient imuClient;
+  int imageCount = 0;
+
   replaykit.Subscribe<0>([&](double now_time, const vision::BottomImage &bottomImage) {
     cv::Mat im = cv::Mat(cv::Size(bottomImage.width(), bottomImage.height()), CV_8UC1,
                                (char *) bottomImage.image_buffer().c_str()).clone();
     auto delay = static_cast<float>(now_time - bottomImage.timestamp());
     auto exp_time = bottomImage.exposure_time();
-    printf("[Image] Get %12.6f at %12.6f, exp = %7.3fms, delay = %7.3fms\n",
-           bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
-    vio::FramePtr frame( new Frame(bottomImage.timestamp() + exp_time * 0.5,im));
-    estimator.update(frame,true);
+    imageCount++;
+    if (imageCount == divideFreq) {
+      imageCount = 0;
+      printf("[Image] Get %12.6f at %12.6f, exp = %7.3fms, delay = %7.3fms\n",
+             bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
+      vio::FramePtr frame(new Frame(bottomImage.timestamp() + exp_time * 0.5 + timeoffset, im));
+      estimator.update(frame, true);
+    }
   });
 
   replaykit.Subscribe<1>([&](double now_time, const rovio::InputInfoPack &info_pack) {
