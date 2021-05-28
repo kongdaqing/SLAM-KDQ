@@ -189,7 +189,7 @@ class FeatureManager {
 
   /** \brief get features coordinates in the world  
    */ 
-  std::vector<cv::Vec3f> getPointsInWorld() {
+  std::vector<cv::Vec3f> getPointsInWorld() const{
     std::vector<cv::Vec3f> pts3D;
     for (auto p : feats_) {
       if (p.second.valid3D()) {

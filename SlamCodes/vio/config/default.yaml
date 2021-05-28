@@ -10,7 +10,7 @@ OptiTrack.Iterations: 10
 OptiTrack.EPS: 0.01
 OptiTrack.PredictEnable: 0
 OptiTrack.ShowTrackFrames: 2
-OptiTrack.ShowDebugInfos: 1
+OptiTrack.ShowDebugInfos: 0
 
 Init.MinDisparity: 8
 Init.MinMatchedFeatNum: 20
