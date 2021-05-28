@@ -11,6 +11,22 @@ VizScene::VizScene(std::string windowName,double scale) {
   //windowLoopThread_->join();//如果主线程执行很快就结束，必须加join来强行插入进程，否则主线程很快直接运行结束，导致无法运行该线程
 }
 
+VizScene::VizScene(const Estimator* estimator,double scale):estimator_(estimator) {
+  if (estimator_ == nullptr) {
+    return;
+  }
+  std::vector<cv::Vec3f> pts3D;
+  pts3D.emplace_back(0,0,0);
+  pts3D.emplace_back(0,0,0);
+  createCameraObject(estimator_->cameraName,0.05,0.05,cv::Vec2f(CV_PI/2.0,CV_PI/2.0),cv::Vec3f(0.0,0.0,0.0),cv::Vec3f(0.0,0.0,1.0),cv::Vec3f(0,1.0,0));
+  createPointClouds(estimator_->pointsName,pts3D,cv::viz::Color::red(),4);
+  sceneWindowPtr_ = new cv::viz::Viz3d("vio");
+  sceneWindowPtr_->showWidget("widget coordinate",cv::viz::WCoordinateSystem(scale));
+#ifndef __APPLE__
+  windowLoopThread_ = new std::thread(&VizScene::windowShowLoopRun,this);
+#endif
+}
+
 VizScene::~VizScene() {
   sceneCloud_.clear();
   sceneCamera_.clear();
@@ -19,10 +35,21 @@ VizScene::~VizScene() {
 }
 void VizScene::windowShowLoopRun() {
   while (!sceneWindowPtr_->wasStopped()) {
-    mCloud_.lock();
     sceneWindowPtr_->spinOnce(1,false);
-    mCloud_.unlock();
-    usleep(10);
+    cv::Mat Rwc,WtC;
+    if (estimator_->getEstimatorState() == EstState::Runing) {
+      if (estimator_->getCurrentPose(Rwc, WtC)) {
+        cv::Affine3d Twc(Rwc, WtC);
+        std::cout << "[Pose]:" << WtC.t() << std::endl;
+        updateCameraPose(estimator_->cameraName, Twc);
+        updatePointClouds(estimator_->pointsName, estimator_->getFeatsInWorld());
+      }
+    } else {
+      clearCameraPath(estimator_->cameraName);
+    }
+    showSceneAllCamera();
+    showSceneAllPointClouds();
+    usleep(1000);
   }
 }
 
