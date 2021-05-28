@@ -8,6 +8,7 @@
 #include <vector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/viz.hpp>
+#include "Estimator.hpp"
 
 namespace vio{
 class ScenePointCloud{
@@ -87,7 +88,7 @@ class CameraObject {
     recordCount_++;
     if(recordCount_ % recoreFreq_ == 0) {
       path_.push_back(pos);
-      if (path_.size() > 1000) {
+      if (path_.size() > 300) {
         path_.erase(path_.begin());
       }
     }
@@ -108,9 +109,12 @@ class VizScene {
   cv::viz::Viz3d* sceneWindowPtr_;
   std::thread* windowLoopThread_;
   std::mutex mCloud_;
+  const Estimator* estimator_;
   /** \brief construction function
    */ 
   VizScene(std::string windowName,double scale = 1.0);
+
+  VizScene(const Estimator* estimator, double scale);
 
   /** \brief disconstruction function
    */ 
