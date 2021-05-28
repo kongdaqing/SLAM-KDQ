@@ -9,6 +9,7 @@
 #include "IMU.hpp"
 #include "cmdline.h"
 #include "Estimator.hpp"
+#include "VizScene.hpp"
 
 using namespace vio;
 typedef ::zz::replaykit::ReplayKit<::zz::replaykit::Topics<vision::BottomImage, rovio::InputInfoPack>,::zz::replaykit::Commands<>> ReplayKitType;
@@ -30,6 +31,10 @@ int main(int argc,char **argv) {
   divideFreq = parser.get<int>("div_freq");
   timeoffset = parser.get<double>("time_offset");
   Estimator estimator(configFile);
+
+
+  VizScene vizWindow(&estimator,0.05);
+
 
   ReplayKitType replaykit;
   nnstation::BottomClient bottomClient;
@@ -70,6 +75,6 @@ int main(int argc,char **argv) {
   bottomClient.startRecv();
   imuClient.startRecv();
   replaykit.Start();
-  sleep(UINT32_MAX);
+
   return 0;
 };
