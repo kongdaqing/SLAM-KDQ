@@ -7,6 +7,7 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     QualityLevel(cfg->optParam_.qualityLevel),
     MinDist(cfg->optParam_.minDist),
     TrackBack(cfg->optParam_.trackBack),
+    PredictEnable(cfg->optParam_.predictEnable),
     TrackBackPixelErr(cfg->optParam_.trackBackPixelErr),
     PyramidLevel(cfg->optParam_.pyramidLevel),
     CriterIterations(cfg->optParam_.iterations),
@@ -18,7 +19,7 @@ FeatureTracker::FeatureTracker(const Config* cfg):
 };
 
 std::vector<cv::Point2f> FeatureTracker::predictFeatures(const std::vector<cv::Point2f>& lastCorners,const cv::Mat& RcurLast) {
-  if (RcurLast.empty()) {
+  if (!PredictEnable || RcurLast.empty()) {
     return lastCorners;
   }
   std::vector<cv::Point2f> curCorners;
@@ -53,49 +54,54 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
     tictoc.tic();
     refFrame->getCornerVector(idx,refCorners);
     curCorners = predictFeatures(refCorners,RcurLast);
-    cv::Mat showImg;
-    cv::cvtColor(curFrame->image_,showImg,cv::COLOR_GRAY2BGR);
-    if (ShowTrackFrames && !RcurLast.empty()) {
-      for(size_t i = 0; i < curCorners.size(); i++) {
-        cv::circle(showImg,refCorners[i],1,cv::Scalar(0,0,255),1);
-        cv::circle(showImg,curCorners[i],1,cv::Scalar(0,255,0),1);
-        cv::line(showImg,refCorners[i],curCorners[i],cv::Scalar(255,0,0),1);
-      }
-      cv::Mat twiceImg;
-      cv::resize(showImg,twiceImg,cv::Size(2 * showImg.cols, 2 * showImg.rows));
-      cv::imwrite("image/" + std::to_string(curFrame->timestamp_) + ".png",twiceImg);
-    }
+    std::vector<cv::Point2f> preCorners = curCorners;
     if (refCorners.size() > 5) {
       std::vector<uchar> status;
       cv::Mat err;
       cv::calcOpticalFlowPyrLK(refFrame->image_,curFrame->image_,refCorners,curCorners,status,err,
-                              cv::Size(21,21),PyramidLevel,cv::TermCriteria(1,CriterIterations,CriterEPS));
+                              cv::Size(21,21),PyramidLevel,cv::TermCriteria(1,CriterIterations,CriterEPS),cv::OPTFLOW_USE_INITIAL_FLOW);
       for (size_t i = 0; i < status.size(); i++) {
         if (status[i] && !cam_->isInFrame(curCorners[i])) {
           status[i] = 0;
         } 
       }
-      costTime[0] = tictoc.toc();
       remove(status,refCorners);
       remove(status,curCorners);
+      remove(status,preCorners);
       remove(status,idx);
       remove(status,trackCount_);
-      tictoc.tic();
+      costTime[0] = tictoc.toc();
+      if (PredictEnable && !RcurLast.empty()) {
+        tictoc.tic();
+        cv::Mat showImg;
+        cv::cvtColor(curFrame->image_,showImg,cv::COLOR_GRAY2BGR);
+        for(size_t i = 0; i < curCorners.size(); i++) {
+          cv::circle(showImg,refCorners[i],1,cv::Scalar(0,0,255),1);
+          cv::circle(showImg,preCorners[i],1,cv::Scalar(255,0,0),1);
+          cv::circle(showImg,curCorners[i],1,cv::Scalar(0,255,0),1);
+          cv::line(showImg,refCorners[i],preCorners[i],cv::Scalar(255,0,255),1);
+        }
+        cv::Mat twiceImg;
+        cv::resize(showImg,twiceImg,cv::Size(2 * showImg.cols, 2 * showImg.rows));
+        cv::imwrite("image/" + std::to_string(curFrame->timestamp_) + ".png",twiceImg);
+        costTime[2] = tictoc.toc();
+      }
       if (TrackBack && curCorners.size() > 5) {
+        tictoc.tic();
         std::vector<uchar> status;
         std::vector<cv::Point2f> refBackCorners = refCorners;
         cv::Mat err;
         cv::calcOpticalFlowPyrLK(curFrame->image_,refFrame->image_,curCorners,refBackCorners,status,err,
-                                 cv::Size(21,21),1,cv::TermCriteria(1,10,0.1),1);
+                                 cv::Size(21,21),1,cv::TermCriteria(1,5,0.1),cv::OPTFLOW_USE_INITIAL_FLOW);
         for (size_t i = 0; i < status.size(); i++) {
           if (status[i] && (!cam_->isInFrame(refBackCorners[i]) || cv::norm(refCorners[i] - refBackCorners[i]) > TrackBackPixelErr)) {
             status[i] = 0;
           } 
         }
-        costTime[1] = tictoc.toc();
         remove(status,curCorners);
         remove(status,idx);
         remove(status,trackCount_);
+        costTime[1] = tictoc.toc();
       }
       for (size_t i = 0; i < trackCount_.size(); i++) {
         trackCount_[i]++;
@@ -112,9 +118,9 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
     if (allCorners_.size() > ShowTrackFrames) {
       allCorners_.pop_front();
     }
-    showAllFeature(curFrame->image_);
+    showAllFeature(curFrame->image_,2);
   }
-  costTime[2] = tictoc.toc();
+  costTime[2] += tictoc.toc();
   tictoc.tic();
   const int needFeatSize = MaxPointSize - curCorners.size();
   if (needFeatSize > 0.25 * MaxPointSize) {
@@ -132,6 +138,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
   double allCostMs = allTicToc.toc();
   if (ShowDebugInfos) {
     std::cout << "[OptiTrack]:   All-Modules Cost(ms): " << allCostMs   << "\n"
+              << "          AllTrack(NoShow) Cost(ms): " << costTime[0] + costTime[1] + costTime[3] << "\n"
               << "             Forward-Track Cost(ms): " << costTime[0] << "\n"
               << "                Back-Track Cost(ms): " << costTime[1] << "\n"
               << "                    Imshow Cost(ms): " << costTime[2] << "\n"
@@ -151,10 +158,14 @@ void FeatureTracker::showAllFeature(cv::Mat &img,uint8_t imgScale) {
     if (cornerFront.count(id)) {
       cv::Point2f pointBegin = cornerFront[id];
       cv::Point2f pointEnd = cornerBack[id];
-      cv::putText(colorImg,std::to_string(it->first),pointEnd,cv::FONT_HERSHEY_PLAIN,1,cv::Scalar(0,0,255));
+      cv::putText(colorImg,std::to_string(it->first),pointEnd,cv::FONT_HERSHEY_PLAIN,0.3,cv::Scalar(0,0,255));
       cv::line(colorImg,pointBegin,pointEnd,cv::Scalar(0,255,0));
     }
   }
+//  cv::Point2f markPt;
+//  markPt.x = 100;
+//  markPt.y = 40;
+//  cv::line(colorImg,cv::Point2f(0,0),markPt,cv::Scalar(0,255,0),2);
   cv::resize(colorImg,colorImg,cv::Size(colorImg.cols * imgScale, colorImg.rows * imgScale));
   cv::imshow("all features",colorImg);
   cv::waitKey(1);

@@ -8,6 +8,7 @@ struct OptitrackParam {
   float qualityLevel;
   int maxPoints; 
   int trackBack;
+  int predictEnable;
   int trackBackPixelErr;
   double pyramidLevel;
   int iterations;
@@ -17,6 +18,7 @@ struct OptitrackParam {
   void print() {
     std::cout << "========OptiTrack Parameters========" << std::endl;
     std::cout << "trackBack = " << trackBack << std::endl;
+    std::cout << "predictEnable = " << predictEnable << std::endl;
     std::cout << "trackBackPixelErr = " << trackBackPixelErr << std::endl;
     std::cout << "qualityLevel = " << qualityLevel << std::endl;
     std::cout << "maxPoints = " << maxPoints << std::endl;
@@ -105,6 +107,7 @@ class Config {
       return;
     }
     optParam_.trackBack = fs["OptiTrack.TrackBack"];
+    optParam_.predictEnable = fs["OptiTrack.PredictEnable"];
     optParam_.trackBackPixelErr = fs["OptiTrack.TrackBackPixelErr"];
     optParam_.maxPoints = fs["OptiTrack.MaxPoints"];
     optParam_.minDist = fs["OptiTrack.MinDist"];

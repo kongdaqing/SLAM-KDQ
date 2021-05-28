@@ -32,6 +32,7 @@ class FeatureTracker{
   const float QualityLevel;
   const float MinDist;
   const int TrackBack;
+  const int PredictEnable;
   const int TrackBackPixelErr;
   const int PyramidLevel;
   const int CriterIterations;

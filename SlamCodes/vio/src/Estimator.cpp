@@ -229,12 +229,7 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
   }
   preInteNow_->fix();
   Eigen::Matrix3d R_lastB_curB = preInteNow_->rotationMatrix();
-  Eigen::Matrix3d R = Rbc_.transpose() * R_lastB_curB * Rbc_;
-  Eigen::Vector3d euler = R.eulerAngles(2,1,0);
-  kindr::EulerAnglesZyxD eulerR(euler);
-  eulerR.setUnique();
-  Eigen::Vector3d euler2 = preInteNow_->eulerAngle();
-  std::cout << "euler = " << eulerR << " euler2 = " << euler2.transpose() << std::endl;
+  Eigen::Matrix3d R = (R_lastB_curB * Rbc_).transpose() * Rbc_;
   cv::Mat cvR = (cv::Mat_<float>(3,3) << R(0,0), R(0,1), R(0,2),
                                                      R(1,0), R(1,1), R(1,2),
                                                      R(2,0), R(2,1), R(2,2));

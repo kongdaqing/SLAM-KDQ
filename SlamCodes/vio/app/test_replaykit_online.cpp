@@ -44,8 +44,8 @@ int main(int argc,char **argv) {
     imageCount++;
     if (imageCount == divideFreq) {
       imageCount = 0;
-      printf("[Image] Get %12.6f at %12.6f, exp = %7.3fms, delay = %7.3fms\n",
-             bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
+//      printf("[Image] Get %12.6f at %12.6f, exp = %7.3fms, delay = %7.3fms\n",
+//             bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
       vio::FramePtr frame(new Frame(bottomImage.timestamp() + exp_time * 0.5 + timeoffset, im));
       estimator.update(frame, true);
     }
@@ -58,6 +58,8 @@ int main(int argc,char **argv) {
       double timestamp = info.t();
       Eigen::Vector3d acc(info.acc().x(),info.acc().y(),info.acc().z());
       Eigen::Vector3d gyr(info.gyr().x(),info.gyr().y(),info.gyr().z());
+//      std::cout << "[IMU]: " << timestamp << ",ax:" << acc.x() << ",ay:" << acc.y() << ",az:" << acc.z() << std::endl;
+//      std::cout << "[IMU]: " << timestamp << ",gx:" << gyr.x() * 60 << ",gy:" << gyr.y() * 60 << ",gz:" << gyr.z() * 60 << std::endl;
       estimator.updateImuMeas(timestamp,IMU(timestamp,acc,gyr));
     }
   });
