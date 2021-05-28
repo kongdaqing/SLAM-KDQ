@@ -38,6 +38,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   } 
   slideWindows_.push_back(frame);
+  poseUpdateFlg_ = false;
   switch (state)
   {
   case EstState::Waiting:
@@ -47,7 +48,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     break;
   case EstState::Initing: 
     {
-      break;
       int i = 0;
       for (auto ref : slideWindows_) {
         i++;
@@ -70,6 +70,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   case EstState::Runing:
     if (fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
       updateFeature();
+      poseUpdateFlg_ = true;
     } else {
       reset();
       state = EstState::Waiting;
@@ -92,6 +93,7 @@ void Estimator::reset() {
   fsm_.reset();
   slideWindows_.clear();
   feaTrcker_->reset();
+  poseUpdateFlg_ = false;
 }
 
 

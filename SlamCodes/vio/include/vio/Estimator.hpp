@@ -16,6 +16,8 @@ enum EstState {
 
 class Estimator {
  public:
+  std::string cameraName = "cam";
+  std::string pointsName = "corners";
   /** \brief construct function
    */ 
   Estimator(std::string configFile);
@@ -42,8 +44,8 @@ class Estimator {
 
   /** \brief get current pose
    */ 
-  bool getCurrentPose(cv::Mat& Rwc,cv::Mat& WtC) {
-    if (!slideWindows_.empty()) {
+  bool getCurrentPose(cv::Mat& Rwc,cv::Mat& WtC) const {
+    if (!slideWindows_.empty() && poseUpdateFlg_) {
       slideWindows_.back()->getPoseInWorld(Rwc,WtC);
       return true;
     }
@@ -52,7 +54,7 @@ class Estimator {
 
   /** \brief get all features coordinate in world 
    */ 
-  std::vector<cv::Vec3f> getFeatsInWorld() {
+  std::vector<cv::Vec3f> getFeatsInWorld() const {
     return fsm_.getPointsInWorld();
   }
 
@@ -63,6 +65,8 @@ class Estimator {
       imuMeas_.clean(slideWindows_[0]->timestamp_);
     }
   }
+
+
  private:
   EstState state;
   Config* cfg_;
@@ -77,6 +81,7 @@ class Estimator {
   PreIntegration* preInteNow_;
   Eigen::Matrix3d Rbc_;
   Eigen::Vector3d tbc_;
+  bool poseUpdateFlg_;
   /** \brief slide window to remove oldest frame and features
    */ 
   void slideWindow();
