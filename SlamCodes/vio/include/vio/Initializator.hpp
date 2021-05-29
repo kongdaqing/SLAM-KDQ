@@ -19,7 +19,7 @@ class Initializator {
    * @param fm         ---   feature manager object
    * @return return initialization success flag
    */ 
-  bool initPoseAndMap(Frame* refFrame,Frame* curFrame,FeatureManager& fm);
+  bool initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureManager& fm);
 
   /** \brief Calculate pose of two frames with overlap features through decomposing homography matrix
    *  @param refFrame  ---  referance frame ptr
@@ -27,7 +27,7 @@ class Initializator {
    *  @param pts3D     ---  triangulating points 
    *  @return  success flag of calculating pose  
    */ 
-  bool initializeFromHomography(Frame* refFrame,Frame* curFrame,std::map<uint64,cv::Point3f>& pts3D);
+  bool initializeFromHomography(FramePtr  refFrame,FramePtr  curFrame,std::map<uint64,cv::Point3f>& pts3D);
 
   /** \brief Calculate homography matrix of two frames with overlap features  
    *  @param H            --- homegraphy matrix

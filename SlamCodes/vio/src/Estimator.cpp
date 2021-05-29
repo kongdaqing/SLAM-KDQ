@@ -36,7 +36,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     if (lastFramePtr != nullptr)
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
-  } 
+  }
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
   switch (state)
@@ -52,7 +52,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       for (auto ref : slideWindows_) {
         i++;
         if (state != EstState::Runing) {
-          if (init_->initPoseAndMap(ref.get(),frame.get(),fsm_)) {
+          if (init_->initPoseAndMap(ref,frame,fsm_)) {
             state = EstState::Runing;
           }
         } else if (i < slideWindows_.size()) {
@@ -84,7 +84,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 
 void Estimator::slideWindow() {
   if (slideWindows_.size() > WINSIZE) {
-    fsm_.removeFrame(slideWindows_.front().get());
+    fsm_.removeFrame(slideWindows_.front());
     slideWindows_.erase(slideWindows_.begin());
   }
 }
@@ -157,7 +157,7 @@ void Estimator::updateFeature() {
       p3DVec.push_back(features[id].getPts3DInWorld());
       idx.push_back(id);
     } else {
-      fsm_.addFeature(id,curFramePtr.get());
+      fsm_.addFeature(id,curFramePtr);
     }
   }
   cv::Mat Rcw,CtW,rcw;
@@ -169,13 +169,13 @@ void Estimator::updateFeature() {
       corners.erase(idx[i]);
       fsm_.updateBadCount(idx[i]);
     } else {
-      fsm_.addFeature(idx[i],curFramePtr.get());
+      fsm_.addFeature(idx[i],curFramePtr);
     }
   }
 
   //step2: remove untracked features
   for (auto it = features.begin(); it != features.end();) {
-    if (!it->second.isInFrame(curFramePtr.get())) {
+    if (!it->second.isInFrame(curFramePtr)) {
       fsm_.removeFeature(it++);
       continue;
     }

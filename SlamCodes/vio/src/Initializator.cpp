@@ -11,7 +11,7 @@ Initializator::Initializator(const Config* cfg,Camera* cam):
 
 };
 
-bool Initializator::initPoseAndMap(Frame* refFrame,Frame* curFrame,FeatureManager& fs) {
+bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureManager& fs) {
   if (refFrame == nullptr || curFrame == nullptr) {
     printf("[Initializator]:No enough frames in the slidewindow!\n");
     return false;
@@ -72,12 +72,12 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
 
 
 
-bool Initializator::initializeFromHomography(Frame* refFrame,Frame* curFrame,std::map<uint64,cv::Point3f>& pts3D) {
+bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame,std::map<uint64,cv::Point3f>& pts3D) {
   cv::Mat H;
   std::vector<uchar> inliers;
   std::vector<uint64> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
-  curFrame->getMatchedFeatures(refFrame,idVec,refFeatures,curFeatures);
+  curFrame->getMatchedFeatures(refFrame.get(),idVec,refFeatures,curFeatures);
   if (refFeatures.size() < InitialMinMatchedPointNum) {
     printf("[Initialization]: match size %d is not enough!\n",static_cast<int>(refFeatures.size()));
     return false;

@@ -39,7 +39,7 @@ void monoCallback(sensor_msgs::ImageConstPtr msg,FeatureTracker* featTracker,Fra
   }
   cv::Mat image = cv_ptr->image.clone();
   double timestamp = cv_ptr->header.stamp.now().toSec();
-  FramePtr curFrame(new Frame(timestamp,image));  
+  FramePtr curFrame(new Frame(timestamp,image));
   featTracker->detectAndTrackFeature(lastFrame,curFrame);
   lastFrame = curFrame;
   curFrame->imshowFeatures(2);

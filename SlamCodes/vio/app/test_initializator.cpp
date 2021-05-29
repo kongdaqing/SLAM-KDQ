@@ -13,8 +13,8 @@ int main(int argc,char **argv) {
   Camera* cam = new Camera(cfg);
   Initializator ini(cfg,cam);
   //Initializing frames
-  Frame *refFrame = new Frame();
-  Frame *curFrame = new Frame();
+  FramePtr refFrame(new Frame());
+  FramePtr curFrame(new Frame());
   cv::Mat rwc0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
   cv::Mat WtC0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
   cv::Mat Rwc0;

@@ -1,7 +1,7 @@
 #include "FeatureManager.hpp"
 namespace vio{
 
-void FeatureManager::removeFrame(Frame *f) {
+void FeatureManager::removeFrame(FramePtr f) {
   for(auto it = feats_.begin(); it != feats_.end(); it++) {
     it->second.removeFrame(f);
   }
@@ -10,7 +10,7 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
   if (!feats_.count(id) || feats_[id].getTrackCount() < 2) {
     return false;
   }
-  const std::map<const Frame*,cv::Point2f>& uv = feats_[id].getFeatMap();
+  const std::map<const FramePtr ,cv::Point2f>& uv = feats_[id].getFeatMap();
   cv::Mat A(2 * feats_[id].getTrackCount(),4,CV_32F);
   int i = 0;
   for (auto it = uv.begin(); it != uv.end(); it++) {

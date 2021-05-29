@@ -1,5 +1,5 @@
 #pragma once 
-#include "Frame.hpp" 
+#include "Frame.hpp"
 #include "Camera.hpp"
 #define WINSIZE 10
 
@@ -17,7 +17,7 @@ class Feature {
    * @param idx  --- id of feature
    * @param f    --- frame ptr
    */ 
-  Feature(uint64 idx,Frame *f) {
+  Feature(uint64 idx,FramePtr f) {
     id = idx;
     addFrame(f);
     valid3D_ = false;
@@ -27,7 +27,7 @@ class Feature {
   /** \brief add frame and pixel coordinate
    * @param f  --- frame 
    */ 
-  void addFrame(const Frame *f) {
+  void addFrame(const FramePtr f) {
     cv::Point2f pixel;
     if (f->getCornerUV(id,pixel)) {
       uv[f] = pixel;
@@ -36,7 +36,7 @@ class Feature {
   /** \brief remove frame ptr that corresponding this feature 
    * @param f  --- frame ptr that will be remove
    */ 
-  void removeFrame(const Frame *f) {
+  void removeFrame(const FramePtr f) {
     uv.erase(f);
   }
 
@@ -71,14 +71,14 @@ class Feature {
   /** \brief get features' map
    * @return return features' map
    */ 
-  const std::map<const Frame*,cv::Point2f> &getFeatMap() const {
+  const std::map<const FramePtr,cv::Point2f> &getFeatMap() const {
     return uv;
   }
 
   /** \brief judge frame has this point
    * @return return true if the frame has this feat
    */ 
-  inline bool isInFrame(const Frame* f) {
+  inline bool isInFrame(const FramePtr f) {
     return (uv.count(f));
   }
 
@@ -95,7 +95,7 @@ class Feature {
   }
  private:
   uint64 id;
-  std::map<const Frame*,cv::Point2f> uv;
+  std::map<const FramePtr,cv::Point2f> uv;
   cv::Point3f p3D;
   int badCount_;
   bool valid3D_;
@@ -128,7 +128,7 @@ class FeatureManager {
   /** \brief remove fram from feature pixel map
    * @param  f   --- frame ptr
    */ 
-  void removeFrame(Frame* f); //remove infomation about f in the feats_;
+  void removeFrame(FramePtr f); //remove infomation about f in the feats_;
 
   /** \brief triangulate points in the frame which is not yet triangulated and tracked more than 3 times 
    * @param id    --- feature id
@@ -148,7 +148,7 @@ class FeatureManager {
    * @param id  ---  id of feature
    * @param f   --- parent frame of feature
    */ 
-  inline void addFeature(uint64 id,Frame* f) {
+  inline void addFeature(uint64 id,FramePtr f) {
     if (feats_.count(id)) {
       feats_[id].addFrame(f);
     } else {
