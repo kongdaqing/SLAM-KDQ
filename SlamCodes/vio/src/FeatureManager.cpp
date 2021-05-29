@@ -10,7 +10,7 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
   if (!feats_.count(id) || feats_[id].getTrackCount() < 2) {
     return false;
   }
-  const std::map<const FramePtr ,cv::Point2f>& uv = feats_[id].getFeatMap();
+  const std::map<const FramePtr ,PixelCoordinate>& uv = feats_[id].getFeatMap();
   cv::Mat A(2 * feats_[id].getTrackCount(),4,CV_32F);
   int i = 0;
   for (auto it = uv.begin(); it != uv.end(); it++) {
@@ -19,7 +19,7 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
     cv::Mat P(3,4,CV_32F);
     R.convertTo(P.colRange(0,3),CV_32F);
     t.convertTo(P.col(3),CV_32F);
-    cv::Point2f kp = cam->normalized(it->second);
+    cv::Point2f kp = it->second.second;
     A.row(i) = kp.x * P.row(2) - P.row(0);
     A.row(i+1) = kp.y * P.row(2) - P.row(1);
     i +=2;

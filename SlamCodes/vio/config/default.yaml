@@ -2,6 +2,7 @@
 
 Estimator.KeyFrameMatchedPoints: 20
 Estimator.KeyFrameParallexThreshold: 3
+Estimator.ReprojectPixelErr: 2
 
 OptiTrack.TrackBack: 1
 OptiTrack.TrackBackPixelErr: 1

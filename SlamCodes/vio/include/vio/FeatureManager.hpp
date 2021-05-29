@@ -2,8 +2,10 @@
 #include "Frame.hpp"
 #include "Camera.hpp"
 #define WINSIZE 10
-
 namespace vio{
+
+typedef std::pair<cv::Point2f,cv::Point2f> PixelCoordinate;
+
 class Feature {
  public:
   /** \brief construct function
@@ -28,9 +30,10 @@ class Feature {
    * @param f  --- frame 
    */ 
   void addFrame(const FramePtr f) {
-    cv::Point2f pixel;
+    cv::Point2f pixel,normalized;
     if (f->getCornerUV(id,pixel)) {
-      uv[f] = pixel;
+      normalized = f->getNormalized();
+      uv[f] = PixelCoordinate(pixel,cam->normalized(pixel));
     }
   }
   /** \brief remove frame ptr that corresponding this feature 
@@ -71,7 +74,7 @@ class Feature {
   /** \brief get features' map
    * @return return features' map
    */ 
-  const std::map<const FramePtr,cv::Point2f> &getFeatMap() const {
+  const std::map<const FramePtr,PixelCoordinate> &getFeatMap() const {
     return uv;
   }
 
@@ -99,7 +102,7 @@ class Feature {
   }
  private:
   uint64 id;
-  std::map<const FramePtr,cv::Point2f> uv;
+  std::map<const FramePtr,PixelCoordinate> uv;
   cv::Point3f p3D;
   int badCount_;
   bool valid3D_;
@@ -152,9 +155,9 @@ class FeatureManager {
    * @param id  ---  id of feature
    * @param f   --- parent frame of feature
    */ 
-  inline void addFeature(uint64 id,FramePtr f) {
+  inline void addFeature(uint64 id,FramePtr f,const Camera* cam) {
     if (feats_.count(id)) {
-      feats_[id].addFrame(f);
+      feats_[id].addFrame(f,cam);
     } else {
       Feature feature(id,f);
       feats_[id] = feature;

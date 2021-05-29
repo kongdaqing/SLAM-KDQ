@@ -99,10 +99,12 @@ struct SimulatorParam {
 struct EstimatorParam {
   int KeyFrameParallexThreshold;
   int KeyFrameMatchedPoints;
+  int ReprojectPixelErr;
   void print() {
     std::cout << "=========Estimator Parameters========" << std::endl;
     std::cout << "keyframeParallexThreshold = " << KeyFrameParallexThreshold << std::endl;
     std::cout << "keyframeMatchedPoints = " << KeyFrameMatchedPoints << std::endl;
+    std::cout << "reprojectPixelErr = " << ReprojectPixelErr << std::endl;
   }
 };
 
@@ -120,6 +122,7 @@ class Config {
 
     estimatorParam_.KeyFrameMatchedPoints = fs["Estimator.KeyFrameMatchedPoints"];
     estimatorParam_.KeyFrameParallexThreshold = fs["Estimator.KeyFrameParallexThreshold"];
+    estimatorParam_.ReprojectPixelErr = fs["Estimator.ReprojectPixelErr"];
     estimatorParam_.print();
 
     optParam_.trackBack = fs["OptiTrack.TrackBack"];

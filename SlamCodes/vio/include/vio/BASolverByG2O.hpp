@@ -38,7 +38,7 @@ class BASolverByG2O {
     optimizer_.addParameter(camera_);
   }
 
-  void addVertex(const std::vector<FramePtr>& slidewindow,const FeatureManager& fsm_) {
+  void addVertexAndEdge(const std::vector<FramePtr>& slidewindow,const FeatureManager& fsm_) {
     if (slidewindow.empty() || fsm_.getFeatureSize() < 3) {
       printf(("[G2O-AddVertex]:Failure!SlideWindow size %d and localMap size %d are not enough!\n",slidewindow.size(),fsm_.getFeatureSize());
       return;
@@ -79,13 +79,18 @@ class BASolverByG2O {
       featId_[it->first] = vertexId_;
       vertexId_++;
     }
+    std::vector<g2o::EdgeProjectXYZ2UV*> edges;
+    for (auto p : slidewindow) {
+      std::vector<cv::Point2f> matchedNormalizedUV;
+      std::vector<cv::Point3f> matchedPts3D;
+      std::vector<uint64_t> matchedIds;
+      fsm_.featureMatching(cam_,frame,matchedIds,matchedNormalizedUV,matchedPts3D);
+      if (matchedPts3D.size() < 5) {
+        printf("[EstimatePose]: matched points is too few!\n");
+        return false;
+      }
+    }
   }
-
-  void addEdge() {
-
-  }
-
-
 
 
  private:

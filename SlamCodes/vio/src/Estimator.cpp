@@ -186,7 +186,7 @@ void Estimator::updateFeature() {
   cv::Rodrigues(Rcw,rcw);
   cam_->project(p3DVec,proPtVec,rcw,CtW);
   for(size_t i = 0; i < idx.size(); i++) {
-    if (cv::norm(proPtVec[i] - ptVec[i]) > 3.0) {
+    if (cv::norm(proPtVec[i] - ptVec[i]) > cfg_->estimatorParam_.ReprojectPixelErr) {
       corners.erase(idx[i]);
       fsm_.updateBadCount(idx[i]);
     } else {
@@ -194,7 +194,7 @@ void Estimator::updateFeature() {
     }
   }
 
-  //step2: remove untracked features
+  //step2: remove untracked and bad features
   for (auto it = features.begin(); it != features.end();) {
     if (!it->second.isInFrame(curFramePtr)) {
       fsm_.removeFeature(it++);
