@@ -37,6 +37,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
+  checkParallex(frame);
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
   switch (state)
@@ -83,7 +84,12 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 }
 
 void Estimator::slideWindow() {
-  if (slideWindows_.size() > WINSIZE) {
+  if (slideWindows_.size() > 1 && !removeOldKeyFrame_) { //remove second new frame no wait
+    std::vector<FramePtr>::iterator it = slideWindows_.end() - 1;
+    fsm_.removeFrame(*it);
+    slideWindows_.erase(it);
+  }
+  if (slideWindows_.size() > WINSIZE && removeOldKeyFrame_) { //remove old frame until slidewindow is full
     fsm_.removeFrame(slideWindows_.front());
     slideWindows_.erase(slideWindows_.begin());
   }
@@ -94,15 +100,30 @@ void Estimator::reset() {
   slideWindows_.clear();
   feaTrcker_->reset();
   poseUpdateFlg_ = false;
+  removeOldKeyFrame_ = true;
 }
 
+void Estimator::checkParallex(FramePtr frame) {
+  if (slideWindows_.empty()) {
+    return;
+  }
+  std::vector<uint64> idVec;
+  std::vector<cv::Point2f> refFeatures,curFeatures;
+  float averParallex = 0;
+  frame->getMatchedFeatures(slideWindows_.back().get(),idVec,refFeatures,curFeatures,averParallex);
+  if (curFeatures.size() < cfg_->estimatorParam_.KeyFrameMatchedPoints ||
+      averParallex > cfg_->estimatorParam_.KeyFrameParallexThreshold) {
+    removeOldKeyFrame_ = true;
+  } else {
+    removeOldKeyFrame_ = false;
+  }
+}
 
-bool Estimator::estimatePose(FramePtr framePtr) {
-  Frame* curFramePtr = framePtr.get();
+bool Estimator::estimatePose(FramePtr frame) {
   std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
   std::vector<uint64_t> matchedIds;
-  fsm_.featureMatching(cam_,curFramePtr,matchedIds,matchedNormalizedUV,matchedPts3D);
+  fsm_.featureMatching(cam_,frame,matchedIds,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
     printf("[EstimatePose]: matched points is too few!\n");
     return false;
@@ -114,7 +135,7 @@ bool Estimator::estimatePose(FramePtr framePtr) {
     cv::Rodrigues(rcw,Rcw);
     Rwc = Rcw.t();
     WtC = - Rwc * CtW;
-    curFramePtr->setPoseInWorld(Rwc,WtC);
+    frame->setPoseInWorld(Rwc,WtC);
     return true;
   } 
   std::cout << "[EstimatePose]:Failure!" << std::endl;

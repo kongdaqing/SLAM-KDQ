@@ -93,6 +93,10 @@ class Feature {
   int getBadCount() const {
     return badCount_;
   }
+
+  bool isReadyForOptimize() const{
+    return valid3D_ && badCount_ == 0 && getTrackCount() > 0;
+  }
  private:
   uint64 id;
   std::map<const FramePtr,cv::Point2f> uv;
@@ -142,7 +146,7 @@ class FeatureManager {
    * @param curUV  --- matched feature' pixel coordinates in input frame f
    * @param matched3DPts  ---  matched feature 3D coordinate in FM
    */ 
-  void featureMatching(const Camera *cam,const Frame* f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
+  void featureMatching(const Camera *cam,const FramePtr f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
 
   /** \brief add feature in the FM
    * @param id  ---  id of feature

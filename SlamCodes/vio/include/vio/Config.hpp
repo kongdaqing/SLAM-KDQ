@@ -95,6 +95,17 @@ struct SimulatorParam {
     std::cout << "featureSize = " << featureSize << std::endl;
   }
 };
+
+struct EstimatorParam {
+  int KeyFrameParallexThreshold;
+  int KeyFrameMatchedPoints;
+  void print() {
+    std::cout << "=========Estimator Parameters========" << std::endl;
+    std::cout << "keyframeParallexThreshold = " << KeyFrameParallexThreshold << std::endl;
+    std::cout << "keyframeMatchedPoints = " << KeyFrameMatchedPoints << std::endl;
+  }
+};
+
 class Config {
  public:
 
@@ -106,6 +117,11 @@ class Config {
       std::cerr << "[Config]:Config file is not exist!" << std::endl;
       return;
     }
+
+    estimatorParam_.KeyFrameMatchedPoints = fs["Estimator.KeyFrameMatchedPoints"];
+    estimatorParam_.KeyFrameParallexThreshold = fs["Estimator.KeyFrameParallexThreshold"];
+    estimatorParam_.print();
+
     optParam_.trackBack = fs["OptiTrack.TrackBack"];
     optParam_.predictEnable = fs["OptiTrack.PredictEnable"];
     optParam_.trackBackPixelErr = fs["OptiTrack.TrackBackPixelErr"];
@@ -159,6 +175,7 @@ class Config {
   SimulatorParam simParam_;
   PnpSolverParam pnpParam_;
   ExtrinsicParam extrinsicParam_;
+  EstimatorParam estimatorParam_;
 };
 
 }

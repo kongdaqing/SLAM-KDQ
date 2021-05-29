@@ -82,6 +82,8 @@ class Estimator {
   Eigen::Matrix3d Rbc_;
   Eigen::Vector3d tbc_;
   bool poseUpdateFlg_;
+  bool removeOldKeyFrame_;
+
   /** \brief slide window to remove oldest frame and features
    */ 
   void slideWindow();
@@ -99,6 +101,8 @@ class Estimator {
   /** \brief update features include removing untracked points and add new points
    */ 
   void updateFeature();
+
+  void checkParallex(FramePtr frame);
 
 
   void calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last);

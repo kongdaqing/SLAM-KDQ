@@ -152,14 +152,21 @@ class Frame {
   void getMatchedFeatures(const Frame* refFrame,
                           std::vector<uint64> &matchedId,
                           std::vector<cv::Point2f> &refCorners,
-                          std::vector<cv::Point2f> &curCorners) {
-   const std::map<uint64,cv::Point2f> refFeats = refFrame->getCorners();
+                          std::vector<cv::Point2f> &curCorners,
+                          float &averParallex) {
+    averParallex = 0;
+    float sumParallex = 0;
+    const std::map<uint64,cv::Point2f> refFeats = refFrame->getCorners();
     for (auto it = refFeats.begin();it != refFeats.end();it++) {
       if (corners_.count(it->first)) {
         matchedId.push_back(it->first);
         refCorners.push_back(it->second);
         curCorners.push_back(corners_[it->first]);
+        sumParallex += cv::norm(refCorners.back() - curCorners.back());
       }
+    }
+    if (curCorners.size() > 0) {
+      averParallex = sumParallex / curCorners.size();
     }
   }
 

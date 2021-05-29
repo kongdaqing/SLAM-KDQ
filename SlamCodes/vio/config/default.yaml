@@ -1,5 +1,8 @@
 %YAML:1.0
 
+Estimator.KeyFrameMatchedPoints: 20
+Estimator.KeyFrameParallexThreshold: 3
+
 OptiTrack.TrackBack: 1
 OptiTrack.TrackBackPixelErr: 1
 OptiTrack.MaxPoints: 100

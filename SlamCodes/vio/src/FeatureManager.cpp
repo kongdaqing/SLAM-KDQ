@@ -38,7 +38,7 @@ bool FeatureManager::triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d) 
 }
 
 void FeatureManager::featureMatching(const Camera *cam,
-                                     const Frame *f,
+                                     const FramePtr f,
                                      std::vector<uint64_t>& matchedIds,
                                      std::vector<cv::Point2f>& matchedNormalizedUV,
                                      std::vector<cv::Point3f>& matched3DPts) {

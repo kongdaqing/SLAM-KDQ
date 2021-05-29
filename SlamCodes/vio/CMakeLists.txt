@@ -56,6 +56,8 @@ set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
 set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.so")
 set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
 set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
+set(g2o_LIBS "/usr/local/lib")
+set(g2o_INCLUDE_DIR "/usr/local/include/g2o")
 
 if (APPLE)
 find_package(OpenCV 4.0 REQUIRED)
@@ -70,6 +72,7 @@ find_package(nanomsg CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(kindr REQUIRED)
 
+
 include_directories(
   include/vio
   include/nnstation
@@ -80,6 +83,7 @@ include_directories(
   ${REPLAYKIT_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIRS}
   ${kindr_INCLUDE_DIRS}
+  ${g2o_INCLUDE_DIR}
 )
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp

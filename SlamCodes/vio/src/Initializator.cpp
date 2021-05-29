@@ -77,7 +77,8 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
   std::vector<uchar> inliers;
   std::vector<uint64> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
-  curFrame->getMatchedFeatures(refFrame.get(),idVec,refFeatures,curFeatures);
+  float averParallex = 0;
+  curFrame->getMatchedFeatures(refFrame.get(),idVec,refFeatures,curFeatures,averParallex);
   if (refFeatures.size() < InitialMinMatchedPointNum) {
     printf("[Initialization]: match size %d is not enough!\n",static_cast<int>(refFeatures.size()));
     return false;
