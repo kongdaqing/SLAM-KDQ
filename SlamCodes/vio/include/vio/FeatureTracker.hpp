@@ -42,7 +42,7 @@ class FeatureTracker{
   Camera* cam_; 
   uint64_t id_;
   std::vector<uint64_t> trackCount_;
-  std::list<std::map<uint64,cv::Point2f>> allCorners_;
+  std::list<std::map<uint64_t,cv::Point2f>> allCorners_;
   /** \brief remove bad data in the vector
    * @param status  ---  status vector 1 is good,0 needs remove
    * @param data    ---  vector data 

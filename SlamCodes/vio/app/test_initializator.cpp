@@ -13,8 +13,8 @@ int main(int argc,char **argv) {
   Camera* cam = new Camera(cfg);
   Initializator ini(cfg,cam);
   //Initializing frames
-  FramePtr refFrame(new Frame());
-  FramePtr curFrame(new Frame());
+  FramePtr refFrame(new Frame(CameraPtr(cam)));
+  FramePtr curFrame(new Frame(CameraPtr(cam)));
   cv::Mat rwc0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
   cv::Mat WtC0 = (cv::Mat_<double>(3,1) << 0.,0.,0.);
   cv::Mat Rwc0;
@@ -37,8 +37,8 @@ int main(int argc,char **argv) {
   cv::Rodrigues(Rcw0,rcw0);
   curFrame->getInversePose(Rcw1,CtW1);
   cv::Rodrigues(Rcw1,rcw1);
-  std::map<uint64,cv::Point2f> &refCorners = refFrame->getCorners();
-  std::map<uint64,cv::Point2f> &curCorners = curFrame->getCorners();
+  std::map<uint64_t,cv::Point2f> &refCorners = refFrame->getCorners();
+  std::map<uint64_t,cv::Point2f> &curCorners = curFrame->getCorners();
   cv::Mat refImg(cv::Size(cam->width(),cam->height()),CV_8UC3,cv::Scalar(255,255,255));
   cv::Mat curImg(cv::Size(cam->width(),cam->height()),CV_8UC3,cv::Scalar(255,255,255));
   
@@ -69,7 +69,7 @@ int main(int argc,char **argv) {
     std::cout << refCorner << " vs " << curCorner << std::endl;
   }
 
-  std::map<uint64,cv::Point3f> pt3DMap;
+  std::map<uint64_t,cv::Point3f> pt3DMap;
   std::cout << "Real Pose:" << std::endl;
   std::cout << "Cur R :\n" << curFrame->Rwc() << std::endl;
   std::cout << "Cur t :\n" << curFrame->WtC() << std::endl;

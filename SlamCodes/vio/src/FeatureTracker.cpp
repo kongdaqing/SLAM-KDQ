@@ -113,7 +113,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
   curFrame->setCornerMap(idx,curCorners);
   tictoc.tic();
   if (ShowTrackFrames > 0) {
-    std::map<uint64,cv::Point2f> curFeats = curFrame->getCornersCopy();
+    std::map<uint64_t,cv::Point2f> curFeats = curFrame->getCornersCopy();
     allCorners_.push_back(curFeats);
     if (allCorners_.size() > ShowTrackFrames) {
       allCorners_.pop_front();
@@ -126,7 +126,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
     cv::goodFeaturesToTrack(curFrame->image_,feats,needFeatSize,QualityLevel,MinDist,mask);
-    std::vector<uint64> newIdx;
+    std::vector<uint64_t> newIdx;
     for (size_t i = 0;i < feats.size(); i++) {
       id_++;
       newIdx.push_back(id_);
@@ -151,10 +151,10 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
 void FeatureTracker::showAllFeature(cv::Mat &img,uint8_t imgScale) {
   cv::Mat colorImg;
   cv::cvtColor(img,colorImg,cv::COLOR_GRAY2BGR);
-  std::map<uint64,cv::Point2f> cornerFront = allCorners_.front();
-  std::map<uint64,cv::Point2f> cornerBack = allCorners_.back();
+  std::map<uint64_t,cv::Point2f> cornerFront = allCorners_.front();
+  std::map<uint64_t,cv::Point2f> cornerBack = allCorners_.back();
   for(auto it = cornerBack.begin(); it != cornerBack.end(); it++) {
-    uint64 id = it->first;
+    uint64_t id = it->first;
     if (cornerFront.count(id)) {
       cv::Point2f pointBegin = cornerFront[id];
       cv::Point2f pointEnd = cornerBack[id];

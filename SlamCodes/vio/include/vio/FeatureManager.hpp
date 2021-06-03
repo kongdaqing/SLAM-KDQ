@@ -19,7 +19,7 @@ class Feature {
    * @param idx  --- id of feature
    * @param f    --- frame ptr
    */ 
-  Feature(uint64 idx,FramePtr f) {
+  Feature(uint64_t idx,FramePtr f) {
     id = idx;
     addFrame(f);
     valid3D_ = false;
@@ -31,9 +31,8 @@ class Feature {
    */ 
   void addFrame(const FramePtr f) {
     cv::Point2f pixel,normalized;
-    if (f->getCornerUV(id,pixel)) {
-      normalized = f->getNormalized();
-      uv[f] = PixelCoordinate(pixel,cam->normalized(pixel));
+    if (f->getCornerUV(id,pixel) && f->getNormalizedUV(id,normalized)) {
+      uv[f] = PixelCoordinate(pixel,normalized);
     }
   }
   /** \brief remove frame ptr that corresponding this feature 
@@ -54,7 +53,7 @@ class Feature {
   /** \brief get feature coordinate in the world frame 
    * @return coordinate of features
    */ 
-  cv::Point3f getPts3DInWorld() {
+  cv::Point3f getPts3DInWorld() const {
     return p3D;
   }
 
@@ -81,8 +80,16 @@ class Feature {
   /** \brief judge frame has this point
    * @return return true if the frame has this feat
    */ 
-  inline bool isInFrame(const FramePtr f) {
+  inline bool isInFrame(const FramePtr& f) {
     return (uv.count(f));
+  }
+
+  bool getPixelInFrame(const FramePtr& f,PixelCoordinate& pixel) {
+    if (uv.count(f)) {
+      pixel = uv[f];
+      return true;
+    }
+    return false;
   }
 
   /** \brief increase bad Count
@@ -98,10 +105,10 @@ class Feature {
   }
 
   bool isReadyForOptimize() const{
-    return valid3D_ && badCount_ == 0 && getTrackCount() > 0;
+    return valid3D_ && badCount_ == 0 && getTrackCount() > 1;
   }
  private:
-  uint64 id;
+  uint64_t id;
   std::map<const FramePtr,PixelCoordinate> uv;
   cv::Point3f p3D;
   int badCount_;
@@ -123,13 +130,13 @@ class FeatureManager {
 
   /** \brief remove feature with it's id
    */ 
-  void removeFeature(uint64 id) {
+  void removeFeature(uint64_t id) {
     feats_.erase(id);
   }
 
   /** \brief remove feature with it's iterator
    */ 
-  void removeFeature(std::map<uint64,Feature>::iterator it) {
+  void removeFeature(std::map<uint64_t,Feature>::iterator it) {
     feats_.erase(it);
   }
   /** \brief remove fram from feature pixel map
@@ -142,22 +149,24 @@ class FeatureManager {
    * @param pts3d --- 3D coordinate in world frame
    * @return if success return true otherwise return false
    */ 
-  bool triangulate(const Camera *cam,uint64 id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them 
+  bool triangulate(uint64_t id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them
   
   /** \brief get features in the FM which matching feature in the input frame
    * @param f      --- input frame f
    * @param curUV  --- matched feature' pixel coordinates in input frame f
    * @param matched3DPts  ---  matched feature 3D coordinate in FM
    */ 
-  void featureMatching(const Camera *cam,const FramePtr f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
+  void featureMatching(const FramePtr f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
+
+
 
   /** \brief add feature in the FM
    * @param id  ---  id of feature
    * @param f   --- parent frame of feature
    */ 
-  inline void addFeature(uint64 id,FramePtr f,const Camera* cam) {
+  inline void addFeature(uint64_t id,FramePtr f) {
     if (feats_.count(id)) {
-      feats_[id].addFrame(f,cam);
+      feats_[id].addFrame(f);
     } else {
       Feature feature(id,f);
       feats_[id] = feature;
@@ -176,7 +185,7 @@ class FeatureManager {
    * @param id    ---  id of the feature
    * @param pts3D ---  3D coordinate 
    */
-  inline void setFeatPts3D(uint64 id,cv::Point3f& pts3D) {
+  inline void setFeatPts3D(uint64_t id,cv::Point3f& pts3D) {
     if (feats_.count(id)) {
       feats_[id].setPtsInWorld(pts3D);
     }
@@ -190,7 +199,11 @@ class FeatureManager {
 
   /** \brief get features' map
    */ 
-  std::map<uint64,Feature>& getFeatureMap() {
+  std::map<uint64_t,Feature>& getFeatureMap() {
+    return feats_;
+  }
+
+  const std::map<uint64_t,Feature>& getFeatureMap() const {
     return feats_;
   }
 
@@ -214,6 +227,6 @@ class FeatureManager {
   }
 
  private:
-  std::map<uint64,Feature> feats_;
+  std::map<uint64_t ,Feature> feats_;
 };
 }

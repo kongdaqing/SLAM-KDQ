@@ -27,7 +27,7 @@ class Initializator {
    *  @param pts3D     ---  triangulating points 
    *  @return  success flag of calculating pose  
    */ 
-  bool initializeFromHomography(FramePtr  refFrame,FramePtr  curFrame,std::map<uint64,cv::Point3f>& pts3D);
+  bool initializeFromHomography(FramePtr  refFrame,FramePtr  curFrame,std::map<uint64_t,cv::Point3f>& pts3D);
 
   /** \brief Calculate homography matrix of two frames with overlap features  
    *  @param H            --- homegraphy matrix
@@ -53,12 +53,12 @@ class Initializator {
    *  @param refNormFeats --- normalized features in reference frame
    *  @param curNormFeats --- normalized features matched with reference frame in the current frame
    */ 
-  int checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWorld,
+  int checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInWorld,
                         const std::vector<cv::Mat> &R,
                         const std::vector<cv::Mat> &t,
                         const std::vector<cv::Mat> &n,
                         const std::vector<uchar> &inliers,
-                        const std::vector<uint64> &idVec,
+                        const std::vector<uint64_t> &idVec,
                         const std::vector<cv::Point2f> &refNormFeats,
                         const std::vector<cv::Point2f> &curNormFeats);
   /** \brief Check homography properity 

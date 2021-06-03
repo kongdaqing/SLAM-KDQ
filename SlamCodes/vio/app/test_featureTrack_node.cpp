@@ -9,7 +9,7 @@
 using namespace vio;
 
 
-void showAllFeature(const std::list<std::map<uint64,cv::Point2f>>& corners,cv::Mat &img,uint scale); 
+void showAllFeature(const std::list<std::map<uint64_t,cv::Point2f>>& corners,cv::Mat &img,uint scale);
 void monoCallback(sensor_msgs::ImageConstPtr msg,FeatureTracker* featTracker,FramePtr lastFrame);
 int main(int argc,char **argv) {
   ros::init(argc,argv,"test_featureTracker");
@@ -29,7 +29,7 @@ int main(int argc,char **argv) {
 
 
 void monoCallback(sensor_msgs::ImageConstPtr msg,FeatureTracker* featTracker,FramePtr lastFrame) {
-  static std::list<std::map<uint64,cv::Point2f> > windowsFeatures;
+  static std::list<std::map<uint64_t,cv::Point2f> > windowsFeatures;
   cv_bridge::CvImageConstPtr cv_ptr;
   try {
     cv_ptr = cv_bridge::toCvShare(msg, sensor_msgs::image_encodings::MONO8);
@@ -43,7 +43,7 @@ void monoCallback(sensor_msgs::ImageConstPtr msg,FeatureTracker* featTracker,Fra
   featTracker->detectAndTrackFeature(lastFrame,curFrame);
   lastFrame = curFrame;
   curFrame->imshowFeatures(2);
-  std::map<uint64,cv::Point2f> curCorners = curFrame->getCornersCopy();
+  std::map<uint64_t,cv::Point2f> curCorners = curFrame->getCornersCopy();
   windowsFeatures.push_back(curCorners);
   //showAllFeature(windowsFeatures,curFrame->image_,2);
   if (windowsFeatures.size() > 5) {
@@ -51,15 +51,15 @@ void monoCallback(sensor_msgs::ImageConstPtr msg,FeatureTracker* featTracker,Fra
   }
 }
 
-void showAllFeature(const std::list<std::map<uint64,cv::Point2f>> &corners,cv::Mat &img,uint scale) {
+void showAllFeature(const std::list<std::map<uint64_t,cv::Point2f>> &corners,cv::Mat &img,uint scale) {
   cv::Mat colorImg;
   cv::cvtColor(img,colorImg,cv::COLOR_GRAY2BGR);
    
-  std::map<uint64,cv::Point2f> cornerFront = corners.front();
-  std::map<uint64,cv::Point2f> cornerBack = corners.back();
+  std::map<uint64_t,cv::Point2f> cornerFront = corners.front();
+  std::map<uint64_t,cv::Point2f> cornerBack = corners.back();
   std::cout << "corner front size = " << cornerFront.size() << " back size = " << cornerBack.size() << std::endl;
   for(auto it = cornerBack.begin(); it != cornerBack.end(); it++) {
-    uint64 id = it->first;
+    uint64_t id = it->first;
     std::cout << "id = " << id << std::endl;
     if (cornerFront.count(id)) {
       cv::Point2f pointBegin = cornerFront[id];

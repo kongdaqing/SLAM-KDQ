@@ -185,4 +185,5 @@ class Camera {
   const int Width,Height;
  
 };
+typedef std::shared_ptr<Camera> CameraPtr;
 }

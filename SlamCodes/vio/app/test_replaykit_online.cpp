@@ -31,8 +31,7 @@ int main(int argc,char **argv) {
   divideFreq = parser.get<int>("div_freq");
   timeoffset = parser.get<double>("time_offset");
   Estimator estimator(configFile);
-
-
+  const CameraPtr cam = estimator.getCameraPtr();
   VizScene vizWindow(&estimator,0.05);
 
 
@@ -51,7 +50,7 @@ int main(int argc,char **argv) {
       imageCount = 0;
 //      printf("[Image] Get %12.6f at %12.6f, exp = %7.3fms, delay = %7.3fms\n",
 //             bottomImage.timestamp(), now_time, exp_time * 1e3f, delay * 1e3f);
-      vio::FramePtr frame(new Frame(bottomImage.timestamp() + exp_time * 0.5 + timeoffset, im));
+      vio::FramePtr frame(new Frame(bottomImage.timestamp() + exp_time * 0.5 + timeoffset, im,cam));
       estimator.update(frame, true);
     }
   });

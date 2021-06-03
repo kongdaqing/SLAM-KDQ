@@ -3,50 +3,53 @@
 #include <iostream>
 #include <map>
 #include <opencv2/opencv.hpp>
+#include "Camera.hpp"
 
 namespace vio{
-
-
 
 class Frame {
  public:
 
   /** \brief construct 
    */ 
-  Frame() {
+  Frame(const CameraPtr cam):cam_(cam) {
     cv::Mat R = cv::Mat::eye(3,3,CV_64F);
     cv::Mat t = cv::Mat::zeros(3,1,CV_64F);
     setPoseInWorld(R,t);
+    assert(cam_ != nullptr);
   };
   /** \brief construct function
    * @param timestamp --- timestamp of current frame
    * @param img       --- image data 
    */ 
-  Frame(double timestamp,cv::Mat& img): timestamp_(timestamp) {
+  Frame(double timestamp,cv::Mat& img,const CameraPtr cam): timestamp_(timestamp),cam_(cam) {
     image_ = img.clone();
     cv::Mat R = cv::Mat::eye(3,3,CV_64F);
     cv::Mat t = cv::Mat::zeros(3,1,CV_64F);
     setPoseInWorld(R,t);
+    assert(cam_ != nullptr);
   };
 
   /** \brief construct function
    * @param timestamp --- timestamp of current frame 
    * @param corners   --- corners map 
    */ 
-  Frame(double timestamp,std::map<uint64,cv::Point2f>& corners): 
-  timestamp_(timestamp),corners_(corners) {
+  Frame(double timestamp,std::map<uint64_t,cv::Point2f>& corners,const CameraPtr cam):
+  timestamp_(timestamp),corners_(corners),cam_(cam) {
     cv::Mat R = cv::Mat::eye(3,3,CV_64F);
     cv::Mat t = cv::Mat::zeros(3,1,CV_64F);
     setPoseInWorld(R,t);
+    assert(cam_ != nullptr);
   }
   
   /** \brief initializing with frame object
    */ 
-  Frame(const Frame& frame) {
+  Frame(const Frame& frame):cam_(frame.cam_) {
     timestamp_ = frame.timestamp_;
     corners_ = frame.getCorners();
     image_ = frame.image_.clone();
     frame.getPoseInWorld(Rwc_,WtC_);
+    assert(cam_ != nullptr);
   }
 
   /** \brief unconstruct function 
@@ -87,33 +90,48 @@ class Frame {
   /** \brief  set corners map
    * @param corners  --- corners map
    */ 
-  void setCorners(std::map<uint64,cv::Point2f>& corners) {
+  void setCorners(std::map<uint64_t,cv::Point2f>& corners) {
     corners_ = corners;
   };
 
   /** \brief get corners map
    * @return corners map in the this frame
    */ 
-  const std::map<uint64,cv::Point2f> &getCorners() const{
+  const std::map<uint64_t,cv::Point2f> &getCorners() const{
     return corners_;
   }
 
   /** \brief get corners map
    * @return corners map in the this frame
    */ 
-  std::map<uint64,cv::Point2f> &getCorners() {
+  std::map<uint64_t,cv::Point2f> &getCorners() {
     return corners_;
   }
 
-  std::map<uint64,cv::Point2f> getCornersCopy() {
+  std::map<uint64_t,cv::Point2f> getCornersCopy() {
     return corners_;
+  }
+
+
+  bool getNormalizedUV(uint64_t id,cv::Point2f& normalizedPt) {
+    bool successFlg = true;
+    if (normalizedUV_.count(id)) {
+      normalizedPt = normalizedUV_[id];
+    } else if (corners_.count(id)){
+      assert(cam_ != nullptr);
+      normalizedUV_[id] = cam_->normalized(corners_[id]);
+      normalizedPt = normalizedUV_[id];
+    } else {
+      successFlg = false;
+    }
+    return successFlg;
   }
 
   /** \brief get corners vector 
    * @param idx     ---  vector of feature id
    * @param corners ---  vector of feature uv corresponding id
    */ 
-  void getCornerVector(std::vector<uint64> &idx,std::vector<cv::Point2f> &corners) {
+  void getCornerVector(std::vector<uint64_t> &idx,std::vector<cv::Point2f> &corners) {
     for (auto it = corners_.begin(); it != corners_.end(); it++) {
       idx.push_back(it->first);
       corners.push_back(it->second);
@@ -124,7 +142,7 @@ class Frame {
    * @param idx     ---  vector of feature id
    * @param corners ---  vector of feature uv corresponding id
    */ 
-  void setCornerMap(const std::vector<uint64> &idx,const std::vector<cv::Point2f> &corners) {
+  void setCornerMap(const std::vector<uint64_t> &idx,const std::vector<cv::Point2f> &corners) {
     for (size_t i = 0; i < idx.size(); i++) {
       corners_[idx[i]] = corners[i];
     }
@@ -150,13 +168,13 @@ class Frame {
    * @param curCorners --- matched pixel vector in the current frame
    */ 
   void getMatchedFeatures(const Frame* refFrame,
-                          std::vector<uint64> &matchedId,
+                          std::vector<uint64_t> &matchedId,
                           std::vector<cv::Point2f> &refCorners,
                           std::vector<cv::Point2f> &curCorners,
                           float &averParallex) {
     averParallex = 0;
     float sumParallex = 0;
-    const std::map<uint64,cv::Point2f> refFeats = refFrame->getCorners();
+    const std::map<uint64_t,cv::Point2f> refFeats = refFrame->getCorners();
     for (auto it = refFeats.begin();it != refFeats.end();it++) {
       if (corners_.count(it->first)) {
         matchedId.push_back(it->first);
@@ -199,9 +217,12 @@ class Frame {
   }
   cv::Mat image_;
   double timestamp_;
+  const CameraPtr cam_;
+
  private:
   cv::Mat Rwc_,WtC_; // rotation matrix and translate vector from camera to world
-  std::map<uint64,cv::Point2f> corners_;
+  std::map<uint64_t,cv::Point2f> corners_;
+  std::map<uint64_t,cv::Point2f> normalizedUV_;
 };
 
 typedef std::shared_ptr<Frame> FramePtr;

@@ -11,9 +11,9 @@ int main(int argc,char **argv) {
    return -1;
  }
  Config* cfg = new Config(argv[1]);
- Camera* cam = new Camera(cfg);
  Estimator estimator(argv[1]);
- Simulator sim(cfg,cam);
+ const CameraPtr cam = estimator.getCameraPtr();
+ Simulator sim(cfg,cam.get());
  sim.createLandMarkers();
  std::vector<cv::Vec3f>& pts3D = sim.getLandMarkers();
  VizScene vizWindow("test viz");
@@ -40,9 +40,9 @@ int main(int argc,char **argv) {
    cv::Mat ctw = (cv::Mat_<float>(3,1) << poseMat(0,3),poseMat(1,3),poseMat(2,3));
    cv::Mat crw;
    cv::Rodrigues(CrW,crw);
-   std::map<uint64,cv::Point2f> feats;
+   std::map<uint64_t,cv::Point2f> feats;
    cv::Point3f camPose(newPose.matrix(0,3),newPose.matrix(1,3),newPose.matrix(2,3));
-   uint64 id = 0;
+   uint64_t id = 0;
    for (auto pt3D:pts3D) {
      id++;
      cv::Point3f pt3DP(pt3D[0],pt3D[1],pt3D[2]);
@@ -51,7 +51,7 @@ int main(int argc,char **argv) {
        feats[id] = pixel;
      } 
    }
-   Frame *frame = new Frame(timestamp,feats);
+   Frame *frame = new Frame(timestamp,feats,cam);
    estimator.update(FramePtr(frame),false);
    std::cout << "state = " << estimator.getEstimatorState() << std::endl;
    cv::Mat Rwc,WtC;

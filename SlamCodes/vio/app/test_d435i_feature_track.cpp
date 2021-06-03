@@ -15,12 +15,12 @@ int main(int argc,char **argv) {
   FramePtr lastF = nullptr;
   D435I d435i_device(cfgFile);
   d435i_device.start();
-  std::list<std::map<uint64,cv::Point2f> > windowsFeatures;
+  std::list<std::map<uint64_t,cv::Point2f> > windowsFeatures;
   while (1) {
     double timestamp;
     cv::Mat leftImg,rightImg;
     if (d435i_device.getInfraredImages(timestamp,leftImg,rightImg)) {
-      FramePtr curF(new Frame(timestamp,leftImg));
+      FramePtr curF(new Frame(timestamp,leftImg,CameraPtr(cam)));
       cv::Mat R_cur_last;
       featTracker->detectAndTrackFeature(lastF,curF,R_cur_last);
       lastF = curF;

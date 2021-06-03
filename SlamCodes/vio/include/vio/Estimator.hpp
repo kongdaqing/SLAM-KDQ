@@ -6,6 +6,7 @@
 #include "FeatureTracker.hpp"
 #include "MeasurementTimeline.hpp"
 #include "PreIntegration.hpp"
+#include "BASolverByG2O.hpp"
 
 namespace vio{
 enum EstState {
@@ -66,6 +67,11 @@ class Estimator {
     }
   }
 
+  const CameraPtr getCameraPtr() const {
+    return CameraPtr(cam_);
+  }
+
+  void buddleAdjustment();
 
  private:
   EstState state;

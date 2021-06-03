@@ -1,9 +1,9 @@
 if(DEFINED ENV{ROS_ENABLE})
 
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.12)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 project(vio_ros)
 
 find_package(catkin REQUIRED COMPONENTS
@@ -45,19 +45,18 @@ else()
 
 
 
-cmake_minimum_required(VERSION 3.0.1)
+cmake_minimum_required(VERSION 2.8)
 project(vio)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -g -ggdb")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${SSE_FLAGS} -msse4")
 get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
 set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.so")
 set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
 set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
-set(g2o_LIBS "/usr/local/lib")
-set(g2o_INCLUDE_DIR "/usr/local/include/g2o")
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_module)
 
 if (APPLE)
 find_package(OpenCV 4.0 REQUIRED)
@@ -71,7 +70,10 @@ find_package(Protobuf REQUIRED)
 find_package(nanomsg CONFIG REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(kindr REQUIRED)
-
+find_package(SuiteSparse REQUIRED)
+find_package(G2O REQUIRED)
+find_package(Sophus REQUIRED)
+find_package(fmt REQUIRED)
 
 include_directories(
   include/vio
@@ -82,16 +84,19 @@ include_directories(
   ${realsense2_INCLUDE_DIR}
   ${REPLAYKIT_INCLUDE_DIR}
   ${EIGEN3_INCLUDE_DIRS}
+  ${Sophus_INCLUDE_DIRS}
   ${kindr_INCLUDE_DIRS}
-  ${g2o_INCLUDE_DIR}
+  ${G2O_INCLUDE_DIRS}
+  ${CHOLMOD_INCLUDE_DIR}
 )
+SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core  g2o_solver_dense cholmod g2o_solver_cholmod g2o_types_slam3d g2o_types_sba cxsparse)
 add_library(volib src/FeatureManager.cpp
                   src/Initializator.cpp
                   src/Estimator.cpp
                   src/FeatureTracker.cpp
                   src/Simulator.cpp
                   src/VizScene.cpp)
-target_link_libraries(volib ${OpenCV_LIBS} -lpthread)     
+target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} fmt::fmt -lpthread)
 
 add_executable(vo app/main.cpp)
 target_link_libraries(vo volib)
@@ -120,7 +125,7 @@ add_executable(test_d435i_feature_track app/test_d435i_feature_track.cpp)
 target_link_libraries(test_d435i_feature_track  ${D435I_LIBS}  volib)
 
 add_executable(test_replaykit_online app/test_replaykit_online.cpp)
-target_link_libraries(test_replaykit_online   ${PROTOBUF_LIBRARIES} nanomsg ${realsense2_LIBRARY} ${REPLAYKIT_LIBS} volib)
+target_link_libraries(test_replaykit_online   ${PROTOBUF_LIBRARIES} nanomsg ${realsense2_LIBRARY} ${REPLAYKIT_LIBS}  volib)
 
 add_executable(d435i_estimator app/d435i_estimator.cpp)
 target_link_libraries(d435i_estimator ${realsense2_LIBRARY} ${D435I_LIBS}  volib)

@@ -20,7 +20,7 @@ bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureMa
     printf("[Initializator]:Please clear feature maps firstly,then intializing!\n");
     return false;
   }
-  std::map<uint64,cv::Point3f> pts3D;
+  std::map<uint64_t,cv::Point3f> pts3D;
   //step-1: 计算单应矩阵并解算当前帧和参考帧的位姿，同时三角化特征点
   if (!initializeFromHomography(refFrame,curFrame,pts3D)) {
     return false;
@@ -31,7 +31,7 @@ bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureMa
     fs.setFeatPts3D(it->first,it->second);
   } 
   //step-3: 把当前帧所有特征都添加到fsm中
-  std::map<uint64,cv::Point2f> curCorners = curFrame->getCorners();
+  std::map<uint64_t,cv::Point2f> curCorners = curFrame->getCorners();
   for (auto it = curCorners.begin(); it != curCorners.end(); it++) {
     fs.addFeature(it->first,curFrame);
   }
@@ -72,10 +72,10 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
 
 
 
-bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame,std::map<uint64,cv::Point3f>& pts3D) {
+bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame,std::map<uint64_t,cv::Point3f>& pts3D) {
   cv::Mat H;
   std::vector<uchar> inliers;
-  std::vector<uint64> idVec;
+  std::vector<uint64_t> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
   float averParallex = 0;
   curFrame->getMatchedFeatures(refFrame.get(),idVec,refFeatures,curFeatures,averParallex);
@@ -100,7 +100,7 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
   //Note:这里R,t的含义是参考帧到当前帧的转换Tc1c0,而非Tc0c1
   cv::Mat K = cv::Mat::eye(3,3,CV_64F);
   cv::decomposeHomographyMat(H,K,R,t,n);
-  std::vector< std::map<uint64,cv::Point3f> > ptsInWorld;
+  std::vector< std::map<uint64_t,cv::Point3f> > ptsInWorld;
   int bestId = checkRt(ptsInWorld,R,t,n,inliers,idVec,refFeatures,curFeatures);
   if (bestId < 0) {
     std::cout << "[CheckRT]:Can't find best pose" << std::endl;
@@ -153,12 +153,12 @@ bool Initializator::calHomography(cv::Mat &H,
   return true;
 }
 
-int Initializator::checkRt(std::vector< std::map<uint64,cv::Point3f> > &ptsInWorld,
+int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInWorld,
                         const std::vector<cv::Mat> &R,
                         const std::vector<cv::Mat> &t,
                         const std::vector<cv::Mat> &n,
                         const std::vector<uchar> &inliers,
-                        const std::vector<uint64> &idVec,
+                        const std::vector<uint64_t> &idVec,
                         const std::vector<cv::Point2f> &refNormFeats,
                         const std::vector<cv::Point2f> &curNormFeats) {
   const size_t num = R.size();

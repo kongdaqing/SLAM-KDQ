@@ -29,7 +29,7 @@ int main(int argc,char **argv) {
    double timestamp;
    cv::Mat leftImg,rightImg;
    if (d435i.getInfraredImages(timestamp,leftImg,rightImg)) {
-    Frame *frame = new Frame(timestamp,leftImg);
+    Frame *frame = new Frame(timestamp,leftImg,CameraPtr(cam));
     estimator.update(FramePtr(frame),true);
     std::cout << "state = " << estimator.getEstimatorState() << std::endl;
     cv::Mat Rwc,WtC;

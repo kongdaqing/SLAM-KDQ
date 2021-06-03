@@ -107,7 +107,7 @@ void Estimator::checkParallex(FramePtr frame) {
   if (slideWindows_.empty()) {
     return;
   }
-  std::vector<uint64> idVec;
+  std::vector<uint64_t> idVec;
   std::vector<cv::Point2f> refFeatures,curFeatures;
   float averParallex = 0;
   frame->getMatchedFeatures(slideWindows_.back().get(),idVec,refFeatures,curFeatures,averParallex);
@@ -119,11 +119,24 @@ void Estimator::checkParallex(FramePtr frame) {
   }
 }
 
+void Estimator::buddleAdjustment() {
+  if (slideWindows_.size() < 2) {
+    return;
+  }
+  BASolverByG2O baSolver(1.0,Eigen::Vector2d(0.,0.));
+  baSolver.test();
+//  baSolver.addVertexAndEdge(slideWindows_,fsm_);
+//  std::cout << "get Pose" << std::endl;
+// // baSolver.getPoseAndFeatures(slideWindows_,fsm_);
+//  std::cout << "get pose end" << std::endl;
+}
+
 bool Estimator::estimatePose(FramePtr frame) {
+  //return buddleAdjustment();
   std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
   std::vector<uint64_t> matchedIds;
-  fsm_.featureMatching(cam_,frame,matchedIds,matchedNormalizedUV,matchedPts3D);
+  fsm_.featureMatching(frame,matchedIds,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
     printf("[EstimatePose]: matched points is too few!\n");
     return false;
@@ -136,6 +149,7 @@ bool Estimator::estimatePose(FramePtr frame) {
     Rwc = Rcw.t();
     WtC = - Rwc * CtW;
     frame->setPoseInWorld(Rwc,WtC);
+    buddleAdjustment();
     return true;
   } 
   std::cout << "[EstimatePose]:Failure!" << std::endl;
@@ -165,13 +179,13 @@ bool Estimator::checkPose() {
 void Estimator::updateFeature() {
   //step1: add new features
   FramePtr curFramePtr = slideWindows_.back();
-  std::map<uint64,cv::Point2f> &corners = curFramePtr->getCorners();
-  std::map<uint64,Feature>& features = fsm_.getFeatureMap(); 
-  std::vector<uint64> idx;
+  std::map<uint64_t,cv::Point2f> &corners = curFramePtr->getCorners();
+  std::map<uint64_t,Feature>& features = fsm_.getFeatureMap();
+  std::vector<uint64_t> idx;
   std::vector<cv::Point2f> ptVec,proPtVec;
   std::vector<cv::Point3f> p3DVec;
   for (auto it = corners.begin();it != corners.end(); it++) {
-    const uint64 id = it->first;
+    const uint64_t id = it->first;
     cv::Point2f pt = it->second;
     if (features.count(id) && features[id].valid3D()) {
       ptVec.push_back(pt);
