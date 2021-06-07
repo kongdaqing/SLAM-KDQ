@@ -15,7 +15,7 @@ include_directories(include/ba
         ${CSPARSE_INCLUDE_DIR}
 
         ${G2O_INCLUDE_DIRS})
-SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core g2o_solver_cholmod cholmod fmt::fmt cxsparse)
+SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core g2o_solver_cholmod cholmod g2o_types_sba g2o_types_slam3d fmt::fmt cxsparse)
 #add_library(SHARED bag2o src/BundleAdjustmentByG2O.cpp)
 #target_link_libraries(bag2o ${G2O_LIBS})
 
