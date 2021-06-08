@@ -3,6 +3,8 @@
 int main() {
   BundleAdjustmentByG2O ba;
   ba.testTcw();
-  std::cout << "hello g2o" << std::endl;
+  std::cout << "===============================================================" << std::endl;
+  BundleAdjustmentByG2O ba2;
+  ba2.testTcwOnlyPose();
   return 0;
 }

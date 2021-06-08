@@ -8,6 +8,7 @@
 #include "sophus/se3.hpp"
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/base_binary_edge.h"
+#include "g2o/core/base_unary_edge.h"
 #include "g2o/core/optimization_algorithm_levenberg.h"
 #include "g2o/core/block_solver.h"
 #include "g2o/solvers/cholmod/linear_solver_cholmod.h"
@@ -120,6 +121,35 @@ class NormalizedUVEdge : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,PoseVertex
 
 };
 
+class NormalizedUVOnlyPoseEdge : public g2o::BaseUnaryEdge<2,Eigen::Vector2d,PoseVertex> {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  NormalizedUVOnlyPoseEdge(Eigen::Vector3d point3d) {
+    points_ = point3d;
+  };
+  virtual void computeError() override {
+    const PoseVertex *v1 = static_cast<const PoseVertex *>(_vertices[0]);
+    Eigen::Vector3d ptInCam = v1->estimate() * points_ / points_.z();
+    _error = ptInCam.head(2) - _measurement;
+  }
+  virtual void linearizeOplus() override {
+    const PoseVertex *poseV = static_cast<PoseVertex *> (_vertices[0]);
+    Eigen::Vector3d pc = poseV->estimate() * points_;
+    double z = pc.z();
+    double x = pc.x();
+    double y = pc.y();
+    double z2 = z * z;
+    Eigen::Matrix<double, 2, 3> Jac_uv2normalized;
+    _jacobianOplusXi << 1 / z, 0, -x / z2, -x * y / z2, 1 + x * x / z2, -y / z,
+      0, 1 / z, -y / z2, -1 - y * y / z2, x * y / z2, x / z;
+  }
+  virtual bool read(std::istream &is) {};
+  virtual bool write(std::ostream &os) const {};
+
+ private:
+  Eigen::Vector3d points_;
+};
+
 class BundleAdjustmentByG2O {
  public:
   BundleAdjustmentByG2O() {
@@ -226,13 +256,14 @@ class BundleAdjustmentByG2O {
     }
   }
 
-  void testTwc() {
+
+  void testTcwOnlyPose() {
     std::vector<Eigen::Vector2d> meas1,meas2;
     std::vector<Eigen::Vector3d> pt3ds,pts3dsNoise;
     std::random_device sd;
     std::mt19937_64 genorator(sd());
     std::uniform_real_distribution<float> noise(-0.1,0.1);
-    std::uniform_real_distribution<float> pt(-2,2);
+    std::uniform_real_distribution<float> pt(-3,3);
 
     Eigen::Matrix3d R1;
     R1.setIdentity();
@@ -243,13 +274,13 @@ class BundleAdjustmentByG2O {
     t1.setZero();
     Eigen::Vector3d t2(0.1,0.3,0);
     for (size_t i = 0; i < 20; i++) {
-      Eigen::Vector3d point3d(pt(genorator),pt(genorator),1);
-      Eigen::Vector3d meas3d1 = R1.transpose() * (point3d - t1);
+      Eigen::Vector3d point3d( pt(genorator),pt(genorator),2);
+      Eigen::Vector3d meas3d1 = R1 * point3d + t1;
       Eigen::Vector2d meas2d1 = meas3d1.head(2)/meas3d1.z();
-      Eigen::Vector3d meas3d2 = R2.transpose()* (point3d - t2);
+      Eigen::Vector3d meas3d2 = R2 * point3d + t2;
       Eigen::Vector2d meas2d2 = meas3d2.head(2) / meas3d2.z();
       pt3ds.push_back(point3d);
-      pts3dsNoise.push_back(point3d + 4 * Eigen::Vector3d(noise(genorator),noise(genorator),noise(genorator)));
+      pts3dsNoise.push_back(point3d + 0.1 * Eigen::Vector3d(noise(genorator),noise(genorator),noise(genorator)));
       meas1.push_back(meas2d1 + 0. * Eigen::Vector2d(noise(genorator),noise(genorator)));
       meas2.push_back(meas2d2 + 0. * Eigen::Vector2d(noise(genorator),noise(genorator)));
     }
@@ -264,23 +295,15 @@ class BundleAdjustmentByG2O {
 
     PoseVertex * posevertex2 = new PoseVertex();
     posevertex2->setId(1);
-    posevertex2->setEstimate(Sophus::SE3d(R2,t2 + Eigen::Vector3d(0.1,0.05,0.01)));
+    posevertex2->setEstimate(Sophus::SE3d(R2, t2 + Eigen::Vector3d(0.5,0.65,0.01)));
     //注意如果set true，后面的点是不可以setMarginalized(true)的
     optimizer_.addVertex(posevertex2);
 
-    //add point vertex
-    for (size_t i = 0; i < 20; i++) {
-      PointVertex * pointvertex = new PointVertex();
-      pointvertex->setId(i + 2);
-      pointvertex->setEstimate(pts3dsNoise[i]);
-      pointvertex->setMarginalized(true);
-      optimizer_.addVertex(pointvertex);
-    }
+
 
     for (int i = 0; i < 20; ++i) {
-      NormalizedUVEdge *edge = new NormalizedUVEdge();
+      NormalizedUVOnlyPoseEdge *edge = new NormalizedUVOnlyPoseEdge(pts3dsNoise[i]);
       edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(0)));
-      edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
       edge->setMeasurement(meas1[i]);
       edge->setInformation(Eigen::Matrix2d::Identity());
       edge->setRobustKernel(new g2o::RobustKernelHuber());
@@ -288,9 +311,8 @@ class BundleAdjustmentByG2O {
     }
 
     for (int i = 0; i < 20; ++i) {
-      NormalizedUVEdge *edge = new NormalizedUVEdge();
+      NormalizedUVOnlyPoseEdge *edge = new NormalizedUVOnlyPoseEdge(pts3dsNoise[i]);
       edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(1)));
-      edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
       edge->setMeasurement(meas2[i]);
       edge->setInformation(Eigen::Matrix2d::Identity());
       edge->setRobustKernel(new g2o::RobustKernelHuber());
@@ -306,13 +328,96 @@ class BundleAdjustmentByG2O {
     std::cout << "Optimize by g2o cost time =  " << time_used.count() << std::endl;
     std::cout << static_cast<PoseVertex*>(optimizer_.vertex(0))->estimate().matrix() << std::endl;
     std::cout << static_cast<PoseVertex*>(optimizer_.vertex(1))->estimate().matrix() << std::endl;
-
-    for (size_t i = 0; i < 20; i++) {
-      double errInitPts = (pts3dsNoise[i] - pt3ds[i]).norm();
-      double errEstPts = (static_cast<PointVertex*>(optimizer_.vertex(i + 2))->estimate() - pt3ds[i]).norm();
-      std::cout <<  " InitPtsErr : " << errInitPts << " EstPtsErr : " << errEstPts << std::endl;
-    }
   }
+
+//
+//  void testTwc() {
+//    std::vector<Eigen::Vector2d> meas1,meas2;
+//    std::vector<Eigen::Vector3d> pt3ds,pts3dsNoise;
+//    std::random_device sd;
+//    std::mt19937_64 genorator(sd());
+//    std::uniform_real_distribution<float> noise(-0.1,0.1);
+//    std::uniform_real_distribution<float> pt(-2,2);
+//
+//    Eigen::Matrix3d R1;
+//    R1.setIdentity();
+//    Eigen::AngleAxisd angaxi(M_PI/2,Eigen::Vector3d(0,0,1).normalized());
+//    Eigen::Matrix3d R2 = angaxi.toRotationMatrix();
+//    std::cout << "R2 = " << R2 << std::endl;
+//    Eigen::Vector3d t1;
+//    t1.setZero();
+//    Eigen::Vector3d t2(0.1,0.3,0);
+//    for (size_t i = 0; i < 20; i++) {
+//      Eigen::Vector3d point3d(pt(genorator),pt(genorator),1);
+//      Eigen::Vector3d meas3d1 = R1.transpose() * (point3d - t1);
+//      Eigen::Vector2d meas2d1 = meas3d1.head(2)/meas3d1.z();
+//      Eigen::Vector3d meas3d2 = R2.transpose()* (point3d - t2);
+//      Eigen::Vector2d meas2d2 = meas3d2.head(2) / meas3d2.z();
+//      pt3ds.push_back(point3d);
+//      pts3dsNoise.push_back(point3d + 4 * Eigen::Vector3d(noise(genorator),noise(genorator),noise(genorator)));
+//      meas1.push_back(meas2d1 + 0. * Eigen::Vector2d(noise(genorator),noise(genorator)));
+//      meas2.push_back(meas2d2 + 0. * Eigen::Vector2d(noise(genorator),noise(genorator)));
+//    }
+//    //add pose vertex
+//    PoseVertex * posevertex1 = new PoseVertex();
+//    posevertex1->setId(0);
+//    Sophus::SE3d se30 = Sophus::SE3d();
+//    posevertex1->setEstimate(se30);
+//    //注意如果set true，除非有其他的定点是非fixed，否则后面的点是不可以setMarginalized(true)的
+//    posevertex1->setFixed(true);
+//    optimizer_.addVertex(posevertex1);
+//
+//    PoseVertex * posevertex2 = new PoseVertex();
+//    posevertex2->setId(1);
+//    posevertex2->setEstimate(Sophus::SE3d(R2,t2 + Eigen::Vector3d(0.1,0.05,0.01)));
+//    //注意如果set true，后面的点是不可以setMarginalized(true)的
+//    optimizer_.addVertex(posevertex2);
+//
+//    //add point vertex
+//    for (size_t i = 0; i < 20; i++) {
+//      PointVertex * pointvertex = new PointVertex();
+//      pointvertex->setId(i + 2);
+//      pointvertex->setEstimate(pts3dsNoise[i]);
+//      pointvertex->setMarginalized(true);
+//      optimizer_.addVertex(pointvertex);
+//    }
+//
+//    for (int i = 0; i < 20; ++i) {
+//      NormalizedUVEdge *edge = new NormalizedUVEdge();
+//      edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(0)));
+//      edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
+//      edge->setMeasurement(meas1[i]);
+//      edge->setInformation(Eigen::Matrix2d::Identity());
+//      edge->setRobustKernel(new g2o::RobustKernelHuber());
+//      optimizer_.addEdge(edge);
+//    }
+//
+//    for (int i = 0; i < 20; ++i) {
+//      NormalizedUVEdge *edge = new NormalizedUVEdge();
+//      edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(1)));
+//      edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
+//      edge->setMeasurement(meas2[i]);
+//      edge->setInformation(Eigen::Matrix2d::Identity());
+//      edge->setRobustKernel(new g2o::RobustKernelHuber());
+//      optimizer_.addEdge(edge);
+//    }
+//    std::chrono::steady_clock::time_point time1 = std::chrono::steady_clock::now();
+//    optimizer_.setVerbose(true);
+//    optimizer_.initializeOptimization();
+//    optimizer_.optimize(10);
+//    std::chrono::steady_clock::time_point time2 = std::chrono::steady_clock::now();
+//    std::chrono::duration<double> time_used = std::chrono::duration_cast<std::chrono::duration<double>>(time2 - time1);
+//
+//    std::cout << "Optimize by g2o cost time =  " << time_used.count() << std::endl;
+//    std::cout << static_cast<PoseVertex*>(optimizer_.vertex(0))->estimate().matrix() << std::endl;
+//    std::cout << static_cast<PoseVertex*>(optimizer_.vertex(1))->estimate().matrix() << std::endl;
+//
+//    for (size_t i = 0; i < 20; i++) {
+//      double errInitPts = (pts3dsNoise[i] - pt3ds[i]).norm();
+//      double errEstPts = (static_cast<PointVertex*>(optimizer_.vertex(i + 2))->estimate() - pt3ds[i]).norm();
+//      std::cout <<  " InitPtsErr : " << errInitPts << " EstPtsErr : " << errEstPts << std::endl;
+//    }
+//  }
 
  private:
   g2o::SparseOptimizer optimizer_;
