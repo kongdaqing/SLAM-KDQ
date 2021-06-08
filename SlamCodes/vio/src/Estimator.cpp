@@ -123,8 +123,8 @@ void Estimator::buddleAdjustment() {
   if (slideWindows_.size() < 2) {
     return;
   }
-  BASolverByG2O baSolver(1.0,Eigen::Vector2d(0.,0.));
-  baSolver.test();
+  BundleAdjustmentByG2O baSolver;
+  baSolver.testTcw();
 //  baSolver.addVertexAndEdge(slideWindows_,fsm_);
 //  std::cout << "get Pose" << std::endl;
 // // baSolver.getPoseAndFeatures(slideWindows_,fsm_);
