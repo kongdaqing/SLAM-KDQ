@@ -8,12 +8,16 @@
 #include "sophus/se3.hpp"
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/base_binary_edge.h"
+#include "g2o/core/base_unary_edge.h"
 #include "g2o/core/optimization_algorithm_levenberg.h"
 #include "g2o/core/block_solver.h"
 #include "g2o/solvers/cholmod/linear_solver_cholmod.h"
 #include "g2o/solvers/csparse/linear_solver_csparse.h"
 #include "g2o/core/robust_kernel_impl.h"
+#include "opencv2/core/eigen.hpp"
+#include "Estimator.hpp"
 
+using namespace vio;
 
 
 //顶点的定义:设置vertex，传入的参数包括该vertex的自由度和类型
@@ -84,22 +88,180 @@ class NormalizedUVEdge : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,PoseVertex
 
 };
 
+class NormalizedUVOnlyPoseEdge : public g2o::BaseUnaryEdge<2,Eigen::Vector2d,PoseVertex> {
+ public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+  NormalizedUVOnlyPoseEdge(Eigen::Vector3d point3d) {
+    points_ = point3d;
+  };
+  virtual void computeError() override {
+    const PoseVertex *v1 = static_cast<const PoseVertex *>(_vertices[0]);
+    Eigen::Vector3d ptInCam = v1->estimate() * points_ / points_.z();
+    _error = ptInCam.head(2) - _measurement;
+  }
+  virtual void linearizeOplus() override {
+    const PoseVertex *poseV = static_cast<PoseVertex *> (_vertices[0]);
+    Eigen::Vector3d pc = poseV->estimate() * points_;
+    double z = pc.z();
+    double x = pc.x();
+    double y = pc.y();
+    double z2 = z * z;
+    Eigen::Matrix<double, 2, 3> Jac_uv2normalized;
+    _jacobianOplusXi << 1 / z, 0, -x / z2, -x * y / z2, 1 + x * x / z2, -y / z,
+      0, 1 / z, -y / z2, -1 - y * y / z2, x * y / z2, x / z;
+  }
+  virtual bool read(std::istream &is) {};
+  virtual bool write(std::ostream &os) const {};
+
+ private:
+  Eigen::Vector3d points_;
+};
+
 class BundleAdjustmentByG2O {
  public:
   BundleAdjustmentByG2O() {
-    std::cout << "G2O优化： \n 1、定义好顶点:包括顶点的自由度、数据类型以及设置原点的方法；\n"
-              << "            2、定义边：包括边的自由度、类型以及边相连顶点的类型和计算误差的方法以及误差相对于顶点的雅可比（该部分可以不定义，若不定义则默认使用数值微分方式);\n"
-              << "            3、注意边中顶点的顺序，在边添加顶点setVertex(vertexId,vertextype),指定顶点位置的时候需要和边定义保持一致；\n"
-              << "            4、注意边需要setInformation(...），否则初始化为0矩阵，则无法优化出正确状态;\n"
-              << "            5、注意当只有一个pose顶点，且setFixed(true)，而其他point顶点不可以设置setMarginalized(true)，否则将报段错误：原因是优先边缘化所有点是要计算pose顶点，而pose顶点fixed是无法求得的，如果有两个pose顶点，则可以只设置一个fixed，这样point顶点是可以设置边缘化的；\n"
-              << "            6、若不定义误差相对于顶点的雅可比使用自动数值微分似乎有点耗时；"
-              << std::endl;
+//    std::cout << "G2O优化： \n 1、定义好顶点:包括顶点的自由度、数据类型以及设置原点的方法；\n"
+//              << "            2、定义边：包括边的自由度、类型以及边相连顶点的类型和计算误差的方法以及误差相对于顶点的雅可比（该部分可以不定义，若不定义则默认使用数值微分方式);\n"
+//              << "            3、注意边中顶点的顺序，在边添加顶点setVertex(vertexId,vertextype),指定顶点位置的时候需要和边定义保持一致；\n"
+//              << "            4、注意边需要setInformation(...），否则初始化为0矩阵，则无法优化出正确状态;\n"
+//              << "            5、注意当只有一个pose顶点，且setFixed(true)，而其他point顶点不可以设置setMarginalized(true)，否则将报段错误：原因是优先边缘化所有点是要计算pose顶点，而pose顶点fixed是无法求得的，如果有两个pose顶点，则可以只设置一个fixed，这样point顶点是可以设置边缘化的；\n"
+//              << "            6、若不定义误差相对于顶点的雅可比使用自动数值微分似乎有点耗时；"
+//              << std::endl;
 
     typedef g2o::BlockSolver<g2o::BlockSolverTraits<6,3> > BlockSolverType;
     typedef g2o::LinearSolverCSparse<BlockSolverType::PoseMatrixType> LinearSolverType;
     g2o::OptimizationAlgorithm * algrithm = new g2o::OptimizationAlgorithmLevenberg(g2o::make_unique<BlockSolverType>(g2o::make_unique<LinearSolverType>()));
     optimizer_.setAlgorithm(algrithm);
   }
+
+  void singleFrameOptimize(FramePtr& f,FeatureManager& fsm) {
+    if (f == nullptr) {
+      std::cerr << "[BA]:Failure!Frame is nullptr!" << std::endl;
+      return;
+    }
+    Eigen::Matrix3d eRcw;
+    Eigen::Vector3d etcw;
+    cv::Mat Rcw,tcw;
+    f->getInversePose(Rcw,tcw);
+    if (Rcw.empty() || tcw.empty()) {
+      std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
+      return;
+    }
+    cv::cv2eigen(Rcw,eRcw);
+    cv::cv2eigen(tcw,etcw);
+    PoseVertex *pVertex = new PoseVertex();
+    pVertex->setId(0);
+    pVertex->setEstimate(Sophus::SE3d(eRcw,etcw));
+    optimizer_.addVertex(pVertex);
+
+    std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
+    std::map<uint64_t,cv::Point2f>& corners = f->getCorners();
+    int matchSize = 0;
+    for(auto c : corners) {
+      uint64_t cornerId = c.first;
+      if (!features.count(cornerId)) {
+        continue;
+      }
+
+      if (!features[cornerId].isReadyForOptimize()) {
+        continue;
+      }
+      PixelCoordinate uv;
+      if (features[cornerId].getPixelInFrame(f,uv)) {
+        cv::Point2f normalizePt = uv.second;
+        cv::Point3f ptsW = features[cornerId].getPts3DInWorld();
+        NormalizedUVOnlyPoseEdge *edge = new NormalizedUVOnlyPoseEdge(Eigen::Vector3d(ptsW.x,ptsW.y,ptsW.z));
+        edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(0)));
+        edge->setMeasurement(Eigen::Vector2d(normalizePt.x,normalizePt.y));
+        edge->setInformation(Eigen::Matrix2d::Identity());
+        edge->setRobustKernel(new g2o::RobustKernelHuber());
+        optimizer_.addEdge(edge);
+        matchSize++;
+      }
+    }
+    if (matchSize < 5) {
+      std::cout << "[BA]:match size is less than 5,so shut down ba!" << std::endl;
+      return;
+    }
+    std::cout<<"开始优化"<< std::endl;
+    optimizer_.setVerbose(true);
+    optimizer_.initializeOptimization();
+    optimizer_.optimize(10);
+    std::cout<<"优化完毕"<<std::endl;
+  }
+  void windowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
+    if (slidewindow.size() < 2) {
+      printf("[G2O-AddVertex]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
+      return;
+    }
+    //add pose vertex
+    int vertexId = 0;
+    for (auto f : slidewindow) {
+      PoseVertex *poseV = new PoseVertex();
+      poseV->setId(vertexId);
+      if (vertexId == 0) {
+        poseV->setFixed(true);
+      }
+      Eigen::Matrix3d eRcw;
+      Eigen::Vector3d etcw;
+      cv::Mat Rcw,tcw;
+      f->getInversePose(Rcw,tcw);
+      if (Rcw.empty() || tcw.empty()) {
+        std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
+        return;
+      }
+      cv::cv2eigen(Rcw,eRcw);
+      cv::cv2eigen(tcw,etcw);
+      poseV->setId(vertexId);
+      poseV->setEstimate(Sophus::SE3d(eRcw,etcw));
+      optimizer_.addVertex(poseV);
+      poseId_[f] = vertexId;
+      vertexId++;
+    }
+    std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
+    for (std::map<uint64_t,Feature>::const_iterator it = features.begin();it != features.end();it++) {
+      const Feature& fea = it->second;
+      if (!fea.isReadyForOptimize()) {
+        continue;
+      }
+      cv::Point3f ft3d = fea.getPts3DInWorld();
+      PointVertex *pointV = new PointVertex();
+      pointV->setId(vertexId);
+      pointV->setEstimate(Eigen::Vector3d(ft3d.x,ft3d.y,ft3d.z));
+      pointV->setMarginalized(true);
+      optimizer_.addVertex(pointV);
+      featId_[it->first] = vertexId;
+      vertexId++;
+    }
+    for (auto p : poseId_) {
+      FramePtr frame = p.first;
+      int poseVId = p.second;
+      for(auto f : featId_) {
+        uint64_t featId = f.first;
+        int featVId = f.second;
+        if (!features.count(featId)) {
+          continue;
+        }
+        PixelCoordinate uv;
+        if (features[featId].getPixelInFrame(frame,uv)) {
+          cv::Point2f normUV = uv.second;
+          NormalizedUVEdge *edge = new NormalizedUVEdge();
+          edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(poseVId)));
+          edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(featVId)));
+          edge->setMeasurement(Eigen::Vector2d(normUV.x,normUV.y));
+          edge->setInformation(Eigen::Matrix2d::Identity());
+          edge->setRobustKernel(new g2o::RobustKernelHuber());
+          optimizer_.addEdge(edge);
+        }
+      }
+    }
+    std::cout<<"开始优化"<< std::endl;
+    optimizer_.setVerbose(true);
+    optimizer_.initializeOptimization();
+    optimizer_.optimize(10);
+    std::cout<<"优化完毕"<<std::endl;
+  }
+
 
 
   void testTcw() {
@@ -193,6 +355,7 @@ class BundleAdjustmentByG2O {
 
  private:
   g2o::SparseOptimizer optimizer_;
-
+  std::map<FramePtr,int> poseId_;
+  std::map<uint64_t,int> featId_;
 };
 
