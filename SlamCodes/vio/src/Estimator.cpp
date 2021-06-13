@@ -1,5 +1,6 @@
 #include "Estimator.hpp"
 #include <opencv2/core/eigen.hpp>
+#include "BASolver.hpp"
 
 namespace vio{
 Estimator::Estimator(std::string configFile) {
@@ -49,27 +50,36 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     break;
   case EstState::Initing: 
     {
-      int i = 0;
-      for (auto ref : slideWindows_) {
-        i++;
-        if (state != EstState::Runing) {
-          if (init_->initPoseAndMap(ref,frame,fsm_)) {
-            state = EstState::Runing;
-          }
-        } else if (i < slideWindows_.size()) {
-          if (!estimatePose(ref)) {
-            reset();
-            state = EstState::Waiting;
+      if (slideWindows_.size() < 5) {
+        break;
+      }
+      size_t endId = slideWindows_.size() - 1;
+      int initCnt = 1;
+      if (init_->initPoseAndMap(slideWindows_[0],slideWindows_[endId],fsm_)) {
+        for (;initCnt < endId;initCnt++) {
+          if (!estimatePose(slideWindows_[initCnt])) {
             break;
           }
-          std::cout << "twc = " << ref->WtC().t() << std::endl;
         }
       }
-      
+      if (initCnt == endId) {
+        BAG2O basolver;
+        if (basolver.windowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
+          basolver.updatePoseAndMap(slideWindows_,fsm_);
+          state = Runing;
+        } else {
+          reset();
+          state = Waiting;
+        }
+      } else {
+        reset();
+        state = Waiting;
+      }
       break;
     }
   case EstState::Runing:
     if (fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
+      buddleAdjustment();
       updateFeature();
       poseUpdateFlg_ = true;
     } else {
@@ -84,14 +94,10 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 }
 
 void Estimator::slideWindow() {
-  if (slideWindows_.size() > 1 && !removeOldKeyFrame_) { //remove second new frame no wait
-    std::vector<FramePtr>::iterator it = slideWindows_.end() - 1;
-    fsm_.removeFrame(*it);
-    slideWindows_.erase(it);
-  }
-  if (slideWindows_.size() > WINSIZE && removeOldKeyFrame_) { //remove old frame until slidewindow is full
+  if (slideWindows_.size() > WINSIZE ) { //remove old frame until slidewindow is full
     fsm_.removeFrame(slideWindows_.front());
     slideWindows_.erase(slideWindows_.begin());
+    std::cout << "After delte" << std::endl;
   }
 }
 
@@ -120,19 +126,17 @@ void Estimator::checkParallex(FramePtr frame) {
 }
 
 void Estimator::buddleAdjustment() {
-  if (slideWindows_.size() < 2) {
+  if (slideWindows_.size() < WINSIZE) {
     return;
   }
-  BundleAdjustmentByG2O baSolver;
-  baSolver.testTcw();
-//  baSolver.addVertexAndEdge(slideWindows_,fsm_);
-//  std::cout << "get Pose" << std::endl;
-// // baSolver.getPoseAndFeatures(slideWindows_,fsm_);
-//  std::cout << "get pose end" << std::endl;
+  BAG2O baSolver;
+  if (baSolver.windowFrameOptimize(slideWindows_,fsm_,2.0 / cam_->fx())) {
+    baSolver.updatePoseAndMap(slideWindows_, fsm_);
+  }
+
 }
 
 bool Estimator::estimatePose(FramePtr frame) {
-  //return buddleAdjustment();
   std::vector<cv::Point2f> matchedNormalizedUV;
   std::vector<cv::Point3f> matchedPts3D;
   std::vector<uint64_t> matchedIds;
@@ -140,7 +144,8 @@ bool Estimator::estimatePose(FramePtr frame) {
   if (matchedPts3D.size() < 5) {
     printf("[EstimatePose]: matched points is too few!\n");
     return false;
-  } 
+  }
+  std::cout << "Matched Size = " << matchedPts3D.size() << std::endl;
   cv::Mat rcw,CtW,Rcw;
   std::vector<int> inliers;
   if (pnpSolver_->solveByPnp(matchedNormalizedUV,matchedPts3D,cam_->fx(),rcw,CtW,inliers)) {
@@ -149,7 +154,6 @@ bool Estimator::estimatePose(FramePtr frame) {
     Rwc = Rcw.t();
     WtC = - Rwc * CtW;
     frame->setPoseInWorld(Rwc,WtC);
-    buddleAdjustment();
     return true;
   } 
   std::cout << "[EstimatePose]:Failure!" << std::endl;
@@ -200,24 +204,28 @@ void Estimator::updateFeature() {
   cv::Rodrigues(Rcw,rcw);
   cam_->project(p3DVec,proPtVec,rcw,CtW);
   for(size_t i = 0; i < idx.size(); i++) {
-    if (cv::norm(proPtVec[i] - ptVec[i]) > cfg_->estimatorParam_.ReprojectPixelErr) {
+    float repErr = cv::norm(proPtVec[i] - ptVec[i]);
+    if (repErr > cfg_->estimatorParam_.ReprojectPixelErr) {
       corners.erase(idx[i]);
       fsm_.updateBadCount(idx[i]);
     } else {
       fsm_.addFeature(idx[i],curFramePtr);
+      if (repErr < 0.5) {
+        fsm_.updateGoodCount(idx[i]);
+      }
     }
   }
 
   //step2: remove untracked and bad features
   for (auto it = features.begin(); it != features.end();) {
-    if (!it->second.isInFrame(curFramePtr)) {
+    if (it->second.getTrackCount() == 0) {
       fsm_.removeFeature(it++);
       continue;
     }
     if (it->second.getBadCount() >= 3) {
-      fsm_.removeFeature(it++);
       cv::Point3f pt3d = it->second.getPts3DInWorld();
-      printf("[Features]:Remove %lud feature[%f,%f] for bad count > 3!\n",it->first,pt3d.x/pt3d.z,pt3d.y/pt3d.z);
+      printf("[Features]:Remove %lu feature[%f,%f,%f] for bad count > 3!\n",it->first,pt3d.x,pt3d.y,pt3d.z);
+      fsm_.removeFeature(it++);
       continue;
     }
     it++;
