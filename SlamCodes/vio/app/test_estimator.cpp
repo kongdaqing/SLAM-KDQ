@@ -1,6 +1,8 @@
-#include "VizScene.hpp" 
+#include <random>
+#include "VizScene.hpp"
 #include "Simulator.hpp"
 #include "Estimator.hpp"
+
 using namespace vio;
 
 #define PI 3.1415926
@@ -26,6 +28,10 @@ int main(int argc,char **argv) {
  float period = 0.033;
  float cnt = 0;
  double timestamp = 0.;
+ float noiseAmp = 1.0;
+ std::random_device sd;
+ std::mt19937_64 genorator(sd());
+ std::uniform_real_distribution<float> noise(-1,1);
  while (!vizWindow.sceneWindowPtr_->wasStopped()) {
    cnt++;
    timestamp += cnt * period;
@@ -43,12 +49,14 @@ int main(int argc,char **argv) {
    std::map<uint64_t,cv::Point2f> feats;
    cv::Point3f camPose(newPose.matrix(0,3),newPose.matrix(1,3),newPose.matrix(2,3));
    uint64_t id = 0;
+
    for (auto pt3D:pts3D) {
      id++;
      cv::Point3f pt3DP(pt3D[0],pt3D[1],pt3D[2]);
      cv::Point2f pixel = cam->project(pt3DP,crw,ctw);
-     if (cam->isInFrame(pixel)) {
-       feats[id] = pixel;
+     cv::Point2f noisePixel = pixel + cv::Point2f(noiseAmp * noise(genorator),noiseAmp * noise(genorator));
+     if (cam->isInFrame(noisePixel)) {
+       feats[id] = noisePixel;
      } 
    }
    Frame *frame = new Frame(timestamp,feats,cam);
@@ -59,6 +67,8 @@ int main(int argc,char **argv) {
      cv::Affine3d Twc(Rwc,WtC);
      vizWindow.updateCameraPose("cam2",Twc);
      vizWindow.updatePointClouds("cameraPts",estimator.getFeatsInWorld());
+   } else {
+     vizWindow.clearCameraPath("cam2");
    }
    vizWindow.updateCameraPose("cam1",newPose);
    vizWindow.showSceneAllCamera();
