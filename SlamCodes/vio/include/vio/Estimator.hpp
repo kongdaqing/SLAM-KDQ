@@ -6,7 +6,6 @@
 #include "FeatureTracker.hpp"
 #include "MeasurementTimeline.hpp"
 #include "PreIntegration.hpp"
-#include "BASolverByG2O.hpp"
 
 namespace vio{
 enum EstState {

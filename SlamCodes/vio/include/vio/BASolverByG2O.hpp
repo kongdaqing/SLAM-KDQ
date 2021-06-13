@@ -25,7 +25,18 @@ using namespace vio;
 class PoseVertex : public g2o::BaseVertex<6,Sophus::SE3d> {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  PoseVertex() {};
+  PoseVertex() {
+    fx_ = 1.0;
+    fy_ = 1.0;
+    ux_ = 0.;
+    uy_ = 0.;
+  };
+  PoseVertex(double fx,double fy,double ux,double uy) {
+    fx_ = fx;
+    fy_ = fy;
+    ux_ = ux;
+    uy_ = uy;
+  };
   virtual void setToOriginImpl() override {
     _estimate = Sophus::SE3d();
   }
@@ -36,7 +47,7 @@ class PoseVertex : public g2o::BaseVertex<6,Sophus::SE3d> {
   }
   virtual bool read(std::istream& is) {};
   virtual bool write(std::ostream& os) const {};
-
+  double fx_,fy_,ux_,uy_;
 };
 
 class PointVertex : public g2o::BaseVertex<3,Eigen::Vector3d> {
@@ -56,30 +67,35 @@ class PointVertex : public g2o::BaseVertex<3,Eigen::Vector3d> {
 
 //边的定义：集成二元边，需要指定边也就是观测的自由度和类型，以及该边连接的两个定点的类型
 //需要覆盖函数computeError指定误差计算的方法，而linearizeOplus函数可以覆盖用于指定误差相对于顶点的雅可比，也可以不覆盖则默认会使用数值微分的方法
-class NormalizedUVEdge : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,PoseVertex,PointVertex> {
+class ReprojectUVEdge : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,PoseVertex,PointVertex> {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  NormalizedUVEdge(){};
+  ReprojectUVEdge(){};
 
   virtual void computeError() override{
     const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
     const PointVertex* v2 = static_cast<const PointVertex*>(_vertices[1]);
     Eigen::Vector3d ptInCam =  v1->estimate() * v2->estimate() / v2->estimate().z();
-    _error = ptInCam.head(2)  - _measurement;
+    Eigen::Vector2d ptInUV;
+    ptInUV.x() = v1->fx_ * ptInCam.x() + v1->ux_;
+    ptInUV.y() = v1->fy_ * ptInCam.y() + v1->uy_;
+    _error = ptInUV  - _measurement;
   }
 
   virtual void linearizeOplus() override{
     const PoseVertex* poseV = static_cast<PoseVertex *> (_vertices[0]);
     const PointVertex * pointV = static_cast<PointVertex *> (_vertices[1]);
     Eigen::Vector3d pc =  poseV->estimate() * pointV->estimate();
-    double z = pc.z();
+    double fx = poseV->fx_;
+    double fy = poseV->fy_;
     double x = pc.x();
     double y = pc.y();
+    double z = pc.z();
     double z2 = z*z;
     Eigen::Matrix<double,2,3> Jac_uv2normalized;
-    Jac_uv2normalized << 1/z, 0., -x/z2, 0., 1/z, -y/z2;
-    _jacobianOplusXi << 1/z,  0,  -x/z2,     -x*y/z2, 1 + x*x/z2, -y/z,
-      0,1/z,  -y/z2, -1 - y*y/z2,     x*y/z2,  x/z;
+    Jac_uv2normalized << fx/z, 0., -fx*x/z2, 0., fy/z, -fy*y/z2;
+    _jacobianOplusXi << fx/z,  0,    -fx*x/z2,    -fx*x*y/z2, fx + fx*x*x/z2, -fx*y/z,
+                          0,  fy/z,  -fy*y/z2,  -fy-fy*y*y/z2,    fy*x*y/z2,  fy*x/z;
     _jacobianOplusXj = Jac_uv2normalized * poseV->estimate().rotationMatrix();
   }
 
@@ -88,28 +104,35 @@ class NormalizedUVEdge : public g2o::BaseBinaryEdge<2,Eigen::Vector2d,PoseVertex
 
 };
 
-class NormalizedUVOnlyPoseEdge : public g2o::BaseUnaryEdge<2,Eigen::Vector2d,PoseVertex> {
+
+class ReprojectUVOnlyPoseEdge : public g2o::BaseUnaryEdge<2,Eigen::Vector2d,PoseVertex> {
  public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-  NormalizedUVOnlyPoseEdge(Eigen::Vector3d point3d) {
+  ReprojectUVOnlyPoseEdge(Eigen::Vector3d point3d) {
     points_ = point3d;
   };
   virtual void computeError() override {
     const PoseVertex *v1 = static_cast<const PoseVertex *>(_vertices[0]);
     Eigen::Vector3d ptInCam = v1->estimate() * points_ / points_.z();
-    _error = ptInCam.head(2) - _measurement;
+    Eigen::Vector2d ptInUV;
+    ptInUV.x() = v1->fx_ * ptInCam.x() + v1->ux_;
+    ptInUV.y() = v1->fy_ * ptInCam.y() + v1->uy_;
+    _error = ptInUV - _measurement;
   }
-  virtual void linearizeOplus() override {
-    const PoseVertex *poseV = static_cast<PoseVertex *> (_vertices[0]);
-    Eigen::Vector3d pc = poseV->estimate() * points_;
-    double z = pc.z();
-    double x = pc.x();
-    double y = pc.y();
-    double z2 = z * z;
-    Eigen::Matrix<double, 2, 3> Jac_uv2normalized;
-    _jacobianOplusXi << 1 / z, 0, -x / z2, -x * y / z2, 1 + x * x / z2, -y / z,
-      0, 1 / z, -y / z2, -1 - y * y / z2, x * y / z2, x / z;
-  }
+//  virtual void linearizeOplus() override {
+//    const PoseVertex *poseV = static_cast<PoseVertex *> (_vertices[0]);
+//    Eigen::Vector3d pc = poseV->estimate() * points_;
+//    double fx = poseV->fx_;
+//    double fy = poseV->fy_;
+//    double x = pc.x();
+//    double y = pc.y();
+//    double z = pc.z();
+//    double z2 = z*z;
+//    Eigen::Matrix<double,2,3> Jac_uv2normalized;
+//    Jac_uv2normalized << fx/z, 0., -fx*x/z2, 0., fy/z, -fy*y/z2;
+//    _jacobianOplusXi << fx/z,  0,    -fx*x/z2,    -fx*x*y/z2, fx + fx*x*x/z2, -fx*y/z,
+//                           0,  fy/z,  -fy*y/z2,  -fy-fy*y*y/z2,    fy*x*y/z2,  fy*x/z;
+//  }
   virtual bool read(std::istream &is) {};
   virtual bool write(std::ostream &os) const {};
 
@@ -170,7 +193,7 @@ class BundleAdjustmentByG2O {
       if (features[cornerId].getPixelInFrame(f,uv)) {
         cv::Point2f normalizePt = uv.second;
         cv::Point3f ptsW = features[cornerId].getPts3DInWorld();
-        NormalizedUVOnlyPoseEdge *edge = new NormalizedUVOnlyPoseEdge(Eigen::Vector3d(ptsW.x,ptsW.y,ptsW.z));
+        ReprojectUVOnlyPoseEdge *edge = new ReprojectUVOnlyPoseEdge(Eigen::Vector3d(ptsW.x,ptsW.y,ptsW.z));
         edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(0)));
         edge->setMeasurement(Eigen::Vector2d(normalizePt.x,normalizePt.y));
         edge->setInformation(Eigen::Matrix2d::Identity());
@@ -189,14 +212,14 @@ class BundleAdjustmentByG2O {
     optimizer_.optimize(10);
     std::cout<<"优化完毕"<<std::endl;
   }
-  void windowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
+  bool windowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
     if (slidewindow.size() < 2) {
       printf("[G2O-AddVertex]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
-      return;
+      return false;
     }
     //add pose vertex
     int vertexId = 0;
-    for (auto f : slidewindow) {
+    for (auto s : slidewindow) {
       PoseVertex *poseV = new PoseVertex();
       poseV->setId(vertexId);
       if (vertexId == 0) {
@@ -205,17 +228,18 @@ class BundleAdjustmentByG2O {
       Eigen::Matrix3d eRcw;
       Eigen::Vector3d etcw;
       cv::Mat Rcw,tcw;
-      f->getInversePose(Rcw,tcw);
+      s->getInversePose(Rcw,tcw);
       if (Rcw.empty() || tcw.empty()) {
         std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
-        return;
+        return false;
       }
       cv::cv2eigen(Rcw,eRcw);
       cv::cv2eigen(tcw,etcw);
+      std::cout << "PoseVertexId = " << vertexId << " Ptr: " << s << " time: " << s->timestamp_ << " Pose: " << etcw.transpose() << std::endl;
       poseV->setId(vertexId);
       poseV->setEstimate(Sophus::SE3d(eRcw,etcw));
       optimizer_.addVertex(poseV);
-      poseId_[f] = vertexId;
+      poseId_[s] = vertexId;
       vertexId++;
     }
     std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
@@ -233,23 +257,28 @@ class BundleAdjustmentByG2O {
       featId_[it->first] = vertexId;
       vertexId++;
     }
-    for (auto p : poseId_) {
-      FramePtr frame = p.first;
-      int poseVId = p.second;
-      for(auto f : featId_) {
-        uint64_t featId = f.first;
-        int featVId = f.second;
+    for (auto s : slidewindow) {
+      if (!poseId_.count(s)) {
+        continue;
+      }
+      int poseVId = poseId_[s];
+      for (std::map<uint64_t,int>::const_iterator it = featId_.begin(); it != featId_.end(); it++) {
+        uint64_t featId = it->first;
+        int featVId = it->second;
         if (!features.count(featId)) {
           continue;
         }
         PixelCoordinate uv;
-        if (features[featId].getPixelInFrame(frame,uv)) {
+        if (features[featId].getPixelInFrame(s,uv)) {
           cv::Point2f normUV = uv.second;
-          NormalizedUVEdge *edge = new NormalizedUVEdge();
+          ReprojectUVEdge *edge = new ReprojectUVEdge();
           edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(poseVId)));
           edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(featVId)));
+          std::cout << "Frame: " << s  << " poseVId: " << poseVId
+                    << " FeatId: " << featId << " FeatVId:" << featVId
+                    << " UV: " << uv.first << " NormUV: " << normUV <<std::endl;
           edge->setMeasurement(Eigen::Vector2d(normUV.x,normUV.y));
-          edge->setInformation(Eigen::Matrix2d::Identity());
+          edge->setInformation( Eigen::Matrix2d::Identity());
           edge->setRobustKernel(new g2o::RobustKernelHuber());
           optimizer_.addEdge(edge);
         }
@@ -260,6 +289,182 @@ class BundleAdjustmentByG2O {
     optimizer_.initializeOptimization();
     optimizer_.optimize(10);
     std::cout<<"优化完毕"<<std::endl;
+    return true;
+  }
+
+  bool windowFrameOnlyPoseOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
+    if (slidewindow.size() < 2) {
+      printf("[G2O-AddVertex]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
+      return false;
+    }
+    //add pose vertex
+    int vertexId = 0;
+    for (auto s : slidewindow) {
+      PoseVertex *poseV = new PoseVertex();
+      poseV->setId(vertexId);
+      if (vertexId == 0) {
+        poseV->setFixed(true);
+      }
+      Eigen::Matrix3d eRcw;
+      Eigen::Vector3d etcw;
+      cv::Mat Rcw,tcw;
+      s->getInversePose(Rcw,tcw);
+      if (Rcw.empty() || tcw.empty()) {
+        std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
+        return false;
+      }
+      cv::cv2eigen(Rcw,eRcw);
+      cv::cv2eigen(tcw,etcw);
+      poseV->setId(vertexId);
+      poseV->setEstimate(Sophus::SE3d(eRcw,etcw));
+      optimizer_.addVertex(poseV);
+      poseId_[s] = vertexId;
+      vertexId++;
+    }
+    std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
+    for (auto s : slidewindow) {
+      if (!poseId_.count(s)) {
+        continue;
+      }
+      int poseVId = poseId_[s];
+      for (std::map<uint64_t,Feature>::iterator it = features.begin(); it != features.end(); it++) {
+        if (!it->second.isReadyForOptimize()) {
+          continue;
+        }
+        PixelCoordinate uv;
+
+        if (it->second.getPixelInFrame(s,uv)) {
+          cv::Point2f normUV = uv.second;
+          cv::Point3f pt3d = it->second.getPts3DInWorld();
+          ReprojectUVOnlyPoseEdge *edge = new ReprojectUVOnlyPoseEdge(Eigen::Vector3d(pt3d.x,pt3d.y,pt3d.z));
+          edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(poseVId)));
+          edge->setMeasurement(Eigen::Vector2d(normUV.x,normUV.y));
+          edge->setInformation( 10000*Eigen::Matrix2d::Identity());
+          edge->setRobustKernel(new g2o::RobustKernelHuber());
+          optimizer_.addEdge(edge);
+        }
+      }
+    }
+    std::cout<<"开始优化"<< std::endl;
+    optimizer_.setVerbose(true);
+    optimizer_.initializeOptimization();
+    optimizer_.optimize(40);
+    std::cout<<"优化完毕"<<std::endl;
+    return true;
+  }
+
+
+  bool windowFrameOptimizeUV(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
+    if (slidewindow.size() < 2) {
+      printf("[G2O-AddVertex]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
+      return false;
+    }
+    //add pose vertex
+    int vertexId = 0;
+    for (auto s : slidewindow) {
+      PoseVertex *poseV = new PoseVertex(s->cam_->fx(),s->cam_->fy(),s->cam_->cx(),s->cam_->cy());
+      poseV->setId(vertexId);
+      if (vertexId == 0) {
+        poseV->setFixed(true);
+      }
+      Eigen::Matrix3d eRcw;
+      Eigen::Vector3d etcw;
+      cv::Mat Rcw,tcw;
+      s->getInversePose(Rcw,tcw);
+      if (Rcw.empty() || tcw.empty()) {
+        std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
+        return false;
+      }
+      cv::cv2eigen(Rcw,eRcw);
+      cv::cv2eigen(tcw,etcw);
+     // std::cout << "PoseVertexId = " << vertexId << " Ptr: " << s << " time: " << s->timestamp_ << " Pose: " << etcw.transpose() << std::endl;
+      poseV->setId(vertexId);
+      poseV->setEstimate(Sophus::SE3d(eRcw,etcw));
+      optimizer_.addVertex(poseV);
+      poseId_[s] = vertexId;
+      vertexId++;
+    }
+    std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
+    for (std::map<uint64_t,Feature>::const_iterator it = features.begin();it != features.end();it++) {
+      const Feature& fea = it->second;
+      if (!fea.isReadyForOptimize()) {
+        continue;
+      }
+      cv::Point3f ft3d = fea.getPts3DInWorld();
+      PointVertex *pointV = new PointVertex();
+      pointV->setId(vertexId);
+      pointV->setEstimate(Eigen::Vector3d(ft3d.x,ft3d.y,ft3d.z));
+      pointV->setMarginalized(true);
+      optimizer_.addVertex(pointV);
+      featId_[it->first] = vertexId;
+      vertexId++;
+    }
+    for (auto s : slidewindow) {
+      if (!poseId_.count(s)) {
+        continue;
+      }
+      int poseVId = poseId_[s];
+      for (std::map<uint64_t,int>::const_iterator it = featId_.begin(); it != featId_.end(); it++) {
+        uint64_t featId = it->first;
+        int featVId = it->second;
+        if (!features.count(featId)) {
+          continue;
+        }
+        PixelCoordinate uv;
+        if (features[featId].getPixelInFrame(s,uv)) {
+          cv::Point2f corner = uv.first;
+          ReprojectUVEdge *edge = new ReprojectUVEdge();
+          edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(poseVId)));
+          edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(featVId)));
+//          std::cout << "Frame: " << s  << " poseVId: " << poseVId
+//                    << " FeatId: " << featId << " FeatVId:" << featVId
+//                    << " UV: " << corner << " NormUV: " << uv.second <<std::endl;
+          edge->setMeasurement(Eigen::Vector2d(corner.x,corner.y));
+          edge->setInformation( Eigen::Matrix2d::Identity());
+          edge->setRobustKernel(new g2o::RobustKernelCauchy());
+          optimizer_.addEdge(edge);
+        }
+      }
+    }
+    std::cout<<"开始优化"<< std::endl;
+    optimizer_.setVerbose(false);
+    optimizer_.initializeOptimization();
+    optimizer_.optimize(10);
+    std::cout<<"优化完毕"<<std::endl;
+    return true;
+  }
+
+  void updatePoseAndMap(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
+    for (auto f : slidewindow) {
+      if (!poseId_.count(f)) {
+        continue;
+      }
+      int poseVId = poseId_[f];
+      PoseVertex* poseV = dynamic_cast<PoseVertex*>(optimizer_.vertex(poseVId));
+      Eigen::Matrix3d Rwc = poseV->estimate().rotationMatrix().transpose();
+      Eigen::Vector3d twc = -poseV->estimate().rotationMatrix().transpose() * poseV->estimate().translation();
+      cv::Mat cRwc,ctwc;
+      cv::eigen2cv(Rwc, cRwc);
+      cv::eigen2cv(twc, ctwc);
+      cv::Mat Rwcold,twcold;
+      f->getPoseInWorld(Rwcold,twcold);
+      std::cout << "Optimization : \n" << "RwcOld : \n" << Rwcold << "RwcNew : \n" << cRwc << std::endl;
+      std::cout <<  "twcOld : " << twcold.t() << "twcNew : " << ctwc.t() << std::endl;
+      f->setPoseInWorld(cRwc,ctwc);
+    }
+//    std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
+//    for (auto c : featId_) {
+//      uint64_t cornerId = c.first;
+//      int featVId = c.second;
+//      if (!features.count(cornerId)) {
+//        continue;
+//      }
+//      PointVertex* pointV = dynamic_cast<PointVertex*> (optimizer_.vertex(featVId));
+//      Eigen::Vector3d pt3d = pointV->estimate();
+//      cv::Point3f pt3old = features[cornerId].getPts3DInWorld();
+//      std::cout << "Optimization: old feat = " << pt3old << " new feat = " << pt3d.transpose() << std::endl;
+//      features[cornerId].setPtsInWorld(cv::Point3f(pt3d.x(),pt3d.y(),pt3d.z()));
+//    }
   }
 
 
@@ -316,17 +521,17 @@ class BundleAdjustmentByG2O {
     }
 
     for (int i = 0; i < 20; ++i) {
-      NormalizedUVEdge *edge = new NormalizedUVEdge();
+      ReprojectUVEdge *edge = new ReprojectUVEdge();
       edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(0)));
       edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
       edge->setMeasurement(meas1[i]);
       edge->setInformation(Eigen::Matrix2d::Identity());
-      edge->setRobustKernel(new g2o::RobustKernelHuber());
+      edge->setRobustKernel(new g2o::RobustKernelCauchy());
       optimizer_.addEdge(edge);
     }
 
     for (int i = 0; i < 20; ++i) {
-      NormalizedUVEdge *edge = new NormalizedUVEdge();
+      ReprojectUVEdge *edge = new ReprojectUVEdge();
       edge->setVertex(0,dynamic_cast<PoseVertex*>(optimizer_.vertex(1)));
       edge->setVertex(1,dynamic_cast<PointVertex*>(optimizer_.vertex(i + 2)));
       edge->setMeasurement(meas2[i]);
