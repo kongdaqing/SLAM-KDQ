@@ -24,6 +24,7 @@ class Feature {
     addFrame(f);
     valid3D_ = false;
     badCount_ = 0;
+    goodCount_ = 0;
   }
 
   /** \brief add frame and pixel coordinate
@@ -98,10 +99,18 @@ class Feature {
     badCount_++;
   }
 
+  void incGoodCount() {
+    goodCount_++;
+  }
+
   /** \brief get badCount 
    */ 
   int getBadCount() const {
     return badCount_;
+  }
+
+  int getGoodCount() const {
+    return goodCount_;
   }
 
   bool isReadyForOptimize() const{
@@ -112,6 +121,7 @@ class Feature {
   std::map<const FramePtr,PixelCoordinate> uv;
   cv::Point3f p3D;
   int badCount_;
+  int goodCount_;
   bool valid3D_;
 };
 
@@ -158,8 +168,15 @@ class FeatureManager {
    */ 
   void featureMatching(const FramePtr f,std::vector<uint64_t>& matchedIds,std::vector<cv::Point2f>& matchedNormalizedUV,std::vector<cv::Point3f>& matched3DPts);
 
-
-
+  /** \brief insert frame
+   * @param f --- frame ptr
+   */
+  void addFrame(FramePtr f) {
+    std::map<uint64_t,cv::Point2f> &corners = f->getCorners();
+    for (auto it = corners.begin();it != corners.end(); it++) {
+      addFeature(it->first,f);
+    }
+  }
   /** \brief add feature in the FM
    * @param id  ---  id of feature
    * @param f   --- parent frame of feature
@@ -179,17 +196,30 @@ class FeatureManager {
     if (feats_.count(id)) {
       feats_[id].incBadCount();
     }
-  } 
+  }
 
-  /** \brief set feature 3D coordinate in the world frame
-   * @param id    ---  id of the feature
-   * @param pts3D ---  3D coordinate 
-   */
-  inline void setFeatPts3D(uint64_t id,cv::Point3f& pts3D) {
+  void updateGoodCount(uint64_t id) {
     if (feats_.count(id)) {
-      feats_[id].setPtsInWorld(pts3D);
+      feats_[id].incGoodCount();
     }
   }
+  /** \brief set feature 3D coordinate in the world frame
+   * @param id    ---  id of the feature
+   * @param pts3D ---  3D coordinate
+   * @param coverFlg --- if feature 3d points is valid,cover value when coverflg == ture else reject value.
+   */
+  inline void setFeatPts3D(uint64_t id,cv::Point3f& pts3D,bool coverFlg = true) {
+    if (feats_.count(id)) {
+      if (!feats_[id].valid3D()) {
+        feats_[id].setPtsInWorld(pts3D);
+      } else {
+        if (coverFlg) {
+          feats_[id].setPtsInWorld(pts3D);
+        }
+      }
+    }
+  }
+
   /** \brief get feature map size
    * 
    */ 
