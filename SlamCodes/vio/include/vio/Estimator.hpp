@@ -1,4 +1,5 @@
 #pragma once
+#include <fstream>
 #include "FeatureManager.hpp"
 #include "Initializator.hpp"
 #include "Config.hpp"
@@ -88,6 +89,7 @@ class Estimator {
   Eigen::Vector3d tbc_;
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
+  std::ofstream recordFile_;
 
   /** \brief slide window to remove oldest frame and features
    */ 
@@ -96,7 +98,7 @@ class Estimator {
   /** \brief estimate pose of current frame
    * @return return true if estimator works well otherwise return false
    */   
-  bool estimatePose(FramePtr framePtr); 
+  bool estimatePose(FramePtr framePtr);
 
   /** \brief check pose ok or not
    * @return return true if current pose is ok
