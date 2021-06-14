@@ -26,6 +26,10 @@ bool FeatureManager::triangulate(uint64_t id,cv::Point3f &pt3d) {
   }
   cv::Mat u,w,vt,x3D;
   cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A | cv::SVD::FULL_UV);
+  if (w.at<float>(3) > 10 * w.at<float>(2)) {
+    std::cout << "[Tri]:Bad Triangulation! w = " << w.t() << std::endl;
+    return false;
+  }
   x3D = vt.row(3).t();
   x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
   if (x3D.at<float>(2) < 0.1 || isnan(x3D.at<float>(0)) || !isfinite(x3D.at<float>(0))) {
@@ -34,6 +38,7 @@ bool FeatureManager::triangulate(uint64_t id,cv::Point3f &pt3d) {
   pt3d.x = x3D.at<float>(0);
   pt3d.y = x3D.at<float>(1);
   pt3d.z = x3D.at<float>(2);
+  assert(!isnan(norm(pt3d)));
   return true;
 }
 

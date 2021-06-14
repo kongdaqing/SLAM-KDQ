@@ -3,11 +3,11 @@
 namespace vio{
 
 Initializator::Initializator(const Config* cfg,Camera* cam):
-    MinDisparity(cfg->iniParam_.minDisparity),
-    InitialMinMatchedPointNum(cfg->iniParam_.minMatchedFeatNum),
-    InitialReprojectErr(cfg->iniParam_.reprojectErr),
-    HomographyTransformErr(cfg->iniParam_.homographyTransformErr),
-    camera_(cam) {
+  MinDisparity(cfg->iniParam_.minDisparity),
+  InitialMinMatchedPointNum(cfg->iniParam_.minMatchedFeatNum),
+  InitialReprojectErr(cfg->iniParam_.reprojectErr),
+  HomographyTransformErr(cfg->iniParam_.homographyTransformErr),
+  camera_(cam) {
 
 };
 
@@ -25,31 +25,30 @@ bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureMa
   if (!initializeFromHomography(refFrame,curFrame,pts3D)) {
     return false;
   }
-  //step-2: 把参考帧中三角化成功的特征点加入到fsm中
+
+  //step-2: 把当前帧和参考镇所有特征都添加到fsm中
+  fs.addFrame(refFrame);
+  fs.addFrame(curFrame);
+
+  //step-3: 把参考帧中三角化成功的特征点加入到fsm中
   for (auto it = pts3D.begin(); it != pts3D.end(); it++) {
-    fs.addFeature(it->first,refFrame);
     fs.setFeatPts3D(it->first,it->second);
-  } 
-  //step-3: 把当前帧所有特征都添加到fsm中
-  std::map<uint64_t,cv::Point2f> curCorners = curFrame->getCorners();
-  for (auto it = curCorners.begin(); it != curCorners.end(); it++) {
-    fs.addFeature(it->first,curFrame);
   }
   return true;
 }
 
 inline bool Initializator::checkHomography(const cv::Mat &H) {
   const double det = H.at<double>(0, 0) * H.at<double>(1, 1) - H.at<double>(1, 0) * H.at<double>(0, 1);
-  if (det < 0) 
+  if (det < 0)
     return false;
   const double N1 = sqrt(H.at<double>(0, 0) * H.at<double>(0, 0) + H.at<double>(1, 0) * H.at<double>(1, 0));
-  if (N1 > 4 || N1 < 0.1) 
+  if (N1 > 4 || N1 < 0.1)
     return false;
   const double N2 = sqrt(H.at<double>(0, 1) * H.at<double>(0, 1) + H.at<double>(1, 1) * H.at<double>(1, 1));
   if (N2 > 4 || N2 < 0.1)
     return false;
-  const double N3 = sqrt(H.at<double>(2, 0) * H.at<double>(2, 0) + H.at<double>(2, 1) * H.at<double>(2, 1)); 
-    return N3 <= 0.002;
+  const double N3 = sqrt(H.at<double>(2, 0) * H.at<double>(2, 0) + H.at<double>(2, 1) * H.at<double>(2, 1));
+  return N3 <= 0.002;
 }
 
 
@@ -66,7 +65,7 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
   if (disparities[size/2] < MinDisparity) {
     printf("[Disparity-Check]:Failed! Middle Disparity is %3.2f less than threshold %3.2f!\n",disparities[size/2],MinDisparity);
     return false;
-  } 
+  }
   return true;
 }
 
@@ -89,7 +88,7 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
 
   for (size_t i = 0; i < refFeatures.size(); i++) {
     refFeatures[i] = camera_->normalized(refFeatures[i]);
-    curFeatures[i] = camera_->normalized(curFeatures[i]); 
+    curFeatures[i] = camera_->normalized(curFeatures[i]);
   }
   //KDQ: homography initialization
   if (!calHomography(H,inliers,camera_->fx(),refFeatures,curFeatures)) {
@@ -105,7 +104,7 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
   if (bestId < 0) {
     std::cout << "[CheckRT]:Can't find best pose" << std::endl;
     return false;
-  } 
+  }
   pts3D = ptsInWorld[bestId];
   curFrame->setPoseInWorld(R[bestId].t(),-R[bestId].t() * t[bestId]);
   return true;
@@ -122,7 +121,7 @@ bool Initializator::calHomography(cv::Mat &H,
   }
   H = cv::findHomography(refNormFeats, curNormFeats, cv::RANSAC, 2.0 / focalLength);
   if (false && !checkHomography(H)) {
-    printf("[Homography]:check homography self failed!\n"); 
+    printf("[Homography]:check homography self failed!\n");
     return false;
   }
   cv::Mat w,U,V;
@@ -154,13 +153,13 @@ bool Initializator::calHomography(cv::Mat &H,
 }
 
 int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInWorld,
-                        const std::vector<cv::Mat> &R,
-                        const std::vector<cv::Mat> &t,
-                        const std::vector<cv::Mat> &n,
-                        const std::vector<uchar> &inliers,
-                        const std::vector<uint64_t> &idVec,
-                        const std::vector<cv::Point2f> &refNormFeats,
-                        const std::vector<cv::Point2f> &curNormFeats) {
+                           const std::vector<cv::Mat> &R,
+                           const std::vector<cv::Mat> &t,
+                           const std::vector<cv::Mat> &n,
+                           const std::vector<uchar> &inliers,
+                           const std::vector<uint64_t> &idVec,
+                           const std::vector<cv::Point2f> &refNormFeats,
+                           const std::vector<cv::Point2f> &curNormFeats) {
   const size_t num = R.size();
   assert(num > 0);
   int maxCountIndex = 0;
@@ -186,7 +185,7 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
     //Note：一定要注意，因为后续三角化特征点时候全采用float类型，因此这里需要用covertTo，而不能用copyto，因为copyto将把目标类型也拷贝成源类型
     //比如：R[i].copyTo(Rs),Rs变成了CV_64F
     R[i].convertTo(Rs,CV_32F);
-    t[i].convertTo(ts,CV_32F);    
+    t[i].convertTo(ts,CV_32F);
     Rs.copyTo(P2.colRange(0,3));
     ts.copyTo(P2.col(3));
     for (size_t j = 0; j < refNormFeats.size(); j ++) {
@@ -194,7 +193,9 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
         continue;
       }
       cv::Point3f pts3d;
-      triangulate(refNormFeats[j],curNormFeats[j],P1,P2,pts3d);
+      if (!triangulate(refNormFeats[j],curNormFeats[j],P1,P2,pts3d)) {
+        continue;
+      }
       //Note:如果c1P3D声明为double型,就不能用c1P3D.at<float>,这样将得到一个错误的值
       cv::Mat c1P3D = (cv::Mat_<double>(3,1) << pts3d.x,pts3d.y,pts3d.z);
       if (c1P3D.at<double>(2) < 0.1 || !isfinite(pts3d.x) || !isfinite(pts3d.y) || !isfinite(pts3d.z)) {
@@ -209,7 +210,7 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
       cv::Mat crw1;
       cv::Rodrigues(R[i],crw1);
       //Note:因为旋转矩阵直接使用了double型的,所以必须也用double型的c1P3D,保持一致
-      cv::Mat c2P3D = R[i] * c1P3D + t[i]; 
+      cv::Mat c2P3D = R[i] * c1P3D + t[i];
       if (c2P3D.at<double>(2) < 0.1 || !isfinite(c2P3D.at<double>(0)) || !isfinite(c2P3D.at<double>(1)) || !isfinite(c2P3D.at<double>(2)) ) {
         continue;
       }
@@ -237,9 +238,9 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
       if (goodPtsCount[i] > 0.9 * maxCount && miniDist > sumDistance[i]/goodPtsCount[i]) {
         miniDist = sumDistance[i]/goodPtsCount[i];
         bestIndex = i;
-        std::cout << i  << " Count = " << goodPtsCount[i] 
-            << " n = " << n[i].t() 
-            << " averDist = " << sumDistance[i]/goodPtsCount[i] << std::endl;
+        std::cout << i  << " Count = " << goodPtsCount[i]
+                  << " n = " << n[i].t()
+                  << " averDist = " << sumDistance[i]/goodPtsCount[i] << std::endl;
       }
     }
   }
@@ -256,57 +257,62 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
  * @param[in] P2                pose from world to current frame
  * @param[in & out] x3D         计算的三维点
  */
- void Initializator::triangulate(const cv::Point2f &kp1,    //特征点, in reference frame
-                             const cv::Point2f &kp2,    //特征点, in current frame
-                             const cv::Mat &P1,          //投影矩阵P1
-                             const cv::Mat &P2,          //投影矩阵P2
-                             cv::Point3f &pts3d)  {
-    // 原理
-    // Trianularization: 已知匹配特征点对{x x'} 和 各自相机矩阵{P P'}, 估计三维点 X
-    // x' = P'X  x = PX
-    // 它们都属于 x = aPX模型
-    //                         |X|
-    // |x|     |p1 p2  p3  p4 ||Y|     |x|    |--p0--||.|
-    // |y| = a |p5 p6  p7  p8 ||Z| ===>|y| = a|--p1--||X|
-    // |z|     |p9 p10 p11 p12||1|     |z|    |--p2--||.|
-    // 采用DLT的方法：x叉乘PX = 0
-    // |yp2 -  p1|     |0|
-    // |p0 -  xp2| X = |0|
-    // |xp1 - yp0|     |0|
-    // 两个点:
-    // |yp2   -  p1  |     |0|
-    // |p0    -  xp2 | X = |0| ===> AX = 0
-    // |y'p2' -  p1' |     |0|
-    // |p0'   - x'p2'|     |0|
-    // 变成程序中的形式：
-    // |xp2  - p0 |     |0|
-    // |yp2  - p1 | X = |0| ===> AX = 0
-    // |x'p2'- p0'|     |0|
-    // |y'p2'- p1'|     |0|
-    // 然后就组成了一个四元一次正定方程组，SVD求解，右奇异矩阵的最后一行就是最终的解.
+bool Initializator::triangulate(const cv::Point2f &kp1,    //特征点, in reference frame
+                                const cv::Point2f &kp2,    //特征点, in current frame
+                                const cv::Mat &P1,          //投影矩阵P1
+                                const cv::Mat &P2,          //投影矩阵P2
+                                cv::Point3f &pts3d)  {
+  // 原理
+  // Trianularization: 已知匹配特征点对{x x'} 和 各自相机矩阵{P P'}, 估计三维点 X
+  // x' = P'X  x = PX
+  // 它们都属于 x = aPX模型
+  //                         |X|
+  // |x|     |p1 p2  p3  p4 ||Y|     |x|    |--p0--||.|
+  // |y| = a |p5 p6  p7  p8 ||Z| ===>|y| = a|--p1--||X|
+  // |z|     |p9 p10 p11 p12||1|     |z|    |--p2--||.|
+  // 采用DLT的方法：x叉乘PX = 0
+  // |yp2 -  p1|     |0|
+  // |p0 -  xp2| X = |0|
+  // |xp1 - yp0|     |0|
+  // 两个点:
+  // |yp2   -  p1  |     |0|
+  // |p0    -  xp2 | X = |0| ===> AX = 0
+  // |y'p2' -  p1' |     |0|
+  // |p0'   - x'p2'|     |0|
+  // 变成程序中的形式：
+  // |xp2  - p0 |     |0|
+  // |yp2  - p1 | X = |0| ===> AX = 0
+  // |x'p2'- p0'|     |0|
+  // |y'p2'- p1'|     |0|
+  // 然后就组成了一个四元一次正定方程组，SVD求解，右奇异矩阵的最后一行就是最终的解.
 
-	//这个就是上面注释中的矩阵A
-    cv::Mat A(4,4,CV_32F);
+  //这个就是上面注释中的矩阵A
+  cv::Mat A(4,4,CV_32F);
 
-	//构造参数矩阵A
-    A.row(0) = kp1.x*P1.row(2)-P1.row(0);
-    A.row(1) = kp1.y*P1.row(2)-P1.row(1);
-    A.row(2) = kp2.x*P2.row(2)-P2.row(0);
-    A.row(3) = kp2.y*P2.row(2)-P2.row(1);
+  //构造参数矩阵A
+  A.row(0) = kp1.x*P1.row(2)-P1.row(0);
+  A.row(1) = kp1.y*P1.row(2)-P1.row(1);
+  A.row(2) = kp2.x*P2.row(2)-P2.row(0);
+  A.row(3) = kp2.y*P2.row(2)-P2.row(1);
 
-	//奇异值分解的结果
-    cv::Mat u,w,vt;
-	//对系数矩阵A进行奇异值分解
-    cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A| cv::SVD::FULL_UV);
-	//根据前面的结论，奇异值分解右矩阵的最后一行其实就是解，原理类似于前面的求最小二乘解，四个未知数四个方程正好正定
-	// //别忘了我们更习惯用列向量来表示一个点的空间坐标
+  //奇异值分解的结果
+  cv::Mat u,w,vt;
+  //对系数矩阵A进行奇异值分解
+  cv::SVD::compute(A,w,u,vt,cv::SVD::MODIFY_A| cv::SVD::FULL_UV);
+  //根据前面的结论，奇异值分解右矩阵的最后一行其实就是解，原理类似于前面的求最小二乘解，四个未知数四个方程正好正定
+  // //别忘了我们更习惯用列向量来表示一个点的空间坐标
   //   x3D = vt.row(3).t();
-	// //为了符合其次坐标的形式，使最后一维为1
-    cv::Mat x3D = vt.row(3).t();  
-    x3D = x3D.rowRange(0,3)/x3D.at<float>(3); 
-    pts3d.x = x3D.at<float>(0);
-    pts3d.y = x3D.at<float>(1);
-    pts3d.z = x3D.at<float>(2);
+  // //为了符合其次坐标的形式，使最后一维为1
+  if (w.at<float>(3) > 10.0 * w.at<float>(2)) {
+    return false;
+  }
+  cv::Mat x3D = vt.row(3).t();
+  x3D = x3D.rowRange(0,3)/x3D.at<float>(3);
+
+  pts3d.x = x3D.at<float>(0);
+  pts3d.y = x3D.at<float>(1);
+  pts3d.z = x3D.at<float>(2);
+  return true;
 }
 
 }
