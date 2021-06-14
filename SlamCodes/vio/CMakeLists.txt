@@ -21,7 +21,7 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
   ${catkin_INCLUDE_DIRS}
 )
-add_library(volib src/FeatureManager.cpp
+add_library(volib SHARED src/FeatureManager.cpp
                   src/Initializator.cpp
                   src/Estimator.cpp
                   src/FeatureTracker.cpp)
@@ -89,8 +89,9 @@ include_directories(
   ${G2O_INCLUDE_DIRS}
   ${CHOLMOD_INCLUDE_DIR}
 )
-SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core  g2o_solver_dense cholmod g2o_solver_cholmod g2o_types_slam3d g2o_types_sba cxsparse)
-add_library(volib src/FeatureManager.cpp
+SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core  g2o_solver_dense cholmod g2o_solver_cholmod g2o_solver_csparse g2o_types_slam3d g2o_types_sba cxsparse)
+add_library(volib SHARED
+                  src/FeatureManager.cpp
                   src/Initializator.cpp
                   src/Estimator.cpp
                   src/FeatureTracker.cpp
@@ -127,9 +128,14 @@ target_link_libraries(test_d435i_feature_track  ${D435I_LIBS}  volib)
 add_executable(test_replaykit_online app/test_replaykit_online.cpp)
 target_link_libraries(test_replaykit_online   ${PROTOBUF_LIBRARIES} nanomsg ${realsense2_LIBRARY} ${REPLAYKIT_LIBS}  volib)
 
+add_executable(replaykit_replay app/replaykit_replay.cpp)
+target_link_libraries(replaykit_replay   ${PROTOBUF_LIBRARIES} nanomsg ${realsense2_LIBRARY} ${REPLAYKIT_LIBS}  volib)
+
 add_executable(d435i_estimator app/d435i_estimator.cpp)
 target_link_libraries(d435i_estimator ${realsense2_LIBRARY} ${D435I_LIBS}  volib)
 
+add_executable(test_BAbyG2O app/test_g2oba.cpp)
+target_link_libraries(test_BAbyG2O volib)
 
 
 endif()
