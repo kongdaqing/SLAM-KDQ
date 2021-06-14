@@ -107,7 +107,7 @@ class Estimator {
 
   /** \brief update features include removing untracked points and add new points
    */ 
-  void updateFeature();
+  void updateFeature(FramePtr frame);
 
   void checkParallex(FramePtr frame);
 

@@ -13,6 +13,8 @@ Estimator::Estimator(std::string configFile) {
   preInteNow_ = nullptr;
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
+  recordFile_.open(cfg_->estimatorParam_.FileName,std::ios::out);
+  recordFile_ << "t,epx,epy,epz,px,py,pz" << std::endl;
   reset();
 }
 
@@ -31,7 +33,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   if (!slideWindows_.empty()) {
     lastFramePtr = slideWindows_.back();
   }
-
   if (trackEnable) {
     cv::Mat R_cur_last;
     if (lastFramePtr != nullptr)
@@ -57,12 +58,16 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       int initCnt = 1;
       if (init_->initPoseAndMap(slideWindows_[0],slideWindows_[endId],fsm_)) {
         for (;initCnt < endId;initCnt++) {
-          if (!estimatePose(slideWindows_[initCnt])) {
+          if (estimatePose(slideWindows_[initCnt])) {
+            updateFeature(slideWindows_[initCnt]);
+          } else {
             break;
           }
         }
       }
       if (initCnt == endId) {
+        //三角化所有的特征点
+        fsm_.triangulateAll();
         BAG2O basolver;
         if (basolver.windowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
@@ -78,13 +83,21 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       break;
     }
   case EstState::Runing:
-    if (fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
+    if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
+      //updateFeature must be first than ba,otherwize curframe not be update
+      updateFeature(slideWindows_.back());
+      FramePtr curFrame = slideWindows_.back();
+      cv::Mat R,t;
+      curFrame->getPoseInWorld(R,t);
+      recordFile_ << curFrame->timestamp_ << "," << t.at<double>(0) << ","  << t.at<double>(1)  << "," << t.at<double>(2) << "," ;
       buddleAdjustment();
-      updateFeature();
+      curFrame->getPoseInWorld(R,t);
+      recordFile_ << t.at<double>(0) << ","  << t.at<double>(1) << ","  << t.at<double>(2) << std::endl;
       poseUpdateFlg_ = true;
     } else {
       reset();
       state = EstState::Waiting;
+      recordFile_ << std::endl << std::endl;
     }
     break;
   default:
@@ -130,7 +143,7 @@ void Estimator::buddleAdjustment() {
     return;
   }
   BAG2O baSolver;
-  if (baSolver.windowFrameOptimize(slideWindows_,fsm_,2.0 / cam_->fx())) {
+  if (baSolver.windowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
     baSolver.updatePoseAndMap(slideWindows_, fsm_);
   }
 
@@ -147,6 +160,7 @@ bool Estimator::estimatePose(FramePtr frame) {
   }
   std::cout << "Matched Size = " << matchedPts3D.size() << std::endl;
   cv::Mat rcw,CtW,Rcw;
+  slideWindows_[slideWindows_.size()-2]->getInversePose(rcw,CtW);
   std::vector<int> inliers;
   if (pnpSolver_->solveByPnp(matchedNormalizedUV,matchedPts3D,cam_->fx(),rcw,CtW,inliers)) {
     cv::Mat Rwc,WtC;
@@ -155,10 +169,11 @@ bool Estimator::estimatePose(FramePtr frame) {
     WtC = - Rwc * CtW;
     frame->setPoseInWorld(Rwc,WtC);
     return true;
-  } 
+  }
   std::cout << "[EstimatePose]:Failure!" << std::endl;
   return false;
 }
+
 
 bool Estimator::checkPose() {
   if (slideWindows_.size() < 2) {
@@ -180,9 +195,8 @@ bool Estimator::checkPose() {
   return true;
 }
 
-void Estimator::updateFeature() {
+void Estimator::updateFeature(FramePtr curFramePtr) {
   //step1: add new features
-  FramePtr curFramePtr = slideWindows_.back();
   std::map<uint64_t,cv::Point2f> &corners = curFramePtr->getCorners();
   std::map<uint64_t,Feature>& features = fsm_.getFeatureMap();
   std::vector<uint64_t> idx;
