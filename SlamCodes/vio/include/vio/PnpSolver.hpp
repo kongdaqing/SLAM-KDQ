@@ -31,7 +31,7 @@ class PnpSolver {
     }
     std::vector<int> rawInliers;
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
-    bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW,false,100,ReprojectErr/focalLength,0.9,inliers);
+    bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW, true,100,ReprojectErr/focalLength,0.9,inliers);
     if (ShowDebugInfo) {
       std::cout << "result flg = " << resultFlg << ",Feature size = " << matchedPts3D.size() << ",Inlier = " << inliers.size() << ":\n" ;
       for (int i = 0; i < matchedPts3D.size(); i++) {
