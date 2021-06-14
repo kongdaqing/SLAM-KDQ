@@ -6,6 +6,19 @@ void FeatureManager::removeFrame(FramePtr f) {
     it->second.removeFrame(f);
   }
 }
+
+void FeatureManager::triangulateAll() {
+  for (auto it = feats_.begin(); it != feats_.end(); it++) {
+    if (it->second.valid3D() || it->second.getTrackCount() < 2) {
+      continue;
+    }
+    cv::Point3f pt3d;
+    if (triangulate(it->first,pt3d)) {
+      it->second.setPtsInWorld(pt3d);
+    }
+  }
+}
+
 bool FeatureManager::triangulate(uint64_t id,cv::Point3f &pt3d) {
   if (!feats_.count(id) || feats_[id].getTrackCount() < 2) {
     return false;

@@ -160,7 +160,11 @@ class FeatureManager {
    * @return if success return true otherwise return false
    */ 
   bool triangulate(uint64_t id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them
-  
+
+
+  void triangulateAll(); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them
+
+
   /** \brief get features in the FM which matching feature in the input frame
    * @param f      --- input frame f
    * @param curUV  --- matched feature' pixel coordinates in input frame f
