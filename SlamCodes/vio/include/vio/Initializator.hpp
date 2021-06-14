@@ -74,7 +74,7 @@ class Initializator {
    * @param P2   --- pose of second frame in the world
    * @param x3D  --- point coordinate in the world
    */ 
-  void triangulate(const cv::Point2f &kp1,    
+  bool triangulate(const cv::Point2f &kp1,
                              const cv::Point2f &kp2,    
                              const cv::Mat &P1,         
                              const cv::Mat &P2,          

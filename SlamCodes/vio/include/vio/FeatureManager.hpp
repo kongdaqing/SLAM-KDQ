@@ -217,6 +217,8 @@ class FeatureManager {
           feats_[id].setPtsInWorld(pts3D);
         }
       }
+    } else {
+      printf("[FSM]:set feature 3D position failed!%lu corner doesn't exsit!\n",id);
     }
   }
 
