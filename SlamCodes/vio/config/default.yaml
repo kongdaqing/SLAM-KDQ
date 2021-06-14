@@ -31,7 +31,7 @@ Sim.Length.z: 0.01
 Sim.Origin.x: 0.0
 Sim.Origin.y: 0.0
 Sim.Origin.z: 1.0
-Sim.FeatureSize: 1000
+Sim.FeatureSize: 2000
 
 Camera.Intrinisic: !!opencv-matrix
   rows: 3
