@@ -124,10 +124,17 @@ class Estimator {
    */ 
   void updateFeature(FramePtr frame);
 
+  /** \brief check frame is keyframe or not through check parallax between frame and slidewindow back frame
+   * @param frame --- frame
+   */
+  void isKeyframe(FramePtr frame);
 
-  void checkParallex(FramePtr frame);
-
-
+  /** \brief calculate rotation matrix from last time to current time
+   *
+   * @param lastT --- last frame timestamp
+   * @param curT --- current frame timestamp
+   * @param R_cur_last --- rotation matrix from last frame to current frame
+   */
   void calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last);
 
 };

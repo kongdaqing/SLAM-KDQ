@@ -37,7 +37,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
-  checkParallex(frame);
+  isKeyframe(frame);
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
   switch (state)
@@ -113,7 +113,7 @@ void Estimator::reset() {
   removeOldKeyFrame_ = true;
 }
 
-void Estimator::checkParallex(FramePtr frame) {
+void Estimator::isKeyframe(FramePtr frame) {
   if (slideWindows_.empty()) {
     return;
   }
