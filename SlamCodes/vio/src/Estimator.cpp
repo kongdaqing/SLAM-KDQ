@@ -13,8 +13,6 @@ Estimator::Estimator(std::string configFile) {
   preInteNow_ = nullptr;
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
-  recordFile_.open(cfg_->estimatorParam_.FileName,std::ios::out);
-  recordFile_ << "t,epx,epy,epz,px,py,pz" << std::endl;
   reset();
 }
 
@@ -51,7 +49,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     break;
   case EstState::Initing: 
     {
-      if (slideWindows_.size() < 5) {
+      if (slideWindows_.size() < 2) {
         break;
       }
       size_t endId = slideWindows_.size() - 1;
@@ -86,18 +84,11 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
       //updateFeature must be first than ba,otherwize curframe not be update
       updateFeature(slideWindows_.back());
-      FramePtr curFrame = slideWindows_.back();
-      cv::Mat R,t;
-      curFrame->getPoseInWorld(R,t);
-      recordFile_ << curFrame->timestamp_ << "," << t.at<double>(0) << ","  << t.at<double>(1)  << "," << t.at<double>(2) << "," ;
       bundleAdjustment();
-      curFrame->getPoseInWorld(R,t);
-      recordFile_ << t.at<double>(0) << ","  << t.at<double>(1) << ","  << t.at<double>(2) << std::endl;
       poseUpdateFlg_ = true;
     } else {
       reset();
       state = EstState::Waiting;
-      recordFile_ << std::endl << std::endl;
     }
     break;
   default:

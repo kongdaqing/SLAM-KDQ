@@ -1,4 +1,5 @@
 #include "Initializator.hpp"
+#include "fileSystem.hpp"
 
 namespace vio{
 
@@ -7,22 +8,23 @@ Initializator::Initializator(const Config* cfg,Camera* cam):
   InitialMinMatchedPointNum(cfg->iniParam_.minMatchedFeatNum),
   InitialReprojectErr(cfg->iniParam_.reprojectErr),
   HomographyTransformErr(cfg->iniParam_.homographyTransformErr),
-  camera_(cam) {
-
+  camera_(cam),
+  moduleName_("Initializator") {
 };
 
 bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureManager& fs) {
   if (refFrame == nullptr || curFrame == nullptr) {
-    printf("[Initializator]:No enough frames in the slidewindow!\n");
+    FileSystem::printInfos(LogType::Warning,moduleName_,"Input frame is null pointer!");
     return false;
   }
   if (fs.getFeatureSize() > 0) {
-    printf("[Initializator]:Please clear feature maps firstly,then intializing!\n");
+    FileSystem::printInfos(LogType::Warning,moduleName_,"Please clear feature maps firstly for initializing!");
     return false;
   }
   std::map<uint64_t,cv::Point3f> pts3D;
   //step-1: 计算单应矩阵并解算当前帧和参考帧的位姿，同时三角化特征点
   if (!initializeFromHomography(refFrame,curFrame,pts3D)) {
+    FileSystem::printInfos(LogType::Error,moduleName_,"Current frame %12.4f initialization failed!",curFrame->timestamp_);
     return false;
   }
 
@@ -34,6 +36,7 @@ bool Initializator::initPoseAndMap(FramePtr refFrame,FramePtr curFrame,FeatureMa
   for (auto it = pts3D.begin(); it != pts3D.end(); it++) {
     fs.setFeatPts3D(it->first,it->second);
   }
+  FileSystem::printInfos(LogType::Info,moduleName_,"%12.4f Initialization success!",curFrame->timestamp_);
   return true;
 }
 
@@ -60,10 +63,9 @@ bool Initializator::checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
   for (size_t i = 0; i < size; i++) {
     disparities.push_back(cv::norm(refCorners[i] - curCorners[i]));
   }
-  std::cout << std::endl;
   std::sort(disparities.begin(),disparities.end());
   if (disparities[size/2] < MinDisparity) {
-    printf("[Disparity-Check]:Failed! Middle Disparity is %3.2f less than threshold %3.2f!\n",disparities[size/2],MinDisparity);
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|Disparity-Check","Failed! Middle Disparity is %3.2f less than threshold %3.2f!",disparities[size/2],MinDisparity);
     return false;
   }
   return true;
@@ -79,7 +81,7 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
   float averParallex = 0;
   curFrame->getMatchedFeatures(refFrame.get(),idVec,refFeatures,curFeatures,averParallex);
   if (refFeatures.size() < InitialMinMatchedPointNum) {
-    printf("[Initialization]: match size %d is not enough!\n",static_cast<int>(refFeatures.size()));
+    FileSystem::printInfos(LogType::Warning,moduleName_+"|CheckMatchedFeatureSize","Match size %d is not enough!",static_cast<int>(refFeatures.size()));
     return false;
   }
   if (!checkCornerDisparities(refFeatures,curFeatures)) {
@@ -102,7 +104,7 @@ bool Initializator::initializeFromHomography(FramePtr refFrame,FramePtr curFrame
   std::vector< std::map<uint64_t,cv::Point3f> > ptsInWorld;
   int bestId = checkRt(ptsInWorld,R,t,n,inliers,idVec,refFeatures,curFeatures);
   if (bestId < 0) {
-    std::cout << "[CheckRT]:Can't find best pose" << std::endl;
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|CheckRT","Can't find best pose!");
     return false;
   }
   pts3D = ptsInWorld[bestId];
@@ -116,12 +118,12 @@ bool Initializator::calHomography(cv::Mat &H,
                                   const std::vector<cv::Point2f> &refNormFeats,
                                   const std::vector<cv::Point2f> &curNormFeats) {
   if (refNormFeats.size() < InitialMinMatchedPointNum) {
-    printf("[Homography]:matched features is not enough!\n");
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|CalHomography","Matched features %d is not enough!",refNormFeats.size());
     return false;
   }
   H = cv::findHomography(refNormFeats, curNormFeats, cv::RANSAC, 2.0 / focalLength);
   if (false && !checkHomography(H)) {
-    printf("[Homography]:check homography self failed!\n");
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|CheckHomography","Check homography self failed!");
     return false;
   }
   cv::Mat w,U,V;
@@ -130,7 +132,7 @@ bool Initializator::calHomography(cv::Mat &H,
   double d2 = w.at<double>(1);
   double d3 = w.at<double>(2);
   if (d1 / d2 < 1.00001 || d2 / d3 < 1.00001) {
-    printf("[Homography]:Warning!Singular-value d1 d2 d3 too similar！");
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|CheckHomography","Singular-value d1 d2 d3 too similar！");
     return false;
   }
   std::vector<cv::Point2f> ref2curFeats;
@@ -146,7 +148,7 @@ bool Initializator::calHomography(cv::Mat &H,
     }
   }
   if (goodProjectSize < refNormFeats.size() * 0.75) {
-    printf("[Homography-Check]:Warning!Good reprojected point size %d is not enough in all size=%d!\n",goodProjectSize,static_cast<int>(refNormFeats.size()));
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|CheckHomography","Good reprojected point size %d is not bigger than 0.75 * size=%d!",goodProjectSize,static_cast<int>(refNormFeats.size()));
     return false;
   }
   return true;
@@ -230,7 +232,7 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
   int bestIndex = maxCountIndex;
   if (maxCount < refNormFeats.size() * 0.75) {
     bestIndex = -1;
-    printf("[CheckRT]:Failure! Maxcount = %d is not enough!\n ",maxCount);
+    FileSystem::printInfos(LogType::Info,moduleName_ + "|CheckRT","Failure! Maxcount = %d is not enough!",maxCount);
   } else {
     //Note:有可能次优的解和真值具有相同的goodPtsCount,但是真值的averDist一定比次优解要小
     float miniDist = 100.;
@@ -238,9 +240,9 @@ int Initializator::checkRt(std::vector< std::map<uint64_t,cv::Point3f> > &ptsInW
       if (goodPtsCount[i] > 0.9 * maxCount && miniDist > sumDistance[i]/goodPtsCount[i]) {
         miniDist = sumDistance[i]/goodPtsCount[i];
         bestIndex = i;
-        std::cout << i  << " Count = " << goodPtsCount[i]
-                  << " n = " << n[i].t()
-                  << " averDist = " << sumDistance[i]/goodPtsCount[i] << std::endl;
+        FileSystem::printInfos(LogType::Info,moduleName_ + "|CheckRT",
+                               "Index %d has %d good points bigger than 0.9 * all feature size %d and normal vector is [%f,%f,%f],average reproject pixel error is %f",
+                               i,goodPtsCount[i],curNormFeats.size(),n[i].at<double>(0),n[i].at<double>(1),n[i].at<double>(2),sumDistance[i]/goodPtsCount[i] * camera_->fx());
       }
     }
   }

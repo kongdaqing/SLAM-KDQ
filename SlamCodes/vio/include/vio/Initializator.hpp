@@ -1,7 +1,7 @@
 #pragma once
+#include <fstream>
 #include "Config.hpp"
 #include "FeatureManager.hpp"
-
 namespace vio{
 
 class Initializator {
@@ -87,6 +87,7 @@ class Initializator {
   bool checkCornerDisparities(std::vector<cv::Point2f>& refCorners,
                          std::vector<cv::Point2f>& curCorners);
  private:
+  std::string moduleName_;
   Camera *camera_;
   const float MinDisparity;
   const int InitialMinMatchedPointNum;
