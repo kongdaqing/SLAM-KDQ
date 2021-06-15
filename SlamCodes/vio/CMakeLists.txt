@@ -134,8 +134,4 @@ target_link_libraries(replaykit_replay   ${PROTOBUF_LIBRARIES} nanomsg ${realsen
 add_executable(d435i_estimator app/d435i_estimator.cpp)
 target_link_libraries(d435i_estimator ${realsense2_LIBRARY} ${D435I_LIBS}  volib)
 
-add_executable(test_BAbyG2O app/test_g2oba.cpp)
-target_link_libraries(test_BAbyG2O volib)
-
-
 endif()

@@ -12,9 +12,16 @@
 #include <opencv2/core/eigen.hpp>
 using namespace vio;
 G2O_USE_OPTIMIZATION_LIBRARY(cholmod);
-G2O_USE_OPTIMIZATION_LIBRARY(csparse)
+G2O_USE_OPTIMIZATION_LIBRARY(csparse); //csparse运行速度更快
 class BAG2O {
  public:
+  /** \brief construct ba solver by setting various type of solver
+   *
+   * @param solverName --- set optimization algrithm、vertex freedom and linear solver type
+   *                   --- lm_fix6_3_csparse : lm - L-M optimization algrithm, fix6_3 - binary edge include 6-freedom vertex and 3-freedom vertex, csparse - linear solver
+   * @param robustCoreName --- robust core function type,etc huber,cuchy ...
+   * @param structureOnly  --- no ideal
+   */
   BAG2O(std::string solverName = "lm_fix6_3_csparse", std::string robustCoreName = "Huber", bool structureOnly = false) {
     std::string solverType = solverName;
     robustType_ = robustCoreName;
@@ -22,34 +29,41 @@ class BAG2O {
     g2o::OptimizationAlgorithmProperty solverProperty;
     optimizer_.setAlgorithm(g2o::OptimizationAlgorithmFactory::instance()->construct(solverType, solverProperty));
   }
-
-  bool windowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm,double pixelErr,
-                           double focalLength = 1.,Eigen::Vector2d origin = Eigen::Vector2d::Zero()) {
+  /** \brief construct bundle adjustment of slide window pose and local map
+   * @param slidewindow --- slide window with keyframes' pose
+   * @param fsm  --- feature manager with local map infomations
+   * @param sigma --- standard deviation of reproject error at normalized plane
+   * @return
+   */
+  bool constructWindowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm,double sigma) {
     if (slidewindow.size() < 2) {
-      printf("[G2O-AddVertex]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
+      printf("[BAG2O]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
+      return false;
+    }
+    //normalized plane camera model:focal length = 1.0, principle point = [0.,0.]
+    g2o::CameraParameters * cam_params = new g2o::CameraParameters (1.0,Eigen::Vector2d::Zero(),0);
+    double informationGain = 1.0 / (sigma * sigma);
+    cam_params->setId(0);
+    if (!optimizer_.addParameter(cam_params)) {
+      printf("[BAG2O]:Failure!Add camera paramter failed!\n");
       return false;
     }
 
-    g2o::CameraParameters * cam_params = new g2o::CameraParameters (focalLength,origin,0);
-    double informationGain = 1.0 / (pixelErr * pixelErr);
-    cam_params->setId(0);
-    if (!optimizer_.addParameter(cam_params)) {
-      assert(false);
-    }    //add pose vertex
     int vertexId = 0;
+    //step-1 : add pose vertex
     for (auto s : slidewindow) {
       g2o::VertexSE3Expmap * v_cam = new g2o::VertexSE3Expmap();
       v_cam->setId(vertexId);
+      //Fix first pose for gauge freedom
       if (vertexId == 0) {
         v_cam->setFixed(true);
       }
-      //add estimate
       Eigen::Matrix3d eRcw;
       Eigen::Vector3d etcw;
       cv::Mat Rcw,tcw;
       s->getInversePose(Rcw,tcw);
       if (Rcw.empty() || tcw.empty()) {
-        std::cerr << "[BA]:Failure!This frame pose is not set!" << std::endl;
+        std::cerr << "[BAG2O]:Failure!This frame pose is not set!" << std::endl;
         return false;
       }
       cv::cv2eigen(Rcw,eRcw);
@@ -60,6 +74,7 @@ class BAG2O {
       poseId_[s] = vertexId;
       vertexId++;
     }
+    //step-2: add landmark vertex
     std::map<uint64_t,Feature>& features = fsm.getFeatureMap();
     for (std::map<uint64_t,Feature>::const_iterator it = features.begin();it != features.end();it++) {
       const Feature& fea = it->second;
@@ -67,7 +82,6 @@ class BAG2O {
       if (!fea.isReadyForOptimize()) {
         continue;
       }
-
       cv::Point3f ft3d = fea.getPts3DInWorld();
       g2o::VertexPointXYZ *v_p = new g2o::VertexPointXYZ();
       v_p->setId(vertexId);
@@ -80,6 +94,8 @@ class BAG2O {
       featId_[idx] = vertexId;
       vertexId++;
     }
+
+    //step-3: add reproject error edge
     for (auto s : slidewindow) {
       if (!poseId_.count(s)) {
         continue;
@@ -93,13 +109,9 @@ class BAG2O {
         }
         PixelCoordinate uv;
         if (features[idx].getPixelInFrame(s,uv)) {
-          cv::Point2f z;
-          if (origin.norm() < 1) {
-            z = uv.second;
-          } else {
-            z = uv.first;
-          }
+          cv::Point2f z = uv.second;
           g2o::EdgeProjectXYZ2UV *edge = new g2o::EdgeProjectXYZ2UV();
+          //check edgeProjectXYZ2UV for determining id of vertex connecting with edge
           edge->setVertex(0,dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer_.vertex(featVId)));
           edge->setVertex(1,dynamic_cast<g2o::OptimizableGraph::Vertex*>(optimizer_.vertex(poseVId)));
           edge->setMeasurement(Eigen::Vector2d(z.x,z.y));
@@ -110,11 +122,17 @@ class BAG2O {
         }
       }
     }
-    optimizer_.setVerbose(true);
+    //step-4: optimization
+    optimizer_.setVerbose(false);
     optimizer_.initializeOptimization();
     optimizer_.optimize(5);
     return true;
   }
+  /** \brief update pose of slide window and coordinate of local map
+   *
+   * @param slidewindow --- slide window of keyframe
+   * @param fsm --- feature manager
+   */
   void updatePoseAndMap(std::vector<FramePtr>& slidewindow,FeatureManager& fsm) {
     for (auto f : slidewindow) {
       if (!poseId_.count(f)) {
@@ -139,13 +157,9 @@ class BAG2O {
       g2o::VertexPointXYZ* pointV = dynamic_cast<g2o::VertexPointXYZ*> (optimizer_.vertex(featVId));
       Eigen::Vector3d pt3d = pointV->estimate();
       cv::Point3f pt3old = features[cornerId].getPts3DInWorld();
-      std::cout << "Optimization: old feat = " << pt3old << " new feat = " << pt3d.transpose() << std::endl;
-      assert(!isnan(pt3d.x()));
       features[cornerId].setPtsInWorld(cv::Point3f(pt3d.x(),pt3d.y(),pt3d.z()));
     }
   }
-
-
  private:
   g2o::SparseOptimizer optimizer_;
   std::string robustType_;

@@ -69,7 +69,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         //三角化所有的特征点
         fsm_.triangulateAll();
         BAG2O basolver;
-        if (basolver.windowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
+        if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
           state = Runing;
         } else {
@@ -143,10 +143,9 @@ void Estimator::buddleAdjustment() {
     return;
   }
   BAG2O baSolver;
-  if (baSolver.windowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
+  if (baSolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
     baSolver.updatePoseAndMap(slideWindows_, fsm_);
   }
-
 }
 
 bool Estimator::estimatePose(FramePtr frame) {
