@@ -113,7 +113,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
   curFrame->setCornerMap(idx,curCorners);
   tictoc.tic();
   if (ShowTrackFrames > 0) {
-    std::map<uint64_t,cv::Point2f> curFeats = curFrame->getCornersCopy();
+    std::map<uint64_t,cv::Point2f> curFeats = curFrame->getCorners();
     allCorners_.push_back(curFeats);
     if (allCorners_.size() > ShowTrackFrames) {
       allCorners_.pop_front();

@@ -162,7 +162,10 @@ class VizScene {
    * @param cameraPose - camera pose 
    */
   bool updateCameraPose(std::string cameraName,const cv::Affine3d& cameraPose);
- 
+
+  /** \brief clear path of camera
+   * @param cameraName  --- camera name in the vizscene
+   */
   void clearCameraPath(std::string cameraName);
 
 };

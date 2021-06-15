@@ -17,9 +17,16 @@ class FeatureTracker{
    */ 
   void detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,const cv::Mat &RcurLast);
 
-
+  /** \brief
+   *
+   * @param img  --- image to display all features
+   * @param imgScale --- image scale times than raw size
+   */
   void showAllFeature(cv::Mat &img,uint8_t imgScale = 1); 
 
+  /** \brief reset feature track system through clear trackCount and allCorners
+   *
+   */
   void reset() {
     id_ = 0;
     trackCount_.clear();

@@ -104,15 +104,16 @@ class Frame {
   /** \brief get corners map
    * @return corners map in the this frame
    */ 
-  std::map<uint64_t,cv::Point2f> &getCorners() {
+  std::map<uint64_t,cv::Point2f> & getCorners() {
     return corners_;
   }
 
-  std::map<uint64_t,cv::Point2f> getCornersCopy() {
-    return corners_;
-  }
-
-
+  /** \brief get normalized coordinate of id-corner
+   *
+   * @param id --- id of corner
+   * @param normalizedPt --- normalized coordinate of id-corner
+   * @return
+   */
   bool getNormalizedUV(uint64_t id,cv::Point2f& normalizedPt) {
     bool successFlg = true;
     if (normalizedUV_.count(id)) {
@@ -188,6 +189,9 @@ class Frame {
     }
   }
 
+  /** \brief display all feature in current frame
+   * @param scale --- image scale, 1 - means raw size; 2 - means twice size bigger than raw size
+   */
   void imshowFeatures(uint scale = 1) {
     if (image_.empty()) {
       return;
