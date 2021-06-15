@@ -65,7 +65,6 @@ class Feature {
   }
   
   /** \brief get valid 3D
-   * 
    */
   inline bool valid3D() const{
     return valid3D_;
@@ -85,6 +84,12 @@ class Feature {
     return (uv.count(f));
   }
 
+  /** \brief
+   *
+   * @param f --- frame shared pointer which may be included in landmark
+   * @param pixel --- pixel coordinates include pixel and normalized coordinate in the f
+   * @return true - if this landmark includes frame; false - the landmark doesn't include the frame
+   */
   bool getPixelInFrame(const FramePtr& f,PixelCoordinate& pixel) {
     if (uv.count(f)) {
       pixel = uv[f];
@@ -99,6 +104,8 @@ class Feature {
     badCount_++;
   }
 
+  /** \brief increase good count
+   */
   void incGoodCount() {
     goodCount_++;
   }
@@ -109,10 +116,16 @@ class Feature {
     return badCount_;
   }
 
+  /** \brief get good count
+   * @return
+   */
   int getGoodCount() const {
     return goodCount_;
   }
 
+  /** \brief judge the landmark should be optimized by BA or not
+   * @return true - if landmark has 3D coordinate and no bad count along with track count more than 1 times
+   */
   bool isReadyForOptimize() const{
     return valid3D_ && badCount_ == 0 && getTrackCount() > 1;
   }
@@ -161,7 +174,9 @@ class FeatureManager {
    */ 
   bool triangulate(uint64_t id,cv::Point3f &pt3d); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them
 
-
+  /** \brief triangulate all landmarks for initialization of BA
+   *
+   */
   void triangulateAll(); //check every points in feats_ that no triangulate and track count more than track_cnt, then triangulate them
 
 
@@ -194,7 +209,8 @@ class FeatureManager {
     }
   }
   
-  /** \brief update bad count of id feature
+  /** \brief update bad count of id-landmark
+   * @param id --- id of landmark to update
    */
   void updateBadCount(uint64_t id) {
     if (feats_.count(id)) {
@@ -202,11 +218,15 @@ class FeatureManager {
     }
   }
 
+  /** \brief update good count of id-landmark
+   * @param id --- id of landmark to update
+   */
   void updateGoodCount(uint64_t id) {
     if (feats_.count(id)) {
       feats_[id].incGoodCount();
     }
   }
+
   /** \brief set feature 3D coordinate in the world frame
    * @param id    ---  id of the feature
    * @param pts3D ---  3D coordinate
@@ -233,12 +253,16 @@ class FeatureManager {
     return feats_.size();
   }
 
-  /** \brief get features' map
-   */ 
+  /** \brief get all landmarks
+   * @return landmarks can be change
+   */
   std::map<uint64_t,Feature>& getFeatureMap() {
     return feats_;
   }
 
+  /** \brief get all landmarks
+   * @return landmarks but not be change
+   */
   const std::map<uint64_t,Feature>& getFeatureMap() const {
     return feats_;
   }
@@ -256,7 +280,7 @@ class FeatureManager {
     return pts3D;
   }
 
-  /** \brief clear features' map
+  /** \brief reset feature manager through clearing all landmarks
    */ 
   inline void reset() {
     feats_.clear();
