@@ -19,11 +19,13 @@ class Estimator {
  public:
   std::string cameraName = "cam";
   std::string pointsName = "corners";
+
   /** \brief construct function
+   * @param configFile --- config file
    */ 
   Estimator(std::string configFile);
   
-  /** \brief unconstruct function
+  /** \brief deconstruct function
    */ 
   ~Estimator();
 
@@ -44,6 +46,9 @@ class Estimator {
   }
 
   /** \brief get current pose
+   * @param Rwc --- rotation matrix from camera to world
+   * @param WtC --- translation vector from camera to world
+   * @return return pose success
    */ 
   bool getCurrentPose(cv::Mat& Rwc,cv::Mat& WtC) const {
     if (!slideWindows_.empty() && poseUpdateFlg_) {
@@ -59,6 +64,11 @@ class Estimator {
     return fsm_.getPointsInWorld();
   }
 
+  /** \brief update imu data
+   *
+   * @param t --- timestamp of imu data
+   * @param data --- imu data
+   */
   void updateImuMeas(double t,const IMU & data) {
     std::lock_guard<std::mutex> imuLock(m_imu_);
     imuMeas_.addMeas(t,data);
@@ -67,11 +77,17 @@ class Estimator {
     }
   }
 
+  /** \brief get camera shared pointer
+   * @return
+   */
   const CameraPtr getCameraPtr() const {
     return CameraPtr(cam_);
   }
 
-  void buddleAdjustment();
+  /** \brief perform bundle adjustment using g2o solver
+   *
+   */
+  void bundleAdjustment();
 
  private:
   EstState state;
@@ -108,6 +124,7 @@ class Estimator {
   /** \brief update features include removing untracked points and add new points
    */ 
   void updateFeature(FramePtr frame);
+
 
   void checkParallex(FramePtr frame);
 

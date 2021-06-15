@@ -90,7 +90,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       cv::Mat R,t;
       curFrame->getPoseInWorld(R,t);
       recordFile_ << curFrame->timestamp_ << "," << t.at<double>(0) << ","  << t.at<double>(1)  << "," << t.at<double>(2) << "," ;
-      buddleAdjustment();
+      bundleAdjustment();
       curFrame->getPoseInWorld(R,t);
       recordFile_ << t.at<double>(0) << ","  << t.at<double>(1) << ","  << t.at<double>(2) << std::endl;
       poseUpdateFlg_ = true;
@@ -138,7 +138,7 @@ void Estimator::checkParallex(FramePtr frame) {
   }
 }
 
-void Estimator::buddleAdjustment() {
+void Estimator::bundleAdjustment() {
   if (slideWindows_.size() < WINSIZE) {
     return;
   }
