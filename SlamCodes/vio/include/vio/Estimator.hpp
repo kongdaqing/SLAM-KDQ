@@ -105,7 +105,6 @@ class Estimator {
   Eigen::Vector3d tbc_;
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
-  std::ofstream recordFile_;
 
   /** \brief slide window to remove oldest frame and features
    */ 
