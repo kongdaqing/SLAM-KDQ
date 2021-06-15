@@ -1,6 +1,8 @@
 #pragma once
 #include <opencv2/calib3d.hpp>
 #include "Config.hpp"
+#include "fileSystem.hpp"
+
 namespace vio{
 class PnpSolver {
  public:
@@ -33,7 +35,6 @@ class PnpSolver {
     cv::Mat K = cv::Mat::eye(3,3,CV_64F);
     bool resultFlg = cv::solvePnPRansac(matchedPts3D,normalizedUV,K,cv::Mat(),rcw,CtW, true,100,ReprojectErr/focalLength,0.9,inliers);
     if (ShowDebugInfo) {
-      std::cout << "result flg = " << resultFlg << ",Feature size = " << matchedPts3D.size() << ",Inlier = " << inliers.size() << ":\n" ;
       for (int i = 0; i < matchedPts3D.size(); i++) {
         cv::Affine3d T(rcw,CtW);
         cv::Point3f ptInCam =  T * matchedPts3D[i];
@@ -42,7 +43,8 @@ class PnpSolver {
         int isInlier = cv::norm(reproErr) < ReprojectErr / focalLength;
         std::cout << " Inlier: "<< isInlier << ", " << ptInCamUV << " vs " << normalizedUV[i] << " vs " << cv::norm(reproErr) << std::endl;
       }
-    }  
+    }
+    FileSystem::printInfos(LogType::Info,"PnpSolver","PnpSolver success %d,all features' size %d and inliers' size %d",resultFlg,matchedPts3D.size(),inliers.size()) ;
     return resultFlg && inliers.size() > SuccessRatio * normalizedUV.size();
   }
  private:

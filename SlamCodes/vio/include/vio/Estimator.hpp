@@ -58,6 +58,8 @@ class Estimator {
     return false;
   }
 
+  void getCurrentPose(Eigen::Vector3d &t,Eigen::Quaterniond& q) const;
+
   /** \brief get all features coordinate in world 
    */ 
   std::vector<cv::Vec3f> getFeatsInWorld() const {
@@ -105,6 +107,7 @@ class Estimator {
   Eigen::Vector3d tbc_;
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
+  std::string moduleName_;
 
   /** \brief slide window to remove oldest frame and features
    */ 

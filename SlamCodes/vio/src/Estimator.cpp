@@ -1,7 +1,8 @@
 #include "Estimator.hpp"
 #include <opencv2/core/eigen.hpp>
 #include "BASolver.hpp"
-
+#include "fileSystem.hpp"
+#include "tictoc.hpp"
 namespace vio{
 Estimator::Estimator(std::string configFile) {
   cfg_ = new Config(configFile);
@@ -11,8 +12,10 @@ Estimator::Estimator(std::string configFile) {
   pnpSolver_ = new PnpSolver(cfg_);
   state = EstState::Waiting;
   preInteNow_ = nullptr;
+  moduleName_ = "Estimator";
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
+  FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
   reset();
 }
 
@@ -25,7 +28,21 @@ Estimator::~Estimator() {
   delete pnpSolver_;
 }
 
+void Estimator::getCurrentPose(Eigen::Vector3d &t, Eigen::Quaterniond &q) const {
+  cv::Mat Rwc,twc;
+  if (getCurrentPose(Rwc,twc)) {
+    cv::cv2eigen(twc,t);
+    Eigen::Matrix3d R;
+    cv::cv2eigen(Rwc,R);
+    q = Eigen::Quaterniond(R).normalized();
+  }
+}
+
 void Estimator::update(FramePtr frame,bool trackEnable) {
+  Tictoc tim("estimator"),allTim("all");
+  tim.tic();
+  allTim.tic();
+  double costTime[4] = {0.};
   std::lock_guard<std::mutex> lock(m_filter_);
   FramePtr lastFramePtr = nullptr;
   if (!slideWindows_.empty()) {
@@ -37,6 +54,8 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
+  costTime[0] = tim.toc();
+  tim.tic();
   isKeyframe(frame);
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
@@ -70,6 +89,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
           state = Runing;
+          costTime[1] = tim.toc();
         } else {
           reset();
           state = Waiting;
@@ -81,10 +101,14 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       break;
     }
   case EstState::Runing:
+    tim.tic();
     if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
       //updateFeature must be first than ba,otherwize curframe not be update
       updateFeature(slideWindows_.back());
+      costTime[2] = tim.toc();
+      tim.tic();
       bundleAdjustment();
+      costTime[3] = tim.toc();
       poseUpdateFlg_ = true;
     } else {
       reset();
@@ -95,13 +119,26 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     break;
   }
   slideWindow();
+  if (slideWindows_.empty()) {
+    return;
+  }
+  double allCost = allTim.toc();
+  Eigen::Vector3d twc = Eigen::Vector3d::Zero();
+  Eigen::Quaterniond qwc;
+  qwc.setIdentity();
+  getCurrentPose(twc,qwc);
+  FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","%12.4f,%d,"
+                                                             "%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,"
+                                                             "%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,%3.4f",
+                         slideWindows_.back()->timestamp_,state,
+                         allCost,costTime[0],costTime[1],costTime[2],costTime[3],
+                         twc.x(),twc.y(),twc.z(),qwc.w(),qwc.x(),qwc.y(),qwc.z());
 }
 
 void Estimator::slideWindow() {
   if (slideWindows_.size() > WINSIZE ) { //remove old frame until slidewindow is full
     fsm_.removeFrame(slideWindows_.front());
     slideWindows_.erase(slideWindows_.begin());
-    std::cout << "After delte" << std::endl;
   }
 }
 
@@ -145,10 +182,9 @@ bool Estimator::estimatePose(FramePtr frame) {
   std::vector<uint64_t> matchedIds;
   fsm_.featureMatching(frame,matchedIds,matchedNormalizedUV,matchedPts3D);
   if (matchedPts3D.size() < 5) {
-    printf("[EstimatePose]: matched points is too few!\n");
+    FileSystem::printInfos(LogType::Error,moduleName_ + "|EstimatePose","Matched points is too few less than 5!");
     return false;
   }
-  std::cout << "Matched Size = " << matchedPts3D.size() << std::endl;
   cv::Mat rcw,CtW,Rcw;
   slideWindows_[slideWindows_.size()-2]->getInversePose(rcw,CtW);
   std::vector<int> inliers;
@@ -160,7 +196,7 @@ bool Estimator::estimatePose(FramePtr frame) {
     frame->setPoseInWorld(Rwc,WtC);
     return true;
   }
-  std::cout << "[EstimatePose]:Failure!" << std::endl;
+  FileSystem::printInfos(LogType::Error,moduleName_ + "|EstimatePose","PnPSolver failure!");
   return false;
 }
 
@@ -228,7 +264,7 @@ void Estimator::updateFeature(FramePtr curFramePtr) {
     }
     if (it->second.getBadCount() >= 3) {
       cv::Point3f pt3d = it->second.getPts3DInWorld();
-      printf("[Features]:Remove %lu feature[%f,%f,%f] for bad count > 3!\n",it->first,pt3d.x,pt3d.y,pt3d.z);
+      FileSystem::printInfos(LogType::Warning,moduleName_ + "|UpdateMap","Remove %lu feature[%f,%f,%f] for bad count > 3!\n",it->first,pt3d.x,pt3d.y,pt3d.z);
       fsm_.removeFeature(it++);
       continue;
     }
@@ -238,7 +274,7 @@ void Estimator::updateFeature(FramePtr curFramePtr) {
 
 void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last) {
   if (lastT > curT || curT - lastT > 1.0) {
-    printf("[calCameraRotationMatrix]:last timestamp: %12.4f and current timestamp: %12.4f have big interval or bad sequence!\n",lastT,curT);
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|calCameraRotationMatrix","[calCameraRotationMatrix]:last timestamp: %12.4f and current timestamp: %12.4f have big interval or bad sequence!",lastT,curT);
     return;
   }
   std::lock_guard<std::mutex> imuLck(m_imu_);
@@ -246,7 +282,7 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
   std::map<double,IMU>::const_iterator itEnd = imuMeas_.getHighIter(curT);
 
   if (itBegin == imuMeas_.measMap_.end() || itEnd == imuMeas_.measMap_.end()) {
-    printf("[calCameraRotationMatrix]:imu infos not includes data from %12.4f to %12.4f!\n",lastT,curT);
+    FileSystem::printInfos(LogType::Warning,moduleName_ + "|calCameraRotationMatrix","Imu infos not includes data from %12.4f to %12.4f!",lastT,curT);
     return;
   }
   IMU lastImu;
@@ -283,7 +319,6 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
                                                      R(1,0), R(1,1), R(1,2),
                                                      R(2,0), R(2,1), R(2,2));
   cvR.copyTo(R_cur_last);
-
 }
 
 }
