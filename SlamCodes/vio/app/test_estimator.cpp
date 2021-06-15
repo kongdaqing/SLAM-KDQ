@@ -2,7 +2,6 @@
 #include "VizScene.hpp"
 #include "Simulator.hpp"
 #include "Estimator.hpp"
-#include "fileSystem.hpp"
 
 using namespace vio;
 
@@ -14,7 +13,6 @@ int main(int argc,char **argv) {
     return -1;
   }
   Config* cfg = new Config(argv[1]);
-  FileSystem::fInfo = fopen(cfg->estimatorParam_.LogName.c_str(),"wb+");
   Estimator estimator(argv[1]);
   const CameraPtr cam = estimator.getCameraPtr();
   Simulator sim(cfg,cam.get());

@@ -39,4 +39,3 @@ class FileSystem {
   static FILE * fInfo;
 };
 
-FILE* FileSystem::fInfo = nullptr;

@@ -96,7 +96,8 @@ add_library(volib SHARED
                   src/Estimator.cpp
                   src/FeatureTracker.cpp
                   src/Simulator.cpp
-                  src/VizScene.cpp)
+                  src/VizScene.cpp
+                  include/utility/fileSystem.cpp)
 target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} fmt::fmt -lpthread)
 
 add_executable(vo app/main.cpp)
