@@ -1,5 +1,6 @@
 #include "FeatureTracker.hpp"
 #include "tictoc.hpp"
+#include "fileSystem.hpp"
 namespace vio{
 
 FeatureTracker::FeatureTracker(const Config* cfg):
@@ -15,6 +16,7 @@ FeatureTracker::FeatureTracker(const Config* cfg):
     ShowTrackFrames(cfg->optParam_.showTrackFrames),
     ShowDebugInfos(cfg->optParam_.showDebugInfos) {
   cam_ = new Camera(cfg);
+  moduleName_ = "OpticalTrack";
   reset();
 };
 
@@ -145,6 +147,9 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
               << "             Extract-Point Cost(ms): " << costTime[3] << "\n";
 
   }
+  FileSystem::printInfos(LogType::Info,moduleName_,"All modules cost(%3.4f):AllTrackCost(%3.4f),ForwardTrack(%3.4f),BackTrack(%3.4f),ExtrackCost(%3.4f)",
+                         allCostMs,costTime[0] + costTime[1] + costTime[3],costTime[0],costTime[1],costTime[3]);
+
 }
 
 

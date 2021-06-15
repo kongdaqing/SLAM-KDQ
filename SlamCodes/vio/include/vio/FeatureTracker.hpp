@@ -35,6 +35,7 @@ class FeatureTracker{
   
 
  private:
+  std::string moduleName_;
   const int MaxPointSize;
   const float QualityLevel;
   const float MinDist;
