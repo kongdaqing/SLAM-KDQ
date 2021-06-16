@@ -45,7 +45,15 @@ void VizScene::windowShowLoopRun() {
         updatePointClouds(estimator_->pointsName, estimator_->getFeatsInWorld());
       }
     } else {
+      cv::Affine3d Twc;
+      Twc.Identity();
+      updateCameraPose(estimator_->cameraName, Twc);
       clearCameraPath(estimator_->cameraName);
+      clearPointCloud(estimator_->pointsName);
+      std::vector<cv::Vec3f> pts3D;
+      pts3D.emplace_back(0,0,0);
+      pts3D.emplace_back(0,0,0);
+      createPointClouds(estimator_->pointsName,pts3D,cv::viz::Color::red(),4);
     }
     showSceneAllCamera();
     showSceneAllPointClouds();
@@ -92,7 +100,7 @@ bool VizScene::createPointClouds(std::string ptsName,std::vector<cv::Vec3f>& pts
     return false;
   }
   ScenePointCloud pc(pts3D,color,displaySize);
-  sceneCloud_[ptsName] = pc;  
+  sceneCloud_[ptsName] = pc;
   return true;
 }
 
@@ -139,6 +147,12 @@ bool VizScene::updateCameraPose(std::string cameraName,const cv::Affine3d& camer
 void VizScene::clearCameraPath(std::string cameraName) {
   if (sceneCamera_.count(cameraName)) {
     sceneCamera_[cameraName].path_.clear();
+  }
+}
+
+void VizScene::clearPointCloud(std::string pcName) {
+  if (sceneCloud_.count(pcName)) {
+    sceneCloud_.clear();
   }
 }
 

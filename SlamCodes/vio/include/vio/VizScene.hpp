@@ -168,5 +168,9 @@ class VizScene {
    */
   void clearCameraPath(std::string cameraName);
 
+  /** \brief clear pointcoud
+   * @param pcName --- the name of pointcloud
+   */
+  void clearPointCloud(std::string pcName);
 };
 }
