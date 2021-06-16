@@ -27,6 +27,7 @@ class BAG2O {
     robustType_ = robustCoreName;
     structureOnly_ = structureOnly;
     g2o::OptimizationAlgorithmProperty solverProperty;
+    optimizer_.setVerbose(false);
     optimizer_.setAlgorithm(g2o::OptimizationAlgorithmFactory::instance()->construct(solverType, solverProperty));
   }
   /** \brief construct bundle adjustment of slide window pose and local map
@@ -36,6 +37,7 @@ class BAG2O {
    * @return
    */
   bool constructWindowFrameOptimize(std::vector<FramePtr>& slidewindow,FeatureManager& fsm,double sigma) {
+    clearVertexAndEdges();
     if (slidewindow.size() < 2) {
       printf("[BAG2O]:Failure!SlideWindow size %ld is not enough!\n",slidewindow.size());
       return false;
@@ -160,6 +162,17 @@ class BAG2O {
       features[cornerId].setPtsInWorld(cv::Point3f(pt3d.x(),pt3d.y(),pt3d.z()));
     }
   }
+
+  /** \brief clear vertex and edges for next optimization
+   *
+   */
+  void clearVertexAndEdges() {
+    optimizer_.clear();
+    optimizer_.clearParameters();
+    poseId_.clear();
+    featId_.clear();
+  }
+
  private:
   g2o::SparseOptimizer optimizer_;
   std::string robustType_;
