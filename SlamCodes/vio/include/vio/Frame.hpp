@@ -108,6 +108,12 @@ class Frame {
     return corners_;
   }
 
+  /** \brief get corners' size
+   * @return
+   */
+  int getCornerSize() const {
+    return corners_.size();
+  }
   /** \brief get normalized coordinate of id-corner
    *
    * @param id --- id of corner
