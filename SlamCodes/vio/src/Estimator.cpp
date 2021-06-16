@@ -61,14 +61,20 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   poseUpdateFlg_ = false;
   switch (state)
   {
-  case EstState::Waiting:
-    if (slideWindows_.size() >= 2) {
-      state = EstState::Initing;
-    }
-    break;
-  case EstState::Initing: 
+    case EstState::Waiting:
+      if (slideWindows_.size() >= 2) {
+        state = EstState::Initing;
+      }
+      break;
+    case EstState::Initing:
     {
-      if (slideWindows_.size() < 2) {
+      //KDQ:初始化的时候第一帧选择很重要，如果第一帧和当前帧匹配带你过少，则应该删除第一帧
+      FramePtr refFrame = slideWindows_.front();
+      if (refFrame->getMatchedFeatureSize(frame.get()) < cfg_->iniParam_.minMatchedFeatNum) {
+        slideWindows_.erase(slideWindows_.begin());
+      }
+
+      if (slideWindows_.size() < 4) {
         break;
       }
       size_t endId = slideWindows_.size() - 1;
@@ -81,6 +87,8 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
             break;
           }
         }
+      } else {
+        break;
       }
       if (initCnt == endId) {
         //三角化所有的特征点
@@ -100,23 +108,23 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       }
       break;
     }
-  case EstState::Runing:
-    tim.tic();
-    if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
-      //updateFeature must be first than ba,otherwize curframe not be update
-      updateFeature(slideWindows_.back());
-      costTime[2] = tim.toc();
+    case EstState::Runing:
       tim.tic();
-      bundleAdjustment();
-      costTime[3] = tim.toc();
-      poseUpdateFlg_ = true;
-    } else {
-      reset();
-      state = EstState::Waiting;
-    }
-    break;
-  default:
-    break;
+      if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
+        //updateFeature must be first than ba,otherwize curframe not be update
+        updateFeature(slideWindows_.back());
+        costTime[2] = tim.toc();
+        tim.tic();
+        bundleAdjustment();
+        costTime[3] = tim.toc();
+        poseUpdateFlg_ = true;
+      } else {
+        reset();
+        state = EstState::Waiting;
+      }
+      break;
+    default:
+      break;
   }
   slideWindow();
   if (slideWindows_.empty()) {
@@ -316,8 +324,8 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
   Eigen::Matrix3d R_lastB_curB = preInteNow_->rotationMatrix();
   Eigen::Matrix3d R = (R_lastB_curB * Rbc_).transpose() * Rbc_;
   cv::Mat cvR = (cv::Mat_<float>(3,3) << R(0,0), R(0,1), R(0,2),
-                                                     R(1,0), R(1,1), R(1,2),
-                                                     R(2,0), R(2,1), R(2,2));
+    R(1,0), R(1,1), R(1,2),
+    R(2,0), R(2,1), R(2,2));
   cvR.copyTo(R_cur_last);
 }
 
