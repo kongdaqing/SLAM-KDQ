@@ -7,6 +7,7 @@
 #include "FeatureTracker.hpp"
 #include "MeasurementTimeline.hpp"
 #include "PreIntegration.hpp"
+#include "BASolver.hpp"
 
 namespace vio{
 enum EstState {
@@ -99,6 +100,7 @@ class Estimator {
   FeatureTracker* feaTrcker_;
   FeatureManager fsm_;
   PnpSolver* pnpSolver_;
+  BAG2O * baSolver_;
   std::vector<FramePtr> slideWindows_;
   std::mutex m_filter_,m_imu_;
   MeasurementTimeline<IMU> imuMeas_;

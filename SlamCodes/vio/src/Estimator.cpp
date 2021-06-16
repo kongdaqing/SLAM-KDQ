@@ -10,6 +10,7 @@ Estimator::Estimator(std::string configFile) {
   init_ = new Initializator(cfg_,cam_);
   feaTrcker_ = new FeatureTracker(cfg_);
   pnpSolver_ = new PnpSolver(cfg_);
+  baSolver_ = new BAG2O();
   state = EstState::Waiting;
   preInteNow_ = nullptr;
   moduleName_ = "Estimator";
@@ -145,8 +146,15 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 
 void Estimator::slideWindow() {
   if (slideWindows_.size() > WINSIZE ) { //remove old frame until slidewindow is full
-    fsm_.removeFrame(slideWindows_.front());
-    slideWindows_.erase(slideWindows_.begin());
+    //目前认为移除最老帧比较合理
+    if (removeOldKeyFrame_ || true) {
+      fsm_.removeFrame(slideWindows_.front());
+      slideWindows_.erase(slideWindows_.begin());
+    } else {
+      std::vector<FramePtr>::const_iterator secondNewFrame = slideWindows_.end() - 2;
+      fsm_.removeFrame(*secondNewFrame);
+      slideWindows_.erase(secondNewFrame);
+    }
   }
 }
 
@@ -178,9 +186,8 @@ void Estimator::bundleAdjustment() {
   if (slideWindows_.size() < WINSIZE) {
     return;
   }
-  BAG2O baSolver;
-  if (baSolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
-    baSolver.updatePoseAndMap(slideWindows_, fsm_);
+  if (baSolver_->constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
+    baSolver_->updatePoseAndMap(slideWindows_, fsm_);
   }
 }
 
