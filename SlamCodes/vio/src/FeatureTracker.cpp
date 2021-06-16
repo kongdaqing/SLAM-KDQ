@@ -113,16 +113,6 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
   cv::Mat mask = setMask(curFrame->image_,idx,curCorners);
   curFrame->setCornerMap(idx,curCorners);
   tictoc.tic();
-  if (ShowTrackFrames > 0) {
-    std::map<uint64_t,cv::Point2f> curFeats = curFrame->getCorners();
-    allCorners_.push_back(curFeats);
-    if (allCorners_.size() > ShowTrackFrames) {
-      allCorners_.pop_front();
-    }
-    showAllFeature(curFrame->image_,2);
-  }
-  costTime[2] += tictoc.toc();
-  tictoc.tic();
   const int needFeatSize = MaxPointSize - curCorners.size();
   if (needFeatSize > 0.25 * MaxPointSize) {
     std::vector<cv::Point2f> feats;
@@ -136,6 +126,17 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
     curFrame->setCornerMap(newIdx,feats);
   }
   costTime[3] = tictoc.toc();
+
+  if (ShowTrackFrames > 0) {
+    tictoc.tic();
+    std::map<uint64_t,cv::Point2f> curFeats = curFrame->getCorners();
+    allCorners_.push_back(curFeats);
+    if (allCorners_.size() > ShowTrackFrames) {
+      allCorners_.pop_front();
+    }
+    showAllFeature(curFrame->image_,2);
+    costTime[2] += tictoc.toc();
+  }
   double allCostMs = allTicToc.toc();
   if (ShowDebugInfos) {
     std::cout << "[OptiTrack]:   All-Modules Cost(ms): " << allCostMs   << "\n"
