@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 2.8)
+project(bspline)
+set(CMAKE_BUILD_TYPE "Release")
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -O3 -lgsl")  
+add_executable(bSpline app/test.cpp)
+target_link_libraries(bSpline gsl gslcblas)
+add_executable(bSpline1 app/test1.cpp)
+target_link_libraries(bSpline1 gsl gslcblas)
