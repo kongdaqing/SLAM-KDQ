@@ -108,7 +108,6 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
       for (size_t i = 0; i < trackCount_.size(); i++) {
         trackCount_[i]++;
       }
-      
     }
   } 
   cv::Mat mask = setMask(curFrame->image_,idx,curCorners);
@@ -147,8 +146,10 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
               << "             Extract-Point Cost(ms): " << costTime[3] << "\n";
 
   }
-  FileSystem::printInfos(LogType::Info,moduleName_,"All modules cost(%3.4f):AllTrackCost(%3.4f),ForwardTrack(%3.4f),BackTrack(%3.4f),ExtrackCost(%3.4f)",
-                         allCostMs,costTime[0] + costTime[1] + costTime[3],costTime[0],costTime[1],costTime[3]);
+  FileSystem::printInfos(LogType::Info,moduleName_,"All modules cost(%3.4f):AllTrackCost(%3.4f),ForwardTrack(%3.4f),BackTrack(%3.4f),ExtrackCost(%3.4f),"
+                                                   "AllFeature(%d),MatchedSize(%d)",
+                         allCostMs,costTime[0] + costTime[1] + costTime[3],costTime[0],costTime[1],costTime[3],
+                         curFrame->getCornerSize(),curCorners.size());
 
 }
 
