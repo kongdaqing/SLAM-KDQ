@@ -31,7 +31,6 @@ int main()
   for (i = 0; i < nbreaks; i++)
   {
     double xi = double(i) / nbreaks;
-      ;
     double yi = sin(10.0 * xi);
     y.push_back(yi);
     rawFile << xi << "," << yi << std::endl;

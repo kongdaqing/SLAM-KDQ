@@ -1,8 +1,17 @@
 cmake_minimum_required(VERSION 2.8)
 project(bspline)
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -O3 -lgsl")  
+set(CMAKE_CXX_FLAGS_RELEASE "-std=c++14 -O3 -lgsl")
+set(SPLINE_INCLUDE "/usr/local/include/SPLINTER/")
+set(SPLINE_LIB "/usr/local/lib/libsplinter-3-0.so")
 add_executable(bSpline app/test.cpp)
 target_link_libraries(bSpline gsl gslcblas)
 add_executable(bSpline1 app/test1.cpp)
 target_link_libraries(bSpline1 gsl gslcblas)
+
+include_directories(${SPLINE_INCLUDE})
+add_executable(spline app/spline.cpp)
+target_link_libraries(spline ${SPLINE_LIB})
+
+add_executable(spline1 app/spline1.cpp)
+target_link_libraries(spline1 ${SPLINE_LIB})
