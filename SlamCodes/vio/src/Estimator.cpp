@@ -17,6 +17,7 @@ Estimator::Estimator(std::string configFile) {
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
   FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
+  FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,px,py,pz,qw,qx,qy,qz");
   reset();
 }
 
@@ -56,7 +57,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
   costTime[0] = tim.toc();
-  tim.tic();
   isKeyframe(frame);
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
@@ -69,6 +69,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       break;
     case EstState::Initing:
     {
+      tim.tic();
       //KDQ:初始化的时候第一帧选择很重要，如果第一帧和当前帧匹配带你过少，则应该删除第一帧
       FramePtr refFrame = slideWindows_.front();
       if (refFrame->getMatchedFeatureSize(frame.get()) < cfg_->iniParam_.minMatchedFeatNum) {
@@ -98,7 +99,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
           state = Runing;
-          costTime[1] = tim.toc();
         } else {
           reset();
           state = Waiting;
@@ -107,6 +107,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         reset();
         state = Waiting;
       }
+      costTime[1] = tim.toc();
       break;
     }
     case EstState::Runing:
@@ -183,7 +184,7 @@ void Estimator::isKeyframe(FramePtr frame) {
 }
 
 void Estimator::bundleAdjustment() {
-  if (slideWindows_.size() < WINSIZE) {
+  if (slideWindows_.size() < WINSIZE || !cfg_->estimatorParam_.BundleAdjustment) {
     return;
   }
   if (baSolver_->constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {

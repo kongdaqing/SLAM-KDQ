@@ -1,8 +1,9 @@
 %YAML:1.0
 
 Estimator.KeyFrameMatchedPoints: 20
-Estimator.KeyFrameParallexThreshold: 3
+Estimator.KeyFrameParallexThreshold: 5
 Estimator.ReprojectPixelErr: 2
+Estimator.BundleAdjustment: 1
 
 OptiTrack.TrackBack: 1
 OptiTrack.TrackBackPixelErr: 1
@@ -13,10 +14,10 @@ OptiTrack.PyramidLevel: 2
 OptiTrack.Iterations: 10
 OptiTrack.EPS: 0.01
 OptiTrack.PredictEnable: 0
-OptiTrack.ShowTrackFrames: 2
+OptiTrack.ShowTrackFrames: 5
 OptiTrack.ShowDebugInfos: 0
 
-Init.MinDisparity: 8
+Init.MinDisparity: 3
 Init.MinMatchedFeatNum: 20
 Init.ReprojectErr: 1
 Init.HomographyTransformErr: 3

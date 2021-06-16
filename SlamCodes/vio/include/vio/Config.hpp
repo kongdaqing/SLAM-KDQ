@@ -100,12 +100,14 @@ struct EstimatorParam {
   int KeyFrameParallexThreshold;
   int KeyFrameMatchedPoints;
   int ReprojectPixelErr;
+  int BundleAdjustment;
   std::string LogName;
   void print() {
     std::cout << "=========Estimator Parameters========" << std::endl;
     std::cout << "keyframeParallexThreshold = " << KeyFrameParallexThreshold << std::endl;
     std::cout << "keyframeMatchedPoints = " << KeyFrameMatchedPoints << std::endl;
     std::cout << "reprojectPixelErr = " << ReprojectPixelErr << std::endl;
+    std::cout << "bundleAdjustment = " << BundleAdjustment << std::endl;
     std::cout << "logName = " << LogName << std::endl;
   }
 };
@@ -125,6 +127,7 @@ class Config {
     estimatorParam_.KeyFrameMatchedPoints = fs["Estimator.KeyFrameMatchedPoints"];
     estimatorParam_.KeyFrameParallexThreshold = fs["Estimator.KeyFrameParallexThreshold"];
     estimatorParam_.ReprojectPixelErr = fs["Estimator.ReprojectPixelErr"];
+    estimatorParam_.BundleAdjustment = fs["Estimator.BundleAdjustment"];
     fs["Estimator.FileName"] >> estimatorParam_.LogName;
     if (estimatorParam_.LogName.empty()) {
       estimatorParam_.LogName = "estimator.csv";
