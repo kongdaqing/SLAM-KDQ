@@ -56,6 +56,9 @@ set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
 set(D435I_LIBS "${PARENT_DIRECTORY}/env/lib/d435i/libd435i.so")
 set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
 set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
+set(SPLINE_INCLUDE "/usr/local/include/SPLINTER/")
+set(SPLINE_LIB "/usr/local/lib/libsplinter-3-0.so")
+set(BSPLINEX_INCLUDE "${PARENT_DIRECTORY}/env/include/BSplineX")
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_module)
 
 if (APPLE)
@@ -88,6 +91,8 @@ include_directories(
   ${kindr_INCLUDE_DIRS}
   ${G2O_INCLUDE_DIRS}
   ${CHOLMOD_INCLUDE_DIR}
+  ${SPLINE_INCLUDE}
+  ${BSPLINEX_INCLUDE}
 )
 SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core  g2o_solver_dense cholmod g2o_solver_cholmod g2o_solver_csparse g2o_types_slam3d g2o_types_sba cxsparse)
 add_library(volib SHARED
@@ -98,7 +103,7 @@ add_library(volib SHARED
                   src/Simulator.cpp
                   src/VizScene.cpp
                   include/utility/fileSystem.cpp)
-target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} fmt::fmt -lpthread)
+target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} ${SPLINE_LIB} fmt::fmt -lpthread)
 
 add_executable(vo app/main.cpp)
 target_link_libraries(vo volib)

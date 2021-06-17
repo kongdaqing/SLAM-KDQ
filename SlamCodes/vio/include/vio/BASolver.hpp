@@ -10,6 +10,7 @@
 #include "FeatureManager.hpp"
 #include "Camera.hpp"
 #include <opencv2/core/eigen.hpp>
+
 using namespace vio;
 G2O_USE_OPTIMIZATION_LIBRARY(cholmod);
 G2O_USE_OPTIMIZATION_LIBRARY(csparse); //csparse运行速度更快

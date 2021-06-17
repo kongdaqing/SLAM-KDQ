@@ -3,6 +3,7 @@
 #include "BASolver.hpp"
 #include "fileSystem.hpp"
 #include "tictoc.hpp"
+#include "BSplineX.hpp"
 namespace vio{
 Estimator::Estimator(std::string configFile) {
   cfg_ = new Config(configFile);
@@ -99,6 +100,9 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
           state = Runing;
+          for(auto w : slideWindows_) {
+            updateSlideAccelAndPose(w);
+          }
         } else {
           reset();
           state = Waiting;
@@ -115,6 +119,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
         //updateFeature must be first than ba,otherwize curframe not be update
         updateFeature(slideWindows_.back());
+        updateSlideAccelAndPose(slideWindows_.back());
         costTime[2] = tim.toc();
         tim.tic();
         bundleAdjustment();
@@ -160,8 +165,12 @@ void Estimator::slideWindow() {
 }
 
 void Estimator::reset() {
+  goodExcitationCount = 0;
   fsm_.reset();
   slideWindows_.clear();
+  slideAccel_.clear();
+  slidePose_.clear();
+  imuMeas_.clear();
   feaTrcker_->reset();
   poseUpdateFlg_ = false;
   removeOldKeyFrame_ = true;
@@ -335,6 +344,102 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
     R(1,0), R(1,1), R(1,2),
     R(2,0), R(2,1), R(2,2));
   cvR.copyTo(R_cur_last);
+}
+
+void Estimator::updateSlideAccelAndPose(FramePtr curFrame) {
+  if (imuMeas_.empty() || curFrame == nullptr || slidePose_.count(curFrame->timestamp_)) {
+    return;
+  }
+  cv::Mat t = curFrame->WtC();
+  Eigen::Vector3d twc;
+  cv::cv2eigen(t,twc);
+  slidePose_[curFrame->timestamp_] = twc;
+  Eigen::Vector3d sumAccel;
+  std::vector<Eigen::Vector3d> accelVec;
+  sumAccel.setZero();
+  //update accel map that timestamp is smaller than current timestamp
+  for (auto it = imuMeas_.measMap_.rbegin(); it != imuMeas_.measMap_.rend(); it++) {
+    double imuTimes = it->second.timestamp_;
+    if (imuTimes > curFrame->timestamp_) {
+      continue;
+    }
+    if (slideAccel_.count(imuTimes) || imuTimes < (curFrame->timestamp_ - 1.0)) {
+      break;
+    }
+    slideAccel_[imuTimes] = it->second.acc_;
+    sumAccel += it->second.acc_;
+    accelVec.push_back(it->second.acc_);
+  }
+  //Check whether accel excitation is enough
+  if (accelVec.size() > 1) {
+    Eigen::Vector3d averAcc = sumAccel / accelVec.size();
+    double sumErr = 0;
+    for (auto a : accelVec) {
+      sumErr += (a - averAcc).norm();
+    }
+    double standErr = sumErr / (accelVec.size() - 1);
+    if (standErr > 0.1) {
+      goodExcitationCount++;
+    }
+  }
+
+  //slide old pose and accel
+  if (slidePose_.size() > S) {
+    while (!slideAccel_.empty() && slideAccel_.begin()->first < slidePose_.begin()->first) {
+      slideAccel_.erase(slideAccel_.begin());
+    }
+    slidePose_.erase(slidePose_.begin());
+    goodExcitationCount--;
+    calWindowsAccelByBSpline();
+  }
+}
+
+void Estimator::calWindowsAccelByBSpline() {
+  if (slidePose_.size() != S || goodExcitationCount < S/2 && false) {
+    return;
+  }
+  Eigen::Matrix<double,S,1> x;
+  Eigen::Matrix<double,S,D> y;
+  std::ofstream samplesFile("samples.csv",std::ios::app | std::ios::out);
+  samplesFile << "==================================================" << std::endl;
+  int cnt = 0;
+  for (std::map<double,Eigen::Vector3d>::const_iterator it = slidePose_.begin();it != slidePose_.end(); it++) {
+    x(cnt,0) = it->first;
+    y.row(cnt) = it->second;
+    cnt++;
+    samplesFile << it->first << "," << it->second.x() << "," << it->second.y() << "," << it->second.z() << std::endl;
+  }
+  samplesFile << "----------------------------------------------------" << std::endl;
+  BSplineX<S,D,K> splinex(x,y);
+  std::vector<Eigen::Vector3d> splineAcc,imuAccel;
+  double t0 = x(1,0);
+  double t1 = x(S-1,0);
+  for (auto it = slideAccel_.begin(); it != slideAccel_.end(); it++) {
+    if (it->first < t0) {
+      continue;
+    }
+    if (it->first > t1) {
+      break;
+    }
+    Eigen::Matrix<double, 1, D> pos,vel,acc;
+    if (splinex.getSecondDifference(it->first, acc)) {
+      splinex.getEvalValue(it->first,pos);
+      splinex.getFirstDifference(it->first,vel);
+      splineAcc.push_back(acc.transpose());
+      imuAccel.push_back(it->second);
+      samplesFile << it->first << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
+                  << vel.x() << "," << vel.y() << "," << vel.z() << ","
+                  << acc.x() << "," << acc.y() << "," << acc.z() << "," << acc.norm() << ","
+                  << it->second.x() << "," << it->second.y() << "," << it->second.z() << "," << it->second.norm() << std::endl;
+    }
+  }
+  calScaleAndR0(splineAcc,imuAccel);
+}
+
+void Estimator::calScaleAndR0(const std::vector<Eigen::Vector3d> &splineAcc,
+                              const std::vector<Eigen::Vector3d> &imuAcc) {
+
+
 }
 
 }

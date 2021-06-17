@@ -10,6 +10,7 @@
 #include "BASolver.hpp"
 
 namespace vio{
+
 enum EstState {
   Waiting,
   Initing,
@@ -75,8 +76,12 @@ class Estimator {
   void updateImuMeas(double t,const IMU & data) {
     std::lock_guard<std::mutex> imuLock(m_imu_);
     imuMeas_.addMeas(t,data);
-    if (slideWindows_.size() > 5) {
-      imuMeas_.clean(slideWindows_[0]->timestamp_);
+    if (!slideWindows_.empty()) {
+      imuMeas_.clean(slideWindows_.back()->timestamp_ - 1.0);
+    } else {
+      while (imuMeas_.measMap_.size() > 1000) {
+        imuMeas_.measMap_.erase(imuMeas_.measMap_.begin());
+      }
     }
   }
 
@@ -102,6 +107,8 @@ class Estimator {
   PnpSolver* pnpSolver_;
   BAG2O * baSolver_;
   std::vector<FramePtr> slideWindows_;
+  std::map<double,Eigen::Vector3d> slideAccel_,slidePose_;
+  int goodExcitationCount;
   std::mutex m_filter_,m_imu_;
   MeasurementTimeline<IMU> imuMeas_;
   PreIntegration* preInteNow_;
@@ -110,7 +117,9 @@ class Estimator {
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
   std::string moduleName_;
-
+  const static int S = 12;
+  const static int D = 3;
+  const static int K = 5;
   /** \brief slide window to remove oldest frame and features
    */ 
   void slideWindow();
@@ -141,6 +150,23 @@ class Estimator {
    * @param R_cur_last --- rotation matrix from last frame to current frame
    */
   void calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last);
+
+
+   /** \brief update accel and pose in the slide window
+    * @param curFrame --- current frame pointer
+    */
+  void updateSlideAccelAndPose(FramePtr curFrame);
+
+  /** \brief get secord difference of pose thourgh b-spline
+   *
+   */
+  void calWindowsAccelByBSpline();
+
+  /** \brief calculate rotation matrix and scale from camera coordinate to world coordinate
+   * @param splineAcc --- accel from b-spline
+   * @param imuAcc --- accel from imu
+   */
+  void calScaleAndR0(const std::vector<Eigen::Vector3d>& splineAcc,const std::vector<Eigen::Vector3d>& imuAcc);
 
 };
 }
