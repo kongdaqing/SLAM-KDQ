@@ -20,6 +20,10 @@ Estimator::Estimator(std::string configFile) {
   FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
   FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,px,py,pz,qw,qx,qy,qz");
   reset();
+  //verboose
+  splineFile.open("bsplinx.csv",std::ios::out);
+  splineFile << "[sample]:t,px,py,pz\n";
+  splineFile << "[bspline]:t,px,py,pz,vx,vy,vz,ax,ay,az,anorm,accx,accy,accz,accnorm\n";
 }
 
 Estimator::~Estimator() {
@@ -165,7 +169,7 @@ void Estimator::slideWindow() {
 }
 
 void Estimator::reset() {
-  goodExcitationCount = 0;
+  goodExcitationCount_ = 0;
   fsm_.reset();
   slideWindows_.clear();
   slideAccel_.clear();
@@ -379,7 +383,7 @@ void Estimator::updateSlideAccelAndPose(FramePtr curFrame) {
     }
     double standErr = sumErr / (accelVec.size() - 1);
     if (standErr > 0.1) {
-      goodExcitationCount++;
+      goodExcitationCount_++;
     }
   }
 
@@ -389,31 +393,34 @@ void Estimator::updateSlideAccelAndPose(FramePtr curFrame) {
       slideAccel_.erase(slideAccel_.begin());
     }
     slidePose_.erase(slidePose_.begin());
-    goodExcitationCount--;
+    goodExcitationCount_--;
     calWindowsAccelByBSpline();
   }
 }
 
 void Estimator::calWindowsAccelByBSpline() {
-  if (slidePose_.size() != S || goodExcitationCount < S/2 && false) {
+  static double lastPoseTime = 0,lastAccelTime = 0;
+  if (slidePose_.size() != S || goodExcitationCount_ < S/2 && false) {
     return;
   }
   Eigen::Matrix<double,S,1> x;
   Eigen::Matrix<double,S,D> y;
-  std::ofstream samplesFile("samples.csv",std::ios::app | std::ios::out);
-  samplesFile << "==================================================" << std::endl;
   int cnt = 0;
   for (std::map<double,Eigen::Vector3d>::const_iterator it = slidePose_.begin();it != slidePose_.end(); it++) {
     x(cnt,0) = it->first;
     y.row(cnt) = it->second;
     cnt++;
-    samplesFile << it->first << "," << it->second.x() << "," << it->second.y() << "," << it->second.z() << std::endl;
+    if (it->first > lastPoseTime ) {
+      splineFile << "[sample]:" << it->first << "," << it->second.x() << "," << it->second.y() << "," << it->second.z() << std::endl;
+      lastPoseTime = it->first;
+    }
   }
-  samplesFile << "----------------------------------------------------" << std::endl;
-  BSplineX<S,D,K> splinex(x,y);
+  //BSplineX<S,D,K> splinex(x,y,0.01);
+  BSplineX<S,D,K> splinex(x,y,0.01);
+
   std::vector<Eigen::Vector3d> splineAcc,imuAccel;
-  double t0 = x(1,0);
-  double t1 = x(S-1,0);
+  double t0 = x(3,0);
+  double t1 = x(S-3,0);
   for (auto it = slideAccel_.begin(); it != slideAccel_.end(); it++) {
     if (it->first < t0) {
       continue;
@@ -421,16 +428,20 @@ void Estimator::calWindowsAccelByBSpline() {
     if (it->first > t1) {
       break;
     }
+    Eigen::Vector3d g(0.,0.,9.81);
     Eigen::Matrix<double, 1, D> pos,vel,acc;
     if (splinex.getSecondDifference(it->first, acc)) {
       splinex.getEvalValue(it->first,pos);
       splinex.getFirstDifference(it->first,vel);
       splineAcc.push_back(acc.transpose());
       imuAccel.push_back(it->second);
-      samplesFile << it->first << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
-                  << vel.x() << "," << vel.y() << "," << vel.z() << ","
-                  << acc.x() << "," << acc.y() << "," << acc.z() << "," << acc.norm() << ","
-                  << it->second.x() << "," << it->second.y() << "," << it->second.z() << "," << it->second.norm() << std::endl;
+      if (it->first > lastAccelTime) {
+        lastAccelTime = it->first;
+        splineFile << "[bspline]:" << it->first << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
+                                  << vel.x() << "," << vel.y() << "," << vel.z() << ","
+                                  << acc.x() << "," << acc.y() << "," << acc.z() << "," << acc.norm() << ","
+                                  << it->second.x() << "," << it->second.y() << "," << it->second.z() << "," << (it->second + g).norm() << std::endl;
+      }
     }
   }
   calScaleAndR0(splineAcc,imuAccel);

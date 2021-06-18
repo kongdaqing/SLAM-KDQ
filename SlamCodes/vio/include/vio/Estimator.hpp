@@ -108,7 +108,7 @@ class Estimator {
   BAG2O * baSolver_;
   std::vector<FramePtr> slideWindows_;
   std::map<double,Eigen::Vector3d> slideAccel_,slidePose_;
-  int goodExcitationCount;
+  int goodExcitationCount_;
   std::mutex m_filter_,m_imu_;
   MeasurementTimeline<IMU> imuMeas_;
   PreIntegration* preInteNow_;
@@ -117,9 +117,10 @@ class Estimator {
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
   std::string moduleName_;
-  const static int S = 12;
+  const static int S = 15;
   const static int D = 3;
   const static int K = 5;
+  std::ofstream splineFile;
   /** \brief slide window to remove oldest frame and features
    */ 
   void slideWindow();
