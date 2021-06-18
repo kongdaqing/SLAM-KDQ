@@ -13,7 +13,7 @@ Eigen::Vector3d f(double x) {
 
 int main() {
   const int D = 3;
-  const int S = 10;
+  const int S = 20;
   const int K = 5;
   Eigen::Matrix<double,S,1> x;
   Eigen::Matrix<double,S,D> y;
