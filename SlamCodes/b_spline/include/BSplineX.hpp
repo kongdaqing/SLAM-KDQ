@@ -17,14 +17,19 @@ class BSplineX {
   static const int K_ = K;
   static_assert(K_ < 6);
   static_assert(S_ > 4);
-  BSplineX(Eigen::Matrix<double,S_,1>& xVec,Eigen::Matrix<double,S_,D_>& yMatrix) {
+  BSplineX(Eigen::Matrix<double,S_,1>& xVec,Eigen::Matrix<double,S_,D_>& yMatrix,double smoothAlpha = -1.0) {
     for (int i = 0; i < D_; i++) {
       DataTable samples;
       for (int j = 0; j < S_; j++) {
         samples.addSample(xVec(j,0),yMatrix(j,i));
       }
-      BSpline sp = BSpline::Builder(samples).degree(K_).build();
-      splineVec.push_back(sp);
+      if (smoothAlpha > 0.) {
+        BSpline sp = BSpline::Builder(samples).smoothing(BSpline::Smoothing::IDENTITY).alpha(smoothAlpha).build();
+        splineVec.push_back(sp);
+      } else {
+        BSpline sp = BSpline::Builder(samples).degree(K_).build();
+        splineVec.push_back(sp);
+      }
     }
     xBegin_ = xVec(1,0);
     xEnd_ = xVec(S_ - 1,0);

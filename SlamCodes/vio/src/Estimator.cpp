@@ -419,8 +419,8 @@ void Estimator::calWindowsAccelByBSpline() {
   BSplineX<S,D,K> splinex(x,y,0.01);
 
   std::vector<Eigen::Vector3d> splineAcc,imuAccel;
-  double t0 = x(3,0);
-  double t1 = x(S-3,0);
+  double t0 = x(8,0);
+  double t1 = x(S-8,0);
   for (auto it = slideAccel_.begin(); it != slideAccel_.end(); it++) {
     if (it->first < t0) {
       continue;

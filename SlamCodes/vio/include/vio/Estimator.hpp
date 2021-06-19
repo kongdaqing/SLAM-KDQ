@@ -117,7 +117,7 @@ class Estimator {
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
   std::string moduleName_;
-  const static int S = 15;
+  const static int S = 20;
   const static int D = 3;
   const static int K = 5;
   std::ofstream splineFile;
