@@ -1,3 +1,4 @@
+#include "iostream"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -11,10 +12,11 @@
 #define N        200
 
 /* number of fit coefficients */
-#define NCOEFFS  12 //knot数量
+#define NCOEFFS  12 //控制点数量
 
 /* nbreak = ncoeffs + 2 - k = ncoeffs - 2 since k = 4 */
-#define NBREAK   (NCOEFFS - 2)  //控制点？
+#define NBREAK   (NCOEFFS - 2)  //break点是指[a,b]范围内的点，knot = k - 1 + nbreak + k - 1,其中两边的k-1表示边界重复个数
+
 
 int
 main (void)

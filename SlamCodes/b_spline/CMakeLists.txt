@@ -6,10 +6,16 @@ set(SPLINE_INCLUDE "/usr/local/include/SPLINTER/")
 set(SPLINE_LIB "/usr/local/lib/libsplinter-3-0.so")
 set(CMAKE_INSTALL_PREFIX "../../env/")
 
+find_package(Eigen3 REQUIRED)
+include_directories(${EIGEN3_INCLUDE_DIRS})
 add_executable(bSpline app/test.cpp)
 target_link_libraries(bSpline gsl gslcblas)
+
 add_executable(bSpline1 app/test1.cpp)
 target_link_libraries(bSpline1 gsl gslcblas)
+
+add_executable(gslSpline1 app/gsl_spline1.cpp)
+target_link_libraries(gslSpline1 gsl gslcblas)
 
 include_directories(${SPLINE_INCLUDE} include)
 add_executable(spline app/spline.cpp)
