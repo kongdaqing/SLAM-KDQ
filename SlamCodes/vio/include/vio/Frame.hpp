@@ -2,8 +2,11 @@
 #include <memory>
 #include <iostream>
 #include <map>
+#include "Eigen/Core"
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/eigen.hpp>
 #include "Camera.hpp"
+
 
 namespace vio{
 
@@ -236,11 +239,24 @@ class Frame {
     return Rwc_;
   }
 
+  inline Eigen::Matrix3d ERwc() const {
+    Eigen::Matrix3d eRwc;
+    cv::cv2eigen(Rwc_,eRwc);
+    return eRwc;
+  }
+
   /** \brief get translate part
    */ 
   inline cv::Mat WtC() const {
     return WtC_;
   }
+
+  inline Eigen::Vector3d EWtC() const {
+    Eigen::Vector3d eWtc;
+    cv::cv2eigen(WtC_,eWtc);
+    return eWtc;
+  }
+
   cv::Mat image_;
   double timestamp_;
   const CameraPtr cam_;
