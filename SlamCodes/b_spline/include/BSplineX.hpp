@@ -24,7 +24,11 @@ class BSplineX {
         samples.addSample(xVec(j,0),yMatrix(j,i));
       }
       if (smoothAlpha > 0.) {
-        BSpline sp = BSpline::Builder(samples).smoothing(BSpline::Smoothing::IDENTITY).alpha(smoothAlpha).build();
+        BSpline sp = BSpline::Builder(samples)
+                              .smoothing(BSpline::Smoothing::PSPLINE)
+                              .alpha(smoothAlpha)
+                              .knotSpacing(BSpline::KnotSpacing::EXPERIMENTAL)
+                              .degree(K_).build();
         splineVec.push_back(sp);
       } else {
         BSpline sp = BSpline::Builder(samples).degree(K_).build();
