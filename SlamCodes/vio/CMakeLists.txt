@@ -24,7 +24,8 @@ include_directories(
 add_library(volib SHARED src/FeatureManager.cpp
                   src/Initializator.cpp
                   src/Estimator.cpp
-                  src/FeatureTracker.cpp)
+                  src/FeatureTracker.cpp
+                  )
 target_link_libraries(volib ${OpenCV_LIBS})    
 
 add_executable(test_camera_node app/test_camera_node.cpp)
@@ -49,7 +50,7 @@ cmake_minimum_required(VERSION 2.8)
 project(vio)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_BUILD_TYPE "Release")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${SSE_FLAGS} -msse4")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${SSE_FLAGS} -msse4 -lgsl")
 get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(D435I_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/d435i")
@@ -59,6 +60,7 @@ set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PAREN
 set(SPLINE_INCLUDE "/usr/local/include/SPLINTER/")
 set(SPLINE_LIB "/usr/local/lib/libsplinter-3-0.so")
 set(BSPLINEX_INCLUDE "${PARENT_DIRECTORY}/env/include/BSplineX")
+set(GAUSS_FILTER_INCLUDE "${PARENT_DIRECTORY}/env/include/GaussFilter")
 list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake_module)
 
 if (APPLE)
@@ -93,6 +95,7 @@ include_directories(
   ${CHOLMOD_INCLUDE_DIR}
   ${SPLINE_INCLUDE}
   ${BSPLINEX_INCLUDE}
+  ${GAUSS_FILTER_INCLUDE}
 )
 SET(G2O_LIBS g2o_csparse_extension g2o_stuff g2o_core  g2o_solver_dense cholmod g2o_solver_cholmod g2o_solver_csparse g2o_types_slam3d g2o_types_sba cxsparse)
 add_library(volib SHARED
@@ -102,8 +105,9 @@ add_library(volib SHARED
                   src/FeatureTracker.cpp
                   src/Simulator.cpp
                   src/VizScene.cpp
+                  src/AlignRealWorld.cpp
                   include/utility/fileSystem.cpp)
-target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} ${SPLINE_LIB} fmt::fmt -lpthread)
+target_link_libraries(volib ${OpenCV_LIBS} ${G2O_LIBS} ${SPLINE_LIB} fmt::fmt -lpthread gsl gslcblas)
 
 add_executable(vo app/main.cpp)
 target_link_libraries(vo volib)

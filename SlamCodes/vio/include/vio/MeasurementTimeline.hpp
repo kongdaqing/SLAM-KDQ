@@ -45,11 +45,11 @@ class MeasurementTimeline {
       measMap_.erase(measMap_.begin());
     }
   }
-  bool empty() {
+  bool empty() const {
     return measMap_.empty();
   }
 
-  typename std::map<double,Meas>::const_iterator getLowIter(double t) {
+  typename std::map<double,Meas>::const_iterator getLowIter(double t) const {
     typename std::map<double,Meas>::const_iterator it = measMap_.lower_bound(t);
     it--;
     if (!measMap_.count(it->first)) {
@@ -57,7 +57,7 @@ class MeasurementTimeline {
     }
     return it;
   }
-  typename std::map<double,Meas>::const_iterator getHighIter(double t) {
+  typename std::map<double,Meas>::const_iterator getHighIter(double t) const {
     typename std::map<double,Meas>::const_iterator it = measMap_.upper_bound(t);
     return it;
   }
