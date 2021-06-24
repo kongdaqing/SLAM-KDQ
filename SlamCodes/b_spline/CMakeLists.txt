@@ -27,8 +27,10 @@ target_link_libraries(spline1 ${SPLINE_LIB})
 add_executable(spline2 app/spline2.cpp)
 target_link_libraries(spline2 ${SPLINE_LIB})
 
-
 add_executable(spline3 app/spline3.cpp)
 target_link_libraries(spline3 ${SPLINE_LIB})
+
+add_executable(spline4 app/spline4.cpp)
+target_link_libraries(spline4 ${SPLINE_LIB})
 
 INSTALL(DIRECTORY include/ DESTINATION include/BSplineX)
