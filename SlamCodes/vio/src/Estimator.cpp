@@ -3,7 +3,7 @@
 #include "BASolver.hpp"
 #include "fileSystem.hpp"
 #include "tictoc.hpp"
-#include "BSplineX.hpp"
+
 namespace vio{
 Estimator::Estimator(std::string configFile) {
   cfg_ = new Config(configFile);
@@ -17,13 +17,10 @@ Estimator::Estimator(std::string configFile) {
   moduleName_ = "Estimator";
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
+  alignWorld_ = new VOAlignedRealWorld(Rbc_.transpose(),500,30,3.,0.3);
   FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
   FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,px,py,pz,qw,qx,qy,qz");
   reset();
-  //verboose
-  splineFile.open("bsplinx.csv",std::ios::out);
-  splineFile << "[sample]:t,px,py,pz\n";
-  splineFile << "[bspline]:t,px,py,pz,vx,vy,vz,ax,ay,az,anorm,accx,accy,accz,accnorm\n";
 }
 
 Estimator::~Estimator() {
@@ -33,16 +30,19 @@ Estimator::~Estimator() {
   delete init_;
   delete feaTrcker_;
   delete pnpSolver_;
+  delete alignWorld_;
 }
 
-void Estimator::getCurrentPose(Eigen::Vector3d &t, Eigen::Quaterniond &q) const {
+bool Estimator::getCurrentPose(Eigen::Vector3d &t, Eigen::Quaterniond &q) const {
   cv::Mat Rwc,twc;
   if (getCurrentPose(Rwc,twc)) {
     cv::cv2eigen(twc,t);
     Eigen::Matrix3d R;
     cv::cv2eigen(Rwc,R);
     q = Eigen::Quaterniond(R).normalized();
+    return true;
   }
+  return false;
 }
 
 void Estimator::update(FramePtr frame,bool trackEnable) {
@@ -104,9 +104,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
           basolver.updatePoseAndMap(slideWindows_,fsm_);
           state = Runing;
-          for(auto w : slideWindows_) {
-            updateSlideAccelAndPose(w);
-          }
         } else {
           reset();
           state = Waiting;
@@ -123,7 +120,10 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
         //updateFeature must be first than ba,otherwize curframe not be update
         updateFeature(slideWindows_.back());
-        updateSlideAccelAndPose(slideWindows_.back());
+        if (alignUpdateFlg_) {
+          alignWorld_->alignToRealWorld();
+          alignUpdateFlg_ = false;
+        }
         costTime[2] = tim.toc();
         tim.tic();
         bundleAdjustment();
@@ -169,15 +169,14 @@ void Estimator::slideWindow() {
 }
 
 void Estimator::reset() {
-  goodExcitationCount_ = 0;
+  alignWorld_->reset();
   fsm_.reset();
   slideWindows_.clear();
-  slideAccel_.clear();
-  slidePose_.clear();
   imuMeas_.clear();
   feaTrcker_->reset();
   poseUpdateFlg_ = false;
   removeOldKeyFrame_ = true;
+  alignUpdateFlg_ = false;
 }
 
 void Estimator::isKeyframe(FramePtr frame) {
@@ -350,108 +349,6 @@ void Estimator::calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cu
   cvR.copyTo(R_cur_last);
 }
 
-void Estimator::updateSlideAccelAndPose(FramePtr curFrame) {
-  if (imuMeas_.empty() || curFrame == nullptr || slidePose_.count(curFrame->timestamp_)) {
-    return;
-  }
-  cv::Mat t = curFrame->WtC();
-  Eigen::Vector3d twc;
-  cv::cv2eigen(t,twc);
-  slidePose_[curFrame->timestamp_] = twc;
-  Eigen::Vector3d sumAccel;
-  std::vector<Eigen::Vector3d> accelVec;
-  sumAccel.setZero();
-  //update accel map that timestamp is smaller than current timestamp
-  for (auto it = imuMeas_.measMap_.rbegin(); it != imuMeas_.measMap_.rend(); it++) {
-    double imuTimes = it->second.timestamp_;
-    if (imuTimes > curFrame->timestamp_) {
-      continue;
-    }
-    if (slideAccel_.count(imuTimes) || imuTimes < (curFrame->timestamp_ - 1.0)) {
-      break;
-    }
-    slideAccel_[imuTimes] = it->second.acc_;
-    sumAccel += it->second.acc_;
-    accelVec.push_back(it->second.acc_);
-  }
-  //Check whether accel excitation is enough
-  if (accelVec.size() > 1) {
-    Eigen::Vector3d averAcc = sumAccel / accelVec.size();
-    double sumErr = 0;
-    for (auto a : accelVec) {
-      sumErr += (a - averAcc).norm();
-    }
-    double standErr = sumErr / (accelVec.size() - 1);
-    if (standErr > 0.1) {
-      goodExcitationCount_++;
-    }
-  }
-
-  //slide old pose and accel
-  if (slidePose_.size() > S) {
-    while (!slideAccel_.empty() && slideAccel_.begin()->first < slidePose_.begin()->first) {
-      slideAccel_.erase(slideAccel_.begin());
-    }
-    slidePose_.erase(slidePose_.begin());
-    goodExcitationCount_--;
-    calWindowsAccelByBSpline();
-  }
-}
-
-void Estimator::calWindowsAccelByBSpline() {
-  static double lastPoseTime = 0,lastAccelTime = 0;
-  if (slidePose_.size() != S || goodExcitationCount_ < S/2 && false) {
-    return;
-  }
-  Eigen::Matrix<double,S,1> x;
-  Eigen::Matrix<double,S,D> y;
-  int cnt = 0;
-  for (std::map<double,Eigen::Vector3d>::const_iterator it = slidePose_.begin();it != slidePose_.end(); it++) {
-    x(cnt,0) = it->first;
-    y.row(cnt) = it->second;
-    cnt++;
-    if (it->first > lastPoseTime ) {
-      splineFile << "[sample]:" << it->first << "," << it->second.x() << "," << it->second.y() << "," << it->second.z() << std::endl;
-      lastPoseTime = it->first;
-    }
-  }
-  //BSplineX<S,D,K> splinex(x,y,0.01);
-  BSplineX<S,D,K> splinex(x,y,0.01);
-
-  std::vector<Eigen::Vector3d> splineAcc,imuAccel;
-  double t0 = x(8,0);
-  double t1 = x(S-8,0);
-  for (auto it = slideAccel_.begin(); it != slideAccel_.end(); it++) {
-    if (it->first < t0) {
-      continue;
-    }
-    if (it->first > t1) {
-      break;
-    }
-    Eigen::Vector3d g(0.,0.,9.81);
-    Eigen::Matrix<double, 1, D> pos,vel,acc;
-    if (splinex.getSecondDifference(it->first, acc)) {
-      splinex.getEvalValue(it->first,pos);
-      splinex.getFirstDifference(it->first,vel);
-      splineAcc.push_back(acc.transpose());
-      imuAccel.push_back(it->second);
-      if (it->first > lastAccelTime) {
-        lastAccelTime = it->first;
-        splineFile << "[bspline]:" << it->first << "," << pos.x() << "," << pos.y() << "," << pos.z() << ","
-                                  << vel.x() << "," << vel.y() << "," << vel.z() << ","
-                                  << acc.x() << "," << acc.y() << "," << acc.z() << "," << acc.norm() << ","
-                                  << it->second.x() << "," << it->second.y() << "," << it->second.z() << "," << (it->second + g).norm() << std::endl;
-      }
-    }
-  }
-  calScaleAndR0(splineAcc,imuAccel);
-}
-
-void Estimator::calScaleAndR0(const std::vector<Eigen::Vector3d> &splineAcc,
-                              const std::vector<Eigen::Vector3d> &imuAcc) {
-
-
-}
 
 }
 

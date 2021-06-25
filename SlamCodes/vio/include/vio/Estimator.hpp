@@ -8,6 +8,7 @@
 #include "MeasurementTimeline.hpp"
 #include "PreIntegration.hpp"
 #include "BASolver.hpp"
+#include "AlignRealWorld.hpp"
 
 namespace vio{
 
@@ -24,15 +25,15 @@ class Estimator {
 
   /** \brief construct function
    * @param configFile --- config file
-   */ 
+   */
   Estimator(std::string configFile);
-  
+
   /** \brief deconstruct function
-   */ 
+   */
   ~Estimator();
 
   /** \brief reset system
-   */ 
+   */
   void reset();
 
   /** \brief estimator update 
@@ -42,7 +43,7 @@ class Estimator {
   void update(FramePtr frame,bool trackEnable);
 
   /** \brief get estimator state
-   */ 
+   */
   inline EstState getEstimatorState() const{
     return state;
   }
@@ -51,7 +52,7 @@ class Estimator {
    * @param Rwc --- rotation matrix from camera to world
    * @param WtC --- translation vector from camera to world
    * @return return pose success
-   */ 
+   */
   bool getCurrentPose(cv::Mat& Rwc,cv::Mat& WtC) const {
     if (!slideWindows_.empty() && poseUpdateFlg_) {
       slideWindows_.back()->getPoseInWorld(Rwc,WtC);
@@ -60,10 +61,20 @@ class Estimator {
     return false;
   }
 
-  void getCurrentPose(Eigen::Vector3d &t,Eigen::Quaterniond& q) const;
+  bool getCurrentPose(Eigen::Vector3d &t,Eigen::Quaterniond& q) const;
+
+  /** \brief get vio timestamp
+   * @return timestamp
+   */
+  double getVIOTimestamp() const {
+    if (slideWindows_.empty()) {
+      return  0;
+    }
+    return slideWindows_.back()->timestamp_;
+  }
 
   /** \brief get all features coordinate in world 
-   */ 
+   */
   std::vector<cv::Vec3f> getFeatsInWorld() const {
     return fsm_.getPointsInWorld();
   }
@@ -74,15 +85,24 @@ class Estimator {
    * @param data --- imu data
    */
   void updateImuMeas(double t,const IMU & data) {
+    static double lastTimestamp = 0;
     std::lock_guard<std::mutex> imuLock(m_imu_);
     imuMeas_.addMeas(t,data);
     if (!slideWindows_.empty()) {
-      imuMeas_.clean(slideWindows_.back()->timestamp_ - 1.0);
+      double frameTimestamp = slideWindows_.back()->timestamp_;
+      imuMeas_.clean( frameTimestamp- 1.0);
+      if (lastTimestamp != frameTimestamp && state == Runing && !alignWorld_->frameAlreadyInsert(frameTimestamp) && frameTimestamp < t) {
+        lastTimestamp = frameTimestamp;
+        alignWorld_->update(slideWindows_.back(),imuMeas_);
+        alignUpdateFlg_ = true;
+      }
     } else {
       while (imuMeas_.measMap_.size() > 1000) {
         imuMeas_.measMap_.erase(imuMeas_.measMap_.begin());
       }
     }
+
+
   }
 
   /** \brief get camera shared pointer
@@ -106,9 +126,8 @@ class Estimator {
   FeatureManager fsm_;
   PnpSolver* pnpSolver_;
   BAG2O * baSolver_;
+  VOAlignedRealWorld *alignWorld_;
   std::vector<FramePtr> slideWindows_;
-  std::map<double,Eigen::Vector3d> slideAccel_,slidePose_;
-  int goodExcitationCount_;
   std::mutex m_filter_,m_imu_;
   MeasurementTimeline<IMU> imuMeas_;
   PreIntegration* preInteNow_;
@@ -116,27 +135,24 @@ class Estimator {
   Eigen::Vector3d tbc_;
   bool poseUpdateFlg_;
   bool removeOldKeyFrame_;
+  bool alignUpdateFlg_;
   std::string moduleName_;
-  const static int S = 20;
-  const static int D = 3;
-  const static int K = 5;
-  std::ofstream splineFile;
   /** \brief slide window to remove oldest frame and features
-   */ 
+   */
   void slideWindow();
 
   /** \brief estimate pose of current frame
    * @return return true if estimator works well otherwise return false
-   */   
+   */
   bool estimatePose(FramePtr framePtr);
 
   /** \brief check pose ok or not
    * @return return true if current pose is ok
-   */ 
+   */
   bool checkPose();
 
   /** \brief update features include removing untracked points and add new points
-   */ 
+   */
   void updateFeature(FramePtr frame);
 
   /** \brief check frame is keyframe or not through check parallax between frame and slidewindow back frame
@@ -151,23 +167,6 @@ class Estimator {
    * @param R_cur_last --- rotation matrix from last frame to current frame
    */
   void calCameraRotationMatrix(double lastT, double curT, cv::Mat &R_cur_last);
-
-
-   /** \brief update accel and pose in the slide window
-    * @param curFrame --- current frame pointer
-    */
-  void updateSlideAccelAndPose(FramePtr curFrame);
-
-  /** \brief get secord difference of pose thourgh b-spline
-   *
-   */
-  void calWindowsAccelByBSpline();
-
-  /** \brief calculate rotation matrix and scale from camera coordinate to world coordinate
-   * @param splineAcc --- accel from b-spline
-   * @param imuAcc --- accel from imu
-   */
-  void calScaleAndR0(const std::vector<Eigen::Vector3d>& splineAcc,const std::vector<Eigen::Vector3d>& imuAcc);
 
 };
 }
