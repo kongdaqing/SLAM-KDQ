@@ -62,9 +62,15 @@ int main(int argc,char **argv) {
       double timestamp = info.t();
       Eigen::Vector3d acc(info.acc().x(),info.acc().y(),info.acc().z());
       Eigen::Vector3d gyr(info.gyr().x(),info.gyr().y(),info.gyr().z());
-//      std::cout << "[IMU]: " << timestamp << ",ax:" << acc.x() << ",ay:" << acc.y() << ",az:" << acc.z() << std::endl;
-//      std::cout << "[IMU]: " << timestamp << ",gx:" << gyr.x() * 60 << ",gy:" << gyr.y() * 60 << ",gz:" << gyr.z() * 60 << std::endl;
-      estimator.updateImuMeas(timestamp,IMU(timestamp,acc,gyr));
+
+      std::cout << "[IMU]: " << std::setw(12) << std::setfill(' ') << std::setprecision(6) << timestamp
+                << ",ax:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) << acc.x()
+                << ",ay:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) <<  acc.y()
+                << ",az:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) <<  acc.z()
+                << ",gx:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) << gyr.x() * 60
+                << ",gy:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) << gyr.y() * 60
+                << ",gz:" << std::setw(12) << std::setfill(' ') << std::setprecision(6) << gyr.z() * 60 << std::endl;
+      //estimator.updateImuMeas(timestamp,IMU(timestamp,acc,gyr));
     }
   });
   bottomClient.connect(serverBaseUrl + ":18950");

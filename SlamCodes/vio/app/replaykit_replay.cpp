@@ -56,7 +56,12 @@ int main(int argc,char **argv) {
       estimator.update(frame, true);
     }
   });
-
+  std::ofstream imuRecord("imu.csv",std::ios::out);
+  imuRecord << "t,ax,ay,az,gx,gy,gz" << std::endl;
+  Eigen::Matrix3d RNU;
+  RNU << 0., 1.0, 0.,
+         -1.0, 0.0, 0.,
+         0.,  0.0, 1.0;
   replaykit.Subscribe<1>([&](double now_time, const rovio::InputInfoPack &info_pack) {
     static double last_T = 0;
     for (size_t i = 0; i < info_pack.info_size(); i++) {
@@ -64,8 +69,10 @@ int main(int argc,char **argv) {
       double timestamp = info.t();
       Eigen::Vector3d acc(info.acc().x(),info.acc().y(),info.acc().z());
       Eigen::Vector3d gyr(info.gyr().x(),info.gyr().y(),info.gyr().z());
-//      std::cout << "[IMU]: " << timestamp << ",ax:" << acc.x() << ",ay:" << acc.y() << ",az:" << acc.z() << std::endl;
-//      std::cout << "[IMU]: " << timestamp << ",gx:" << gyr.x() * 60 << ",gy:" << gyr.y() * 60 << ",gz:" << gyr.z() * 60 << std::endl;
+      Eigen::Quaterniond qwc(info.quat().w(),info.quat().x(),info.quat().y(),info.quat().z());
+      //debug
+      //acc = RNU * qwc.toRotationMatrix() * acc;
+      imuRecord << timestamp << "," << acc.x() << "," << acc.y() << "," << acc.z() << "," << gyr.x() << "," << gyr.y() << "," << gyr.z() << std::endl;
       estimator.updateImuMeas(timestamp,IMU(timestamp,acc,gyr));
     }
   });

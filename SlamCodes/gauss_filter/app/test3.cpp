@@ -19,7 +19,7 @@ int main(void)
   const size_t K = 51;                         /* window size */
   GslGaussFilter f1(K,1.0);
 
-  std::vector<Eigen::VectorXd> x;
+  std::vector<Eigen::Vector3d> x;
   size_t i;
   Eigen::Vector3d sum = Eigen::Vector3d::Zero();
   gsl_rng *r = gsl_rng_alloc(gsl_rng_default);
@@ -32,9 +32,9 @@ int main(void)
     sum += Eigen::Vector3d(u1,u2,u3);
     x.push_back(sum);
   }
-  std::vector<Eigen::VectorXd> y;
+  std::vector<Eigen::Vector3d> y;
   y = f1.apply(x);
-  std::ofstream file("test3.csv",std::ios::out);
+  std::ofstream file("test3_temp.csv",std::ios::out);
   file << "x1,x2,x3,,y1,y2,y3" << std::endl;
   /* print filter results */
   for (i = 0; i < N; ++i) {

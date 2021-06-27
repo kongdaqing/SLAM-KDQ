@@ -40,7 +40,14 @@ void VizScene::windowShowLoopRun() {
     if (estimator_->getEstimatorState() == EstState::Runing) {
       if (estimator_->getCurrentPose(Rwc, WtC)) {
         cv::Affine3d Twc(Rwc, WtC);
-        std::cout << "[Pose]:" << WtC.t() << std::endl;
+        Eigen::Vector3d  t;
+        Eigen::Quaterniond qwc;
+        estimator_->getCurrentPose(t,qwc);
+        kindr::RotationQuaternionPD kqwc(qwc);
+        kindr::EulerAnglesZyxD euler(kqwc);
+        euler.setUnique(); //设置唯一的转换方式，不然有可能变成很大的值
+        Eigen::Vector3d eulerDeg = euler.toImplementation() * 180 / M_PI;
+        std::cout << "[Pose]:" << estimator_->getVIOTimestamp() << "," <<  t.transpose() << " -- " << eulerDeg.transpose() << std::endl;
         updateCameraPose(estimator_->cameraName, Twc);
         updatePointClouds(estimator_->pointsName, estimator_->getFeatsInWorld());
       }

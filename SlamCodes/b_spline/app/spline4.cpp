@@ -7,7 +7,7 @@
 #include "BSplineX.hpp"
 
 const int D = 3;
-const int S = 18;
+const int S = 15;
 const int K = 5;
 std::ofstream recordFile("spline4.csv",std::ios::out);
 double lastTime = 0;
@@ -27,7 +27,7 @@ void splineAccel(const std::list<std::pair<double,Eigen::Vector3d> >& slideWindo
     y.row(cnt) = data.second;
     cnt++;
   }
-  BSplineX<S,D,K> spline(x,y,0.01);
+  BSplineX<S,D,K> spline(x,y);
   double t0 = x(2,0);
   double t1 = x(S-2,0);
   for (double t = t0; t < t1; t = t + 0.01) {
@@ -77,7 +77,7 @@ int main(int argc,char **argv) {
     z.push_back(zz);
   }
   std::list<std::pair<double,Eigen::Vector3d> > slideWindow;
-  size_t div = 10; //[6-10]
+  size_t div = 1; //[6-10]
   //skip i = 0 for first line in the sample.txt is "t,tx,ty,tz"
   for (int i = 1; i < t.size(); i++) {
     if (i % div != 0) {
