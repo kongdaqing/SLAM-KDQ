@@ -19,7 +19,7 @@ Estimator::Estimator(std::string configFile) {
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
   alignWorld_ = new VOAlignedRealWorld(Rbc_.transpose(),500,30,3.,0.3);
   FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
-  FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,px,py,pz,qw,qx,qy,qz");
+  FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,alignCost,px,py,pz,qw,qx,qy,qz");
   reset();
 }
 
@@ -46,11 +46,8 @@ bool Estimator::getCurrentPose(Eigen::Vector3d &t, Eigen::Quaterniond &q) const 
 }
 
 void Estimator::update(FramePtr frame,bool trackEnable) {
-  Tictoc tim("estimator"),allTim("all");
-  tim.tic();
-  allTim.tic();
-  double costTime[4] = {0.};
   std::lock_guard<std::mutex> lock(m_filter_);
+  AdvanceTimer timer1,timer2;
   FramePtr lastFramePtr = nullptr;
   if (!slideWindows_.empty()) {
     lastFramePtr = slideWindows_.back();
@@ -61,7 +58,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
-  costTime[0] = tim.toc();
+  timer1.toc("trackCost");
   isKeyframe(frame);
   slideWindows_.push_back(frame);
   poseUpdateFlg_ = false;
@@ -74,7 +71,6 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       break;
     case EstState::Initing:
     {
-      tim.tic();
       //KDQ:初始化的时候第一帧选择很重要，如果第一帧和当前帧匹配带你过少，则应该删除第一帧
       FramePtr refFrame = slideWindows_.front();
       if (refFrame->getMatchedFeatureSize(frame.get()) < cfg_->iniParam_.minMatchedFeatNum) {
@@ -112,22 +108,21 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         reset();
         state = Waiting;
       }
-      costTime[1] = tim.toc();
+      timer1.toc("initCost");
       break;
     }
     case EstState::Runing:
-      tim.tic();
       if (slideWindows_.size() > 1 && fsm_.getFeatureSize() > 5 && estimatePose(slideWindows_.back()) && checkPose()) {
         //updateFeature must be first than ba,otherwize curframe not be update
         updateFeature(slideWindows_.back());
+        timer1.toc("pnpCost");
         if (alignUpdateFlg_) {
           alignWorld_->alignToRealWorld();
           alignUpdateFlg_ = false;
         }
-        costTime[2] = tim.toc();
-        tim.tic();
+        timer1.toc("alignCost");
         bundleAdjustment();
-        costTime[3] = tim.toc();
+        timer1.toc("baCost");
         poseUpdateFlg_ = true;
       } else {
         reset();
@@ -141,16 +136,16 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   if (slideWindows_.empty()) {
     return;
   }
-  double allCost = allTim.toc();
+  timer2.toc("allCost");
   Eigen::Vector3d twc = Eigen::Vector3d::Zero();
   Eigen::Quaterniond qwc;
   qwc.setIdentity();
   getCurrentPose(twc,qwc);
   FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","%12.4f,%d,"
-                                                             "%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,"
+                                                             "%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,"
                                                              "%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,%3.4f,%3.4f",
                          slideWindows_.back()->timestamp_,state,
-                         allCost,costTime[0],costTime[1],costTime[2],costTime[3],
+                         timer2.costMs("allCost"),timer1.costMs("trackCost"), timer1.costMs("initCost"),timer1.costMs("pnpCost"),timer1.costMs("baCost"),timer1.costMs("alignCost"),
                          twc.x(),twc.y(),twc.z(),qwc.w(),qwc.x(),qwc.y(),qwc.z());
 }
 

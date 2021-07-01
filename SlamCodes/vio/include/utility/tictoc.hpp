@@ -1,5 +1,5 @@
 #pragma once
-
+#include <map>
 #include <stdio.h>
 #include <sys/time.h>
 #include <string>
@@ -52,3 +52,22 @@ class Tictoc {
   double time2;
 };
 
+class AdvanceTimer {
+ public:
+  AdvanceTimer(): timer("timer") {
+    timer.tic();
+  }
+  void toc(std::string name) {
+    costMs_[name] = timer.toc();
+    timer.tic();
+  }
+  double costMs(std::string name) {
+    if (costMs_.count(name)) {
+      return costMs_[name];
+    }
+    return 0;
+  }
+ private:
+  Tictoc timer;
+  std::map<std::string,double> costMs_;
+};
