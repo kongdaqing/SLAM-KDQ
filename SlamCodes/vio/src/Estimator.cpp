@@ -65,21 +65,23 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   switch (state)
   {
     case EstState::Waiting:
+    {
       if (slideWindows_.size() >= 2) {
-        state = EstState::Initing;
+        float parallex = 0.;
+        FramePtr refFrame = slideWindows_.front();
+        //KDQ:初始化的时候第一帧选择很重要，如果第一帧和当前帧匹配带你过少，则应该删除第一帧
+        while (!slideWindows_.empty() && refFrame->getMatchedFeatureSize(frame.get(), parallex) < cfg_->iniParam_.minMatchedFeatNum) {
+          slideWindows_.erase(slideWindows_.begin());
+        }
+        if (slideWindows_.size() > 4 && parallex > cfg_->iniParam_.minDisparity) {
+          state = EstState::Initing;
+        }
       }
       break;
+    }
     case EstState::Initing:
     {
-      //KDQ:初始化的时候第一帧选择很重要，如果第一帧和当前帧匹配带你过少，则应该删除第一帧
       FramePtr refFrame = slideWindows_.front();
-      if (refFrame->getMatchedFeatureSize(frame.get()) < cfg_->iniParam_.minMatchedFeatNum) {
-        slideWindows_.erase(slideWindows_.begin());
-      }
-
-      if (slideWindows_.size() < 4) {
-        break;
-      }
       size_t endId = slideWindows_.size() - 1;
       int initCnt = 1;
       if (init_->initPoseAndMap(slideWindows_[0],slideWindows_[endId],fsm_)) {
@@ -151,14 +153,18 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
 
 void Estimator::slideWindow() {
   if (slideWindows_.size() > WINSIZE ) { //remove old frame until slidewindow is full
-    //目前认为移除最老帧比较合理
-    if (removeOldKeyFrame_ || true) {
+    //删除最老帧
+    if (removeOldKeyFrame_) {
       fsm_.removeFrame(slideWindows_.front());
       slideWindows_.erase(slideWindows_.begin());
     } else {
-      std::vector<FramePtr>::const_iterator secondNewFrame = slideWindows_.end() - 2;
-      fsm_.removeFrame(*secondNewFrame);
-      slideWindows_.erase(secondNewFrame);
+      //删除次新帧
+      FramePtr curFrame = slideWindows_.back();
+      slideWindows_.pop_back();
+      FramePtr secondNewFrame = slideWindows_.back();
+      fsm_.removeFrame(secondNewFrame);
+      slideWindows_.pop_back();
+      slideWindows_.push_back(curFrame);
     }
   }
 }
