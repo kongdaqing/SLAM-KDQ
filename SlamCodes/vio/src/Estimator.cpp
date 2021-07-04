@@ -17,7 +17,11 @@ Estimator::Estimator(std::string configFile) {
   moduleName_ = "Estimator";
   cv::cv2eigen(cfg_->extrinsicParam_.Rbc,Rbc_);
   cv::cv2eigen(cfg_->extrinsicParam_.tbc,tbc_);
-  alignWorld_ = new VOAlignedRealWorld(Rbc_.transpose(),500,30,3.,0.3);
+  if (cfg_->estimatorParam_.EnableVOAlignedToWorld) {
+    alignWorld_ = new VOAlignedRealWorld(Rbc_.transpose(),500,30,3.,0.3);
+  } else {
+    alignWorld_ = nullptr;
+  }
   FileSystem::fInfo = fopen(cfg_->estimatorParam_.LogName.c_str(),"wb+");
   FileSystem::printInfos(LogType::Info,moduleName_ + "|Pose","timestamp,allCost,trackCost,initCost,pnpCost,baCost,alignCost,px,py,pz,qw,qx,qy,qz");
   reset();
@@ -30,7 +34,8 @@ Estimator::~Estimator() {
   delete init_;
   delete feaTrcker_;
   delete pnpSolver_;
-  delete alignWorld_;
+  if (alignWorld_ != nullptr)
+    delete alignWorld_;
 }
 
 bool Estimator::getCurrentPose(Eigen::Vector3d &t, Eigen::Quaterniond &q) const {
@@ -54,7 +59,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
   }
   if (trackEnable) {
     cv::Mat R_cur_last;
-    if (lastFramePtr != nullptr)
+    if (lastFramePtr != nullptr && cfg_->estimatorParam_.EnableFeaturePrediction == 1)
       calCameraRotationMatrix(lastFramePtr->timestamp_,frame->timestamp_,R_cur_last);
     feaTrcker_->detectAndTrackFeature(lastFramePtr, frame, R_cur_last);
   }
@@ -118,7 +123,7 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
         //updateFeature must be first than ba,otherwize curframe not be update
         updateFeature(slideWindows_.back());
         timer1.toc("pnpCost");
-        if (alignUpdateFlg_) {
+        if (alignWorld_ != nullptr && alignUpdateFlg_) {
           alignWorld_->alignToRealWorld();
           alignUpdateFlg_ = false;
         }
@@ -170,7 +175,8 @@ void Estimator::slideWindow() {
 }
 
 void Estimator::reset() {
-  alignWorld_->reset();
+  if (alignWorld_ != nullptr)
+    alignWorld_->reset();
   fsm_.reset();
   slideWindows_.clear();
   imuMeas_.clear();

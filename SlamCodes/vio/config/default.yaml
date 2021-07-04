@@ -4,6 +4,8 @@ Estimator.KeyFrameMatchedPoints: 20
 Estimator.KeyFrameParallexThreshold: 5
 Estimator.ReprojectPixelErr: 2
 Estimator.BundleAdjustment: 1
+Estimator.EnableFeaturePrediction: 0
+Estimator.EnableVOAlignedToWorld: 0
 
 OptiTrack.TrackBack: 1
 OptiTrack.TrackBackPixelErr: 1

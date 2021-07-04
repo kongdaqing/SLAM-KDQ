@@ -91,7 +91,7 @@ class Estimator {
     if (!slideWindows_.empty()) {
       double frameTimestamp = slideWindows_.back()->timestamp_;
       imuMeas_.clean( frameTimestamp- 1.0);
-      if (lastTimestamp != frameTimestamp && state == Runing && !alignWorld_->frameAlreadyInsert(frameTimestamp) && frameTimestamp < t) {
+      if (alignWorld_ != nullptr && lastTimestamp != frameTimestamp && state == Runing && !alignWorld_->frameAlreadyInsert(frameTimestamp) && frameTimestamp < t) {
         lastTimestamp = frameTimestamp;
         alignWorld_->update(slideWindows_.back(),imuMeas_);
         alignUpdateFlg_ = true;

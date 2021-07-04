@@ -101,6 +101,8 @@ struct EstimatorParam {
   int KeyFrameMatchedPoints;
   int ReprojectPixelErr;
   int BundleAdjustment;
+  int EnableFeaturePrediction;
+  int EnableVOAlignedToWorld;
   std::string LogName;
   void print() {
     std::cout << "=========Estimator Parameters========" << std::endl;
@@ -108,6 +110,8 @@ struct EstimatorParam {
     std::cout << "keyframeMatchedPoints = " << KeyFrameMatchedPoints << std::endl;
     std::cout << "reprojectPixelErr = " << ReprojectPixelErr << std::endl;
     std::cout << "bundleAdjustment = " << BundleAdjustment << std::endl;
+    std::cout << "enableFeaturePrediction = " << EnableFeaturePrediction << std::endl;
+    std::cout << "enableVOAlignedToWorld = " << EnableVOAlignedToWorld << std::endl;
     std::cout << "logName = " << LogName << std::endl;
   }
 };
@@ -128,6 +132,8 @@ class Config {
     estimatorParam_.KeyFrameParallexThreshold = fs["Estimator.KeyFrameParallexThreshold"];
     estimatorParam_.ReprojectPixelErr = fs["Estimator.ReprojectPixelErr"];
     estimatorParam_.BundleAdjustment = fs["Estimator.BundleAdjustment"];
+    estimatorParam_.EnableFeaturePrediction = fs["Estimator.EnableFeaturePrediction"];
+    estimatorParam_.EnableVOAlignedToWorld = fs["Estimator.EnableVOAlignedToWorld"];
     fs["Estimator.FileName"] >> estimatorParam_.LogName;
     if (estimatorParam_.LogName.empty()) {
       estimatorParam_.LogName = "estimator.csv";

@@ -88,7 +88,7 @@ class CameraObject {
     recordCount_++;
     if(recordCount_ % recoreFreq_ == 0) {
       path_.push_back(pos);
-      if (path_.size() > 300) {
+      if (path_.size() > 3000) {
         path_.erase(path_.begin());
       }
     }
