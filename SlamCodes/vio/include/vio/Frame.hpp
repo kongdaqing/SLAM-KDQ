@@ -214,6 +214,28 @@ class Frame {
     return matchedSize;
   }
 
+  /** \brief get matched feature size
+ *
+ * @param frame  --- frame pointer
+ * @return
+ */
+  int getMatchedFeatureSize(const Frame* frame,float& averParallex) {
+    int matchedSize = 0;
+    float sumParallex = 0;
+    const std::map<uint64_t,cv::Point2f>& refFeats = frame->getCorners();
+    for (auto it = refFeats.begin();it != refFeats.end();it++) {
+      if (corners_.count(it->first)) {
+        matchedSize++;
+        sumParallex += cv::norm(it->second - corners_[it->first]);
+      }
+    }
+    if (matchedSize > 0) {
+      averParallex = sumParallex / matchedSize;
+    }
+    return matchedSize;
+  }
+
+
   /** \brief display all feature in current frame
    * @param scale --- image scale, 1 - means raw size; 2 - means twice size bigger than raw size
    */
