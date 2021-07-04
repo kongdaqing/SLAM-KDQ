@@ -12,3 +12,5 @@ include_directories(${EIGEN3_INCLUDE_DIRS}
 add_executable(quaternion_slerp app/quaternion_slerp.cpp)
 target_link_libraries(quaternion_slerp ${OpenCV_LIBS})
 
+add_executable(quaternion_angle_distance app/quaternion_angle_distance.cpp)
+
