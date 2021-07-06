@@ -40,7 +40,9 @@ class Feature {
    * @param f  --- frame ptr that will be remove
    */ 
   void removeFrame(const FramePtr f) {
-    uv.erase(f);
+    if (uv.size() > WINSIZE) {
+      uv.erase(uv.begin());
+    }
   }
 
   /** \brief set this feature 3D position in the world
@@ -213,7 +215,8 @@ class FeatureManager {
    * @param id --- id of landmark to update
    */
   void updateBadCount(uint64_t id) {
-    if (feats_.count(id)) {
+    //if good count > 2, bad count doesn't update
+    if (feats_.count(id) && feats_[id].getGoodCount() < 10) {
       feats_[id].incBadCount();
     }
   }

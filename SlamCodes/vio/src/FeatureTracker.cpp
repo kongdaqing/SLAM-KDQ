@@ -134,7 +134,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
     if (allCorners_.size() > ShowTrackFrames) {
       allCorners_.pop_front();
     }
-    showAllFeature(curFrame->image_,2);
+    showAllFeature(curFrame->timestamp_,curFrame->image_,2);
     costTime[2] += tictoc.toc();
   }
   double allCostMs = allTicToc.toc();
@@ -155,7 +155,7 @@ void FeatureTracker::detectAndTrackFeature(FramePtr refFrame,FramePtr curFrame,c
 }
 
 
-void FeatureTracker::showAllFeature(cv::Mat &img,uint8_t imgScale) {
+void FeatureTracker::showAllFeature(double timestamp,cv::Mat &img,uint8_t imgScale) {
   cv::Mat colorImg;
   cv::cvtColor(img,colorImg,cv::COLOR_GRAY2BGR);
   std::map<uint64_t,cv::Point2f> cornerFront = allCorners_.front();
@@ -176,6 +176,7 @@ void FeatureTracker::showAllFeature(cv::Mat &img,uint8_t imgScale) {
   cv::resize(colorImg,colorImg,cv::Size(colorImg.cols * imgScale, colorImg.rows * imgScale));
   cv::imshow("all features",colorImg);
   cv::waitKey(1);
+  cv::imwrite("image/image_" + std::to_string(timestamp) + ".png",colorImg);
 }
 
 }

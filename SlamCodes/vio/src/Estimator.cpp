@@ -160,6 +160,7 @@ void Estimator::slideWindow() {
   if (slideWindows_.size() > WINSIZE ) { //remove old frame until slidewindow is full
     //删除最老帧
     if (removeOldKeyFrame_) {
+      slideWindows_.front()->image_.release();
       fsm_.removeFrame(slideWindows_.front());
       slideWindows_.erase(slideWindows_.begin());
     } else {
@@ -167,6 +168,7 @@ void Estimator::slideWindow() {
       FramePtr curFrame = slideWindows_.back();
       slideWindows_.pop_back();
       FramePtr secondNewFrame = slideWindows_.back();
+      secondNewFrame->image_.release();
       fsm_.removeFrame(secondNewFrame);
       slideWindows_.pop_back();
       slideWindows_.push_back(curFrame);
@@ -281,8 +283,10 @@ void Estimator::updateFeature(FramePtr curFramePtr) {
   for(size_t i = 0; i < idx.size(); i++) {
     float repErr = cv::norm(proPtVec[i] - ptVec[i]);
     if (repErr > cfg_->estimatorParam_.ReprojectPixelErr) {
-      corners.erase(idx[i]);
       fsm_.updateBadCount(idx[i]);
+      if (features[idx[i]].getGoodCount() > 10) {
+        corners.erase(idx[i]);
+      }
     } else {
       fsm_.addFeature(idx[i],curFramePtr);
       if (repErr < 0.5) {
