@@ -102,15 +102,16 @@ void Estimator::update(FramePtr frame,bool trackEnable) {
       }
       if (initCnt == endId) {
         //三角化所有的特征点
-        fsm_.triangulateAll();
-        BAG2O basolver;
-        if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
-          basolver.updatePoseAndMap(slideWindows_,fsm_);
-          state = Runing;
-        } else {
-          reset();
-          state = Waiting;
-        }
+        state = Runing;
+//        fsm_.triangulateAll();
+//        BAG2O basolver;
+//        if (basolver.constructWindowFrameOptimize(slideWindows_,fsm_,2.0/cam_->fx())) {
+//          basolver.updatePoseAndMap(slideWindows_,fsm_);
+//          state = Runing;
+//        } else {
+//          reset();
+//          state = Waiting;
+//        }
       } else {
         reset();
         state = Waiting;
@@ -161,7 +162,6 @@ void Estimator::slideWindow() {
     //删除最老帧
     if (removeOldKeyFrame_) {
       slideWindows_.front()->image_.release();
-      fsm_.removeFrame(slideWindows_.front());
       slideWindows_.erase(slideWindows_.begin());
     } else {
       //删除次新帧
@@ -169,7 +169,6 @@ void Estimator::slideWindow() {
       slideWindows_.pop_back();
       FramePtr secondNewFrame = slideWindows_.back();
       secondNewFrame->image_.release();
-      fsm_.removeFrame(secondNewFrame);
       slideWindows_.pop_back();
       slideWindows_.push_back(curFrame);
     }
@@ -239,22 +238,20 @@ bool Estimator::estimatePose(FramePtr frame) {
 
 
 bool Estimator::checkPose() {
+  static double dPose = -1.0;
   if (slideWindows_.size() < 2) {
     return true;
   }
   FramePtr curFramePtr = slideWindows_.back();
   FramePtr oldestFramePtr = slideWindows_.front();
   double dt = curFramePtr->timestamp_ - oldestFramePtr->timestamp_;
-  cv::Mat cur_wtc = curFramePtr->WtC();
-  cv::Mat old_wtc = oldestFramePtr->WtC();
-  if (cur_wtc.size() == old_wtc.size() && cur_wtc.type() == old_wtc.type()) {
-    cv::Mat dT = cur_wtc - old_wtc;
-    cv::Mat dtNorm = dT.t() * dT;
-    double spd = dtNorm.at<double>(0,0) / dt;
-    if (!isfinite(spd) && spd > 20) {
-      return false;
-    }
+  Eigen::Vector3d cur_wtc = curFramePtr->EWtC();
+  Eigen::Vector3d old_wtc = oldestFramePtr->EWtC();
+  double nowDPose = (cur_wtc - old_wtc).norm();
+  if (dPose > 0) {
+    return nowDPose < 10 * dPose;
   }
+  dPose = nowDPose;
   return true;
 }
 
@@ -282,11 +279,10 @@ void Estimator::updateFeature(FramePtr curFramePtr) {
   cam_->project(p3DVec,proPtVec,rcw,CtW);
   for(size_t i = 0; i < idx.size(); i++) {
     float repErr = cv::norm(proPtVec[i] - ptVec[i]);
-    if (repErr > cfg_->estimatorParam_.ReprojectPixelErr) {
+    if (repErr > 5 * cfg_->estimatorParam_.ReprojectPixelErr) {
+      fsm_.removeFeature(idx[i]);
+    } else if (repErr > cfg_->estimatorParam_.ReprojectPixelErr) {
       fsm_.updateBadCount(idx[i]);
-      if (features[idx[i]].getGoodCount() > 10) {
-        corners.erase(idx[i]);
-      }
     } else {
       fsm_.addFeature(idx[i],curFramePtr);
       if (repErr < 0.5) {
@@ -297,6 +293,10 @@ void Estimator::updateFeature(FramePtr curFramePtr) {
 
   //step2: remove untracked and bad features
   for (auto it = features.begin(); it != features.end();) {
+    if (slideWindows_.size() == WINSIZE && !it->second.isInFrame(slideWindows_.back())) {
+      fsm_.removeFeature(it++);
+      continue;
+    }
     if (it->second.getTrackCount() == 0) {
       fsm_.removeFeature(it++);
       continue;

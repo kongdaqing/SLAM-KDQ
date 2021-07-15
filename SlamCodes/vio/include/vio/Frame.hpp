@@ -2,7 +2,7 @@
 #include <memory>
 #include <iostream>
 #include <map>
-#include "Eigen/Core"
+#include "Eigen/Dense"
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/eigen.hpp>
 #include "Camera.hpp"
@@ -277,6 +277,13 @@ class Frame {
     Eigen::Vector3d eWtc;
     cv::cv2eigen(WtC_,eWtc);
     return eWtc;
+  }
+
+  inline Eigen::Isometry3d ETwc() const {
+    Eigen::Isometry3d Twc = Eigen::Isometry3d::Identity();
+    Twc.rotate(ERwc());
+    Twc.pretranslate(EWtC());
+    return Twc;
   }
 
   cv::Mat image_;

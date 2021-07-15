@@ -1,4 +1,5 @@
-#pragma once 
+#pragma once
+#include "Eigen/Dense"
 #include "Frame.hpp"
 #include "Camera.hpp"
 #define WINSIZE 10
@@ -33,16 +34,28 @@ class Feature {
   void addFrame(const FramePtr f) {
     cv::Point2f pixel,normalized;
     if (f->getCornerUV(id,pixel) && f->getNormalizedUV(id,normalized)) {
+      if (!uv.empty()) {
+        cv::Point2f n_p = uv.rbegin()->second.first;
+        if (cv::norm(n_p - pixel) < 10) {
+          return;
+        }
+      }
       uv[f] = PixelCoordinate(pixel,normalized);
+      if (uv.size() >= 2) {
+        if (!checkReprojectDirection(uv.begin()->first,f)) {
+          uv.erase(f);
+        }
+      } else {
+
+      }
     }
   }
   /** \brief remove frame ptr that corresponding this feature 
    * @param f  --- frame ptr that will be remove
    */ 
   void removeFrame(const FramePtr f) {
-    if (uv.size() > WINSIZE) {
-      uv.erase(uv.begin());
-    }
+    if (uv.begin()->first != f)
+      uv.erase(f);
   }
 
   /** \brief set this feature 3D position in the world
@@ -131,6 +144,21 @@ class Feature {
   bool isReadyForOptimize() const{
     return valid3D_ && badCount_ == 0 && getTrackCount() > 1;
   }
+
+  bool checkReprojectDirection(const FramePtr ref,const FramePtr cur) {
+    if (!uv.count(ref) || !uv.count(cur)) {
+      return false;
+    }
+    Eigen::Isometry3d Twc = cur->ETwc();
+    Eigen::Isometry3d Twr = ref->ETwc();
+    Eigen::Isometry3d Tcr = Twc.inverse() * Twr;
+    Eigen::Vector3d norm_c = Eigen::Vector3d(uv[cur].second.x,uv[cur].second.y,1.);
+    Eigen::Vector3d norm_r = Eigen::Vector3d(uv[ref].second.x,uv[ref].second.y,1.);
+    Eigen::Vector3d norm_c_r = Tcr * norm_r;
+    double cosAngle = norm_c.normalized().transpose() * norm_c_r.normalized();
+    return cosAngle > 0.99619; // 0.99619 - 5 deg
+  }
+
  private:
   uint64_t id;
   std::map<const FramePtr,PixelCoordinate> uv;
@@ -216,7 +244,7 @@ class FeatureManager {
    */
   void updateBadCount(uint64_t id) {
     //if good count > 2, bad count doesn't update
-    if (feats_.count(id) && feats_[id].getGoodCount() < 10) {
+    if (feats_.count(id)) {
       feats_[id].incBadCount();
     }
   }
