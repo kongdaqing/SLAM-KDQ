@@ -19,10 +19,10 @@ int main(int argc,char** argv) {
   int alignModel = cv::MOTION_EUCLIDEAN;
   ImageAlignment imgAlign(alignModel,40,1e-6,false);
   const double toc_start  = (double) cv::getTickCount ();
-  cv::Mat warp12 = imgAlign.Align(halfIm1,halfIm2);
+  cv::Mat warp12 = imgAlign.Align(0,halfIm1,halfIm2);
   const double toc_final  = ((double) cv::getTickCount () - toc_start) / cv::getTickFrequency();
   std::cout << "Cost time = " << toc_final << std::endl;
-  cv::Mat warp21 = imgAlign.Align(halfIm2,halfIm1);
+  cv::Mat warp21 = imgAlign.Align(0,halfIm2,halfIm1);
   cv::Mat warpCheck;
   if (alignModel == cv::MOTION_HOMOGRAPHY) {
     warpCheck = warp12 * warp21;

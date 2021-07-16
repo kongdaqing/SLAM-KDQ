@@ -3,26 +3,10 @@
 #include "cmdline.h"
 #include "ImageAlignment.hpp"
 #include "ConfigLoad.hpp"
+#include "map"
+#include "mutex"
+#include "condition_variable"
 
-void checkWarpMatrix(cv::Mat& warp12,cv::Mat& warp21,int alignModel) {
-  cv::Mat warpCheck;
-  if (alignModel == cv::MOTION_HOMOGRAPHY) {
-    warpCheck = warp12 * warp21;
-  } else {
-    cv::Mat tm1 = cv::Mat::eye(3,3,CV_32F);
-    cv::Mat tm2 = cv::Mat::eye(3,3,CV_32F);
-    for (size_t i = 0; i < 2; i++) {
-      for (size_t j = 0; j < 3; j++) {
-        tm1.at<float>(i,j) = warp12.at<float>(i,j);
-        tm2.at<float>(i,j) = warp21.at<float>(i,j);
-      }
-    }
-    warpCheck = tm1 * tm2;
-  }
-  std::cout << "Warp12 = \n" << warp12 << std::endl;
-  std::cout << "Warp21 = \n" << warp21 << std::endl;
-  std::cout << "CheckWarp:\n" << warpCheck << std::endl;
-}
 
 int main(int argc,char** argv) {
   cmdline::parser parser;
@@ -53,28 +37,47 @@ int main(int argc,char** argv) {
   if (cfg.readOK_) {
     cam = new Camera(cfg.K_,cfg.D_,cfg.fisheye_,cfg.width_,cfg.height_);
   }
-  cv::Mat lastImg;
   ImageAlignment imgAlign(cam,alignModel,iterationNum,1e-10,pyramidLevel,histogramEnable);
   nnstation::BottomClient bottomClient;
+  std::map<double,cv::Mat> imageBuffer;
+  std::mutex imgLck;
+  std::condition_variable imgCv;
   bottomClient.connect(imageUrl);
   bottomClient.subscribe([&](const vision::BottomImage &bottomImage) {
     cv::Mat im = cv::Mat(cv::Size(bottomImage.width(), bottomImage.height()), CV_8UC1,
-                               (char *) bottomImage.image_buffer().c_str()).clone();
-    if (!lastImg.empty()) {
-      cv::Mat warp1 = imgAlign.Align(bottomImage.timestamp(),lastImg,im,true);
-      cv::Mat warp2 = imgAlign.Align(bottomImage.timestamp(),im,lastImg);
-      checkWarpMatrix(warp1,warp2,alignModel);
-      std::cout << "WarpMatrix:" << bottomImage.timestamp() << ",";
-      for (size_t i = 0; i < warp1.rows; i++) {
-        for (size_t j = 0; j < warp1.cols; j++) {
-          std::cout << warp1.at<float>(i,j) << ",";
-        }
-      }
-      std::cout << std::endl;
-    }
-    lastImg = im.clone();
+                         (char *) bottomImage.image_buffer().c_str()).clone();
+    imgLck.lock();
+    imageBuffer[bottomImage.timestamp()] = im;
+    imgLck.unlock();
+    imgCv.notify_all();
   });
   bottomClient.startRecv();
-  sleep(UINT32_MAX);
+  double last_t = 0;
+  std::cout << "WarpMatrix:t,dt,cost,err,a00,a01,t0,a10,a11,t1," << std::endl;
+  while(1) {
+    std::unique_lock<std::mutex> lck(imgLck);
+    imgCv.wait(lck,[&](){return !imageBuffer.empty();});
+    double t = imageBuffer.begin()->first;
+    cv::Mat img = imageBuffer.begin()->second.clone();
+    imageBuffer.erase(imageBuffer.begin());
+    double err;
+    const double toc_start  = (double) cv::getTickCount ();
+    cv::Mat warp1 = imgAlign.Align(t,img,err);
+    const double toc_final  = ((double) cv::getTickCount () - toc_start) / cv::getTickFrequency();
+    double dt = t - last_t;
+    last_t = t;
+    if (dt > 10.) {
+      continue;
+    }
+    std::cout << "WarpMatrix:" << t << ","  << dt << "," << toc_final << "," << err << ",";
+    for (size_t i = 0; i < warp1.rows; i++) {
+      for (size_t j = 0; j < warp1.cols; j++) {
+        std::cout << warp1.at<float>(i,j) << ",";
+      }
+    }
+    std::cout << std::endl;
+  }
+
   return 0;
 }
+
