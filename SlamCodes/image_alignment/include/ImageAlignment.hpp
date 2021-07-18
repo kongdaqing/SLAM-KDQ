@@ -37,8 +37,8 @@ class ImageAlignment {
       return cv::Mat();
     }
     if (PyrDownLevel_ > 1 && cam_ == nullptr) {
-      cv::pyrDown(templateIm,img1,templateIm.size()/PyrDownLevel_);
-      cv::pyrDown(targetIm,img2,targetIm.size()/PyrDownLevel_);
+      cv::resize(templateIm,img1,templateIm.size()/PyrDownLevel_,0,0,CV_INTER_AREA);
+      cv::resize(targetIm,img2,targetIm.size()/PyrDownLevel_,0,0,CV_INTER_AREA);
     } else {
       if (cam_ != nullptr) {
         img1 = cam_->undistImage(templateIm,mapx_,mapy_);
@@ -98,7 +98,8 @@ class ImageAlignment {
   cv::Mat Align(double timestamp,cv::Mat& targetIm,double& err) {
     cv::Mat img2;
     if (PyrDownLevel_ > 1 && cam_ == nullptr) {
-      cv::pyrDown(targetIm,img2,targetIm.size()/PyrDownLevel_);
+      //cv::pyrDown(targetIm,img2,targetIm.size()/PyrDownLevel_);
+      cv::resize(targetIm,img2,targetIm.size()/PyrDownLevel_,0,0,CV_INTER_AREA);
     } else {
       if (cam_ != nullptr) {
         img2 = cam_->undistImage(targetIm,mapx_,mapy_);
@@ -152,6 +153,10 @@ class ImageAlignment {
 #endif
     lastImage_ = im2;
     return warpMatrix;
+  }
+
+  inline float getFocalLength() const {
+    return K_.at<float>(0,0);
   }
  private:
   cv::Mat lastImage_;

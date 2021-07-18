@@ -11,7 +11,7 @@ find_package(nanomsg CONFIG REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
 
-PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS interface/image.proto)
+PROTOBUF_GENERATE_CPP(PROTO_SRCS PROTO_HDRS interface/image.proto interface/rovio.proto)
 
 include_directories(
         include
@@ -39,3 +39,6 @@ target_link_libraries(test_replay ${OpenCV_LIBS} ${PROTOBUF_LIBRARY} pb_cpp nano
 
 add_executable(test_replay_advance app/test_replay_advance.cpp)
 target_link_libraries(test_replay_advance ${OpenCV_LIBS} ${PROTOBUF_LIBRARY} pb_cpp nanomsg)
+
+add_executable(test_opticalflow app/test_opticalflow.cpp)
+target_link_libraries(test_opticalflow ${OpenCV_LIBS} ${PROTOBUF_LIBRARY} pb_cpp nanomsg)
