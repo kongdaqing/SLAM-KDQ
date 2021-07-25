@@ -57,6 +57,40 @@ class ConfigLoad {
         char midH,dou1,dou2,dou3;
         strTemp >> title >> midH >> k1 >> dou1 >> k2  >> dou2 >> k3 >> dou3 >> k4;
         D_ = (cv::Mat_<float>(1,4) << k1,k2,k3,k4);
+      } else if (s1 == "extrinsic_matrix:") {
+        std::string tmp;
+        getline(camFile,tmp);
+        getline(camFile,tmp);
+        tmp.clear();
+        getline(camFile,tmp);
+        std::stringstream  strTemp(tmp);
+        std::string title;
+        char midH,dou1,dou2,dou3;
+        float mat[4][4];
+        strTemp >> title >> midH >> mat[0][0] >> dou1 >> mat[0][1] >> dou2 >> mat[0][2] >> dou3 >> mat[0][3];
+        tmp.clear();
+        getline(camFile,tmp);
+        strTemp.clear();
+        strTemp.str(tmp);
+        strTemp >> mat[1][0] >> dou1 >> mat[1][1] >> dou2 >> mat[1][2] >> dou3 >> mat[1][3];
+        tmp.clear();
+        getline(camFile,tmp);
+        strTemp.clear();
+        strTemp.str(tmp);
+        strTemp >> mat[2][0] >> dou1 >> mat[2][1] >> dou2 >> mat[2][2] >> dou3 >> mat[2][3];
+        tmp.clear();
+        getline(camFile,tmp);
+        strTemp.clear();
+        strTemp.str(tmp);
+        strTemp >> mat[3][0] >> dou1 >> mat[3][1] >> dou2 >> mat[3][2] >> dou3 >> mat[3][3];
+        cv::Mat Tcb = cv::Mat(4,4,CV_32F);
+        for (int i = 0; i < 4; ++i) {
+          for (int j = 0; j < 4; ++j) {
+            Tcb.at<float>(i,j) = mat[i][j];
+          }
+        }
+        Tcb.copyTo(Tcb_);
+        std::cout << "Tcb = \n" << Tcb_ << std::endl;
       }
     }
     if (width_ > 0 && width_ < 10000 && height_ > 0 && height_ < 10000 &&
@@ -72,6 +106,7 @@ class ConfigLoad {
   int width_;
   int height_;
   bool readOK_;
+  cv::Mat Tcb_;
  private:
 
 };
