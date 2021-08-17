@@ -9,6 +9,8 @@ class OpticalFlowEstimation {
 
   }
 
+  void updateEstimate();
+
   void addImuMeasurement(const IMU& data) {
     std::lock_guard<std::mutex> lck(imuMutex);
     imuMeas_.measMap_[data.timestamp] = data;
@@ -24,4 +26,5 @@ class OpticalFlowEstimation {
   ImageAlignment* imgAligner_;
   MeasurementTimeline<IMU> imuMeas_;
   MeasurementTimeline<Image> imageMeas_;
+
 };

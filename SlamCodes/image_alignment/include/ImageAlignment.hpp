@@ -69,7 +69,12 @@ class ImageAlignment {
       cv::equalizeHist(im1,im1);
       cv::equalizeHist(im2,im2);
     }
-    cv::findTransformECC(im1,im2,warpMatrix,MotionModel_,termCriteria);
+    try {
+      cv::findTransformECC(im1,im2,warpMatrix,MotionModel_,termCriteria);
+    } catch (cv::Exception &e){
+      std::cerr << e.msg << std::endl;
+      return warpMatrix;
+    }
 #ifdef PC_VERSION
     cv::Mat im2_aligned;
     if (MotionModel_ != cv::MOTION_HOMOGRAPHY) {
@@ -130,7 +135,12 @@ class ImageAlignment {
     }
     cv::Mat im1 = lastImage_.clone();
     cv::TermCriteria termCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, IterationNumber_, TerminationEps_);
-    err = cv::findTransformECC(im1,im2,warpMatrix,MotionModel_,termCriteria);
+    try {
+      err = cv::findTransformECC(im1,im2,warpMatrix,MotionModel_,termCriteria);
+    } catch (cv::Exception &e) {
+      std::cerr << e.msg << std::endl;
+      return warpMatrix;
+    }
 #ifdef PC_VERSION
     cv::Mat im2_aligned;
     if (MotionModel_ != cv::MOTION_HOMOGRAPHY) {
@@ -157,6 +167,10 @@ class ImageAlignment {
 
   inline float getFocalLength() const {
     return K_.at<float>(0,0);
+  }
+
+  cv::Mat getRectifyIntrinsicMatrix() const {
+    return K_;
   }
  private:
   cv::Mat lastImage_;
