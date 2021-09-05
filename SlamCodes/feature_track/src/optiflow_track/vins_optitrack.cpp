@@ -189,7 +189,7 @@ void OptiflowTrackByVINS::drawTrack() {
   char cost_time[2][12],track_sum[2][12];
   snprintf(cost_time[0], 12, "%.3f", track_cost_);
   snprintf(cost_time[1], 12, "%.3f", detect_cost_);
-  snprintf(track_sum[0], 12, "%3d", cur_pts_.size());
+  snprintf(track_sum[0], 12, "%3d", static_cast<int>(cur_pts_.size()));
   snprintf(track_sum[1], 12, "%3d", track_size_);
 
   cv::putText(cur_img_clr, "time-s:" + std::to_string(t_),cv::Point2f(10, 10),cv::FONT_HERSHEY_SIMPLEX, 0.4, cv::Scalar(0,0,255));

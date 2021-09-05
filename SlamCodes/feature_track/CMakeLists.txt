@@ -5,14 +5,12 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake_modules/")
+set(EXECUTABLE_OUTPUT_PATH "bin")
 get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)
 message(STATUS ${PARENT_DIRECTORY})
 set(DATA_INTERFACE_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/data_interface")
-set(DATA_INTERFACE_LIBS "${PARENT_DIRECTORY}/env/lib/data_interface/libZeroZeroImu.a")
 set(REPLAYKIT_INCLUDE_DIR "${PARENT_DIRECTORY}/env/include/replaykit")
 set(REPLAYKIT_LIBS "${PARENT_DIRECTORY}/env/lib/replaykit/libreplaykit.a;${PARENT_DIRECTORY}/env/lib/replaykit/libreplay_proto.a")
-
-
 
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -32,7 +30,8 @@ add_executable(test
 target_link_libraries(test 
   ${OpenCV_LIBS}
   ${PROTOBUF_LIBRARIES}
-  ${DATA_INTERFACE_LIBS})
+  ${REPLAYKIT_LIBS}
+)
 
   add_executable(gftt_track
   src/gftt_test.cpp
@@ -41,7 +40,7 @@ target_link_libraries(test
   target_link_libraries(gftt_track
   ${OpenCV_LIBS}
   ${PROTOBUF_LIBRARIES}
-  ${DATA_INTERFACE_LIBS})
+  )
 
 
   add_executable(replayFalcon
