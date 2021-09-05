@@ -12,14 +12,14 @@ typedef ::zz::replaykit::ReplayKit<
 int main(int argc,char** argv) {
   std::cout << "Hello replayKit optflow!" << std::endl;
   if(argc < 2) {
-    cout << "./replayFalcon rovioimageFile savePath skipTime" << std::endl;
+    cout << "./replayFalcon rovioimageFile savePath skipTime playSpeed" << std::endl;
   }
-  float replay_speed = 1.0;
   string fileName = argv[1]; 
-  string imageStorePath = argv[2];
-  double replay_skip_time = atof(argv[3]);
+  string imageStorePath = argc < 3 ? "IMAGE" : argv[2];
+  double replay_skip_time = argc < 4 ? 0 : atof(argv[3]);
+  float replay_speed = argc < 5 ? 1 : atof(argv[4]);
   ReplayKitType replaykit;
-  OptiflowTrackByVINS vinsFeatTracker(25,0.1,30,imageStorePath,1);
+  OptiflowTrackByVINS vinsFeatTracker(30,0.1,30,imageStorePath,1);
 
   replaykit.Subscribe<0>([&](double now_time, const vision::BottomImage &bottomImage) {
     const cv::Mat im = cv::Mat(cv::Size(bottomImage.width(), bottomImage.height()), CV_8UC1,
