@@ -42,15 +42,15 @@ if (NOT DEFINED ENV{HOVER_REPO_ROOT})
   target_link_libraries(svorecord replay_proto replaykit nanomsg ${OpenCV_LIBS})
 
   INSTALL(TARGETS replaykit 
-        ARCHIVE DESTINATION lib/replaykit)
+        ARCHIVE DESTINATION lib/${PROJECT_NAME})
   INSTALL(TARGETS replay_proto 
-        ARCHIVE DESTINATION lib/replaykit)
-  INSTALL(DIRECTORY include/replaykit DESTINATION include) 
+        ARCHIVE DESTINATION lib/${PROJECT_NAME})
+  INSTALL(DIRECTORY include/${PROJECT_NAME} DESTINATION include) 
   INSTALL(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/replaykit.pb.h
     ${CMAKE_CURRENT_BINARY_DIR}/rovio.pb.h 
     ${CMAKE_CURRENT_BINARY_DIR}/image.pb.h
-    DESTINATION include/replaykit)
+    DESTINATION include/${PROJECT_NAME})
 
 else()
     add_subdirectory(${REPLAYKIT_ROOT}/cmake)
