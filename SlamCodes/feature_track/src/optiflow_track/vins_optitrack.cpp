@@ -150,10 +150,10 @@ std::vector<cv::Point2f> OptiflowTrackByVINS::optiTrackFeature(double timestamp,
   }
   current_tic = std::chrono::duration<double>(std::chrono::steady_clock::now().time_since_epoch()).count();
   detect_cost_ = static_cast<double>(current_tic - current_toc) * 1e3;
-  if(!prev_img_.empty()) {
+  if (true)
     drawTrack();
-  }
   if(!track_img_.empty()) {
+ 
     cv::imshow("track",track_img_);
     cv::waitKey(1);
   }
