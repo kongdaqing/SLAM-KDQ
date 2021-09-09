@@ -12,7 +12,7 @@ int main(int argc,char **argv) {
    return -1;
  }
  Config* cfg = new Config(argv[1]);
- Camera* cam = new Camera(cfg);
+ CameraPtr cam(new Camera(cfg));
  Estimator estimator(argv[1]);
  D435I d435i;
  d435i.start();
@@ -29,7 +29,7 @@ int main(int argc,char **argv) {
    double timestamp;
    cv::Mat leftImg,rightImg;
    if (d435i.getInfraredImages(timestamp,leftImg,rightImg)) {
-    Frame *frame = new Frame(timestamp,leftImg,CameraPtr(cam));
+    Frame *frame = new Frame(timestamp,leftImg,cam);
     estimator.update(FramePtr(frame),true);
     std::cout << "state = " << estimator.getEstimatorState() << std::endl;
     cv::Mat Rwc,WtC;

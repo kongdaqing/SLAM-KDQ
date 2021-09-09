@@ -1,4 +1,5 @@
 #include "d435i.hpp"
+#include "unistd.h"
 #include "Camera.hpp"
 #include "FeatureTracker.hpp"
 using namespace vio;
@@ -10,9 +11,9 @@ int main(int argc,char **argv) {
   }
   std::string cfgFile = argv[1];
   Config* cfg = new Config(cfgFile);
-  Camera* cam = new Camera(cfg);
+  CameraPtr cam(new Camera(cfg));
   FeatureTracker *featTracker = new FeatureTracker(cfg);
-  FramePtr lastF = nullptr;
+  FramePtr lastF = nullptr,curF = nullptr;
   D435I d435i_device(cfgFile);
   d435i_device.start();
   std::list<std::map<uint64_t,cv::Point2f> > windowsFeatures;
@@ -20,7 +21,7 @@ int main(int argc,char **argv) {
     double timestamp;
     cv::Mat leftImg,rightImg;
     if (d435i_device.getInfraredImages(timestamp,leftImg,rightImg)) {
-      FramePtr curF(new Frame(timestamp,leftImg,CameraPtr(cam)));
+      curF.reset(new Frame(timestamp,leftImg,cam));
       cv::Mat R_cur_last;
       featTracker->detectAndTrackFeature(lastF,curF,R_cur_last);
       lastF = curF;

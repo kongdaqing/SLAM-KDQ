@@ -3,7 +3,7 @@
 Estimator.KeyFrameMatchedPoints: 20
 Estimator.KeyFrameParallexThreshold: 5
 Estimator.ReprojectPixelErr: 3
-Estimator.BundleAdjustment: 0
+Estimator.BundleAdjustment: 1
 Estimator.EnableFeaturePrediction: 0
 Estimator.EnableVOAlignedToWorld: 0
 
