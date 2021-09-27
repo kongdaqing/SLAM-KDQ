@@ -1,2 +1,4 @@
 # SLAM-KDQ
-Include all materials like books,codes etc.
+
+* 3DReconstruction --- include monocular dense or mvs reconstruction
+
