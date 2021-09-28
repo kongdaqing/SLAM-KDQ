@@ -13,8 +13,12 @@ namespace viz_scene {
   VizScene::~VizScene() {
     sceneCloud_.clear();
     sceneCamera_.clear();
-    delete windowLoopThread_;
+    sceneWindowPtr_->close();
+    if (windowLoopThread_->joinable()) {
+      windowLoopThread_->join();
+    }
     delete sceneWindowPtr_;
+    delete windowLoopThread_;
   }
 
   void VizScene::windowShowLoopRun() {
