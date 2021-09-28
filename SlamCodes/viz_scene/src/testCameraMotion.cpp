@@ -23,6 +23,8 @@ int main(int argc,char** argv){
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"log/test.csv",true);
   VioDatasInterface::recordImuMotionState(ImuMotionState(),"log/noise_test.csv",true);
   VioDatasInterface::recordPoseAsTum(ImuMotionState(),"log/imu_pose.csv",true);
+  VioDatasInterface::recordPoseAsTum(ImuMotionState(),"log/real_pose.csv",true);
+
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     if(t  < para->end_t_) {

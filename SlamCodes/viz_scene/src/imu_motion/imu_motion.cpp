@@ -5,8 +5,7 @@ ImuMotionState ImuMotion::addImuNoise(const ImuMotionState& data) {
   std::random_device rd;
   std::default_random_engine rdEngine(rd());
   std::normal_distribution<double> noise(0.0,1.0);
-  ImuMotionState outData;
-
+  ImuMotionState outData = data;
   Eigen::Vector3d gyro_noise(noise(rdEngine),noise(rdEngine),noise(rdEngine));
   Eigen::Matrix3d gyro_sqrt_cov  = para_->gyr_noise_sigma_ * Eigen::Matrix3d::Identity();
   outData.gyr_ = data.gyr_ + gyro_sqrt_cov * gyro_noise / sqrt(para_->imuInterval_) + gyr_bias_;
@@ -22,6 +21,7 @@ ImuMotionState ImuMotion::addImuNoise(const ImuMotionState& data) {
   Eigen::Vector3d acc_bias_noise(noise(rdEngine),noise(rdEngine),noise(rdEngine));
   acc_bias_ += para_->acc_bias_sigma_ * sqrt(para_->imuInterval_) * acc_bias_noise;
   outData.acc_bias_ = acc_bias_;
+  return outData;
 }
 
 
