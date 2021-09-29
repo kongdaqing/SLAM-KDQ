@@ -27,15 +27,12 @@ class ScenePointCloud {
 
   ScenePointCloud(const std::vector<T> &cloudPts,
                   cv::viz::Color color = cv::viz::Color::white(),
+                  bool update = true,
                   int size = 2) {
     cloudPoints_ = cloudPts;
-    updateFlg_ = true;
+    updateFlg_ = update;
     color_ = color;
     displaySize_ = size;
-  }
-
-  ~ScenePointCloud() {
-    cloudPoints_.clear();
   }
 
   void update(const std::vector<T> &pts3D) {
@@ -134,14 +131,14 @@ class VizScene {
    * @param displaySize - display point size
    */
   bool
-  createDynamicClouds(std::string ptsName, std::vector<cv::Vec3f> &pts3D, cv::viz::Color color = cv::viz::Color::white(),
+  createSceneClouds(std::string ptsName, cv::viz::Color color = cv::viz::Color::white(),
                     int displaySize = 2);
 
   /** \brief update pointcloud positions which named as ptsname
    * @param ptsName - name of pointcloud
    * @param pts3D - pointcloud
    */
-  bool updateDynamicClouds(std::string ptsName, const std::vector<cv::Vec3f> &pts3D);
+  bool updateSceneClouds(std::string ptsName, const std::vector<cv::Vec3f> &pts3D);
 
   /** \brief create camera object
    * @param cameraName - camera name

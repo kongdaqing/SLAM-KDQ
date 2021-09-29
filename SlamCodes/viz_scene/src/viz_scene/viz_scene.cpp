@@ -25,6 +25,7 @@ void VizScene::windowShowLoopRun() {
   while (!sceneWindowPtr_->wasStopped()) {
     mCloud_.lock();
     sceneWindowPtr_->spinOnce(1, false);
+    showScenePointClouds();
     mCloud_.unlock();
     usleep(10);
   }
@@ -36,7 +37,9 @@ void VizScene::showScenePointClouds() {
       continue;
     }
     viz::WCloud widgetCloud(it->second.cloudPoints_, it->second.color_);
+    widgetCloud.setRenderingProperty(cv::viz::POINT_SIZE,it->second.displaySize_);
     sceneWindowPtr_->showWidget(it->first, widgetCloud);
+    it->second.updateFlg_ = false;
   }
 }
 
@@ -81,30 +84,26 @@ bool VizScene::createRandomPlanePoints(string name,
     }
     pointCloud.push_back(point);
   }
-  ScenePointCloudType sceneCloudObject(pointCloud, viz::Color::green());
+  ScenePointCloudType sceneCloudObject(pointCloud, viz::Color::green(),2);
   sceneCloud_[name] = sceneCloudObject;
   viz::WCloud widgetCloud(sceneCloud_[name].cloudPoints_, sceneCloud_[name].color_);
   sceneWindowPtr_->showWidget(name, widgetCloud);
   return true;
 }
-bool VizScene::createDynamicClouds(std::string ptsName,
-                                   std::vector<cv::Vec3f> &pts3D,
-                                   cv::viz::Color color,
-                                   int displaySize) {
-  if (pts3D.empty()) {
-    printf("Input points vector is empty!\n");
-    return false;
-  }
+bool VizScene::createSceneClouds(std::string ptsName,
+                                 cv::viz::Color color,
+                                 int displaySize) {
   if (sceneCloud_.count(ptsName)) {
     printf("%s pointcloud is already created!\n", ptsName.c_str());
     return false;
   }
-  ScenePointCloudType pc(pts3D, color, displaySize);
+  std::vector<Vec3f> points;
+  ScenePointCloudType pc(points,color, false,displaySize);
   sceneCloud_[ptsName] = pc;
   return true;
 }
 
-bool VizScene::updateDynamicClouds(std::string ptsName, const std::vector<cv::Vec3f> &pts3D) {
+bool VizScene::updateSceneClouds(std::string ptsName, const std::vector<cv::Vec3f> &pts3D) {
   std::lock_guard<std::mutex> lockWCloud(mCloud_);
   if (!sceneCloud_.count(ptsName)) {
     printf("No %s pointcloud exist!\n", ptsName.c_str());
