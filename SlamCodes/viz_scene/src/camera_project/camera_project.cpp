@@ -16,7 +16,7 @@ CameraProject::~CameraProject() {
 
 }
 
-ProjectPointInfo CameraProject::projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos) {
+ProjectPointInfo CameraProject::projectVizPoints(double t,const std::vector<cv::Vec3f>& ptsCloud,const Eigen::Isometry3d& cameraPos) {
   if(ptsCloud.empty()) {
     return ProjectPointInfo();
   }
@@ -27,15 +27,12 @@ ProjectPointInfo CameraProject::projectVizPoints(double t,const cv::Mat& ptsClou
   std::mt19937 gen{12345};
   std::normal_distribution<> d{0.0, pixelNoise_};
 
-  cv::Mat ptsClouds(1,ptsCloud.cols,CV_32FC3);
-  ptsClouds = ptsCloud.clone();
   Eigen::Isometry3d Tcw = cameraPos.inverse();
-  cv::Point3f* point = ptsClouds.ptr<cv::Point3f>();
   ProjectPointInfo ptsInfo;
   ptsInfo.cameraPose = cameraPos;
   ptsInfo.t = t;
-  for (size_t i = 0; i < ptsClouds.cols; i++) {
-    Eigen::Vector3d pW(point[i].x,point[i].y,point[i].z);
+  for (size_t i = 0; i < ptsCloud.size(); i++) {
+    Eigen::Vector3d pW(ptsCloud[i][0],ptsCloud[i][1],ptsCloud[i][2]);
     Eigen::Vector3d pC = Tcw * pW;
     Eigen::Vector2d pixel;
     if (pC.z() < 0) {

@@ -16,7 +16,7 @@ int main(int argc,char** argv){
   VizScene vizScene("test");
   VioDatasInterface::recordCameraPixel(ProjectPointInfo(),"log/points_test.csv",true);
   vizScene.createRandomPlanePoints("test plane",Vec3f(0,0,0),Vec3f(0,0,1),100,4,4);
-  cv::Mat test_plane = vizScene.getScenePointCloud("test plane");
+  vector<Vec3f> test_plane = vizScene.getScenePointCloud("test plane");
   vizScene.createCameraObject("test camera",0.3,Vec2f(0.3,0.4),Vec3f(0,0,0.2),Vec3f(0,0,0.1),Vec3f(0,1.0,0));
   double t = para->start_t_,last_image_t = para->start_t_;
   double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);

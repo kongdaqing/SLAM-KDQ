@@ -31,7 +31,7 @@ class CameraProject {
      *  @param ptsCloud - pointclouds object type is cv::Mat(1,pts.size(),CV_32FC3);
      *  @param cameraPos - pose of camera in world frame
      */ 
-    ProjectPointInfo projectVizPoints(double t,const cv::Mat& ptsCloud,const Eigen::Isometry3d& cameraPos);
+    ProjectPointInfo projectVizPoints(double t,const std::vector<cv::Vec3f>& ptsCloud,const Eigen::Isometry3d& cameraPos);
 
     /** @brief project pixel point from image plane to world
      *  @param cameraPos - pose of camera in world frame
