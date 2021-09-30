@@ -26,6 +26,7 @@ void VizScene::windowShowLoopRun() {
     mCloud_.lock();
     sceneWindowPtr_->spinOnce(1, false);
     showScenePointClouds();
+    showSceneLines();
     mCloud_.unlock();
     usleep(10);
   }
@@ -39,6 +40,23 @@ void VizScene::showScenePointClouds() {
     viz::WCloud widgetCloud(it->second.cloudPoints_, it->second.color_);
     widgetCloud.setRenderingProperty(cv::viz::POINT_SIZE,it->second.displaySize_);
     sceneWindowPtr_->showWidget(it->first, widgetCloud);
+    it->second.updateFlg_ = false;
+  }
+}
+
+void VizScene::showSceneLines() {
+  for (auto it = sceneLines_.begin(); it != sceneLines_.end(); it++) {
+    if (it->second.updateFlg_ == false) {
+      continue;
+    }
+    int cnt = 0;
+    for (auto l : it->second.lines_) {
+      cnt++;
+      viz::WLine widgetLine(l.startPoint_,l.endPoint_,l.color_);
+      string lineName = "line" + to_string(cnt);
+      widgetLine.setRenderingProperty(viz::LINE_WIDTH,it->second.displaySize_);
+      sceneWindowPtr_->showWidget(lineName,widgetLine);
+    }
     it->second.updateFlg_ = false;
   }
 }
@@ -116,6 +134,32 @@ bool VizScene::updateSceneClouds(std::string ptsName, const std::vector<cv::Vec3
   sceneCloud_[ptsName].update(pts3D);
   return true;
 }
+
+
+bool VizScene::createSceneLines(std::string lineName, cv::viz::Color color, int displaySize) {
+  if (sceneLines_.count(lineName)) {
+    printf("%s pointcloud is already created!\n", lineName.c_str());
+    return false;
+  }
+  SceneLines lines(displaySize,color);
+  sceneLines_[lineName] = lines;
+  return true;
+}
+
+bool VizScene::updateSceneLines(std::string lineName, const std::vector<Line> &lines) {
+  std::lock_guard<std::mutex> lockWCloud(mCloud_);
+  if (!sceneLines_.count(lineName)) {
+    printf("No %s pointcloud exist!\n", lineName.c_str());
+    return false;
+  }
+  if (lines.empty()) {
+    printf("PointCloud empty!\n");
+    return false;
+  }
+  sceneLines_[lineName].update(lines);
+  return true;
+}
+
 
 bool VizScene::createCameraObject(string cameraName,
                                   float coorScalar,

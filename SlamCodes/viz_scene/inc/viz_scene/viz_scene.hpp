@@ -13,6 +13,43 @@ namespace viz_scene {
 using namespace std;
 using namespace cv;
 
+class Line {
+ public:
+  Line() {
+    color_ = viz::Color::white();
+  }
+  Line(Point3d sp, Point3d ep, viz::Color color) :
+      startPoint_(sp),
+      endPoint_(ep),
+      color_(color) {
+  }
+  Point3d startPoint_;
+  Point3d endPoint_;
+  viz::Color color_;
+};
+// Lines Class
+class SceneLines {
+ public:
+
+  SceneLines() {
+    displaySize_ = 1;
+    color_ = viz::Color::white();
+  }
+  SceneLines(int displaySize, viz::Color color) :
+      displaySize_(displaySize),
+      color_(color) {
+    updateFlg_ = false;
+  }
+  void update(const vector<Line>& lines) {
+    lines_.clear();
+    lines_ = lines;
+    updateFlg_ = true;
+  }
+  vector<Line> lines_;
+  bool updateFlg_;
+  cv::viz::Color color_;
+  int displaySize_;
+};
 
 template<typename T>
 class ScenePointCloud {
@@ -23,6 +60,9 @@ class ScenePointCloud {
   int displaySize_;
 
   ScenePointCloud() {
+    color_ = viz::Color::white();
+    displaySize_ = 1;
+    updateFlg_ = false;
   }
 
   ScenePointCloud(const std::vector<T> &cloudPts,
@@ -89,7 +129,6 @@ class CameraObject {
   int recordCount_;
 };
 
-
 class VizScene {
 
  public:
@@ -97,7 +136,7 @@ class VizScene {
 
   /** \brief construction function
    */
-  VizScene(std::string windowName,double scale = 1.0);
+  VizScene(std::string windowName, double scale = 1.0);
 
   /** \brief disconstruction function
    */
@@ -111,6 +150,11 @@ class VizScene {
   /** \brief show pointclouds in parameter sceneCloud_
    */
   void showScenePointClouds();
+
+
+  /** \brief show pointclouds in parameter sceneCloud_
+  */
+  void showSceneLines();
 
   /** \brief create plane filled with random points
    * @param name - name of scene pointcloud set by user
@@ -126,7 +170,6 @@ class VizScene {
 
   /** \brief create pointclouds from 3D point
    * @param ptsName - name of point cloud
-   * @param pts3D - 3D points vector
    * @param color - display point color
    * @param displaySize - display point size
    */
@@ -139,6 +182,21 @@ class VizScene {
    * @param pts3D - pointcloud
    */
   bool updateSceneClouds(std::string ptsName, const std::vector<cv::Vec3f> &pts3D);
+
+  /** \brief create pointclouds from 3D point
+   * @param lineName - name of lines
+   * @param color - display point color
+   * @param displaySize - display point size
+   */
+  bool
+  createSceneLines(std::string lineName, cv::viz::Color color = cv::viz::Color::white(),
+                   int displaySize = 2);
+
+  /** \brief update pointcloud positions which named as ptsname
+   * @param lineName - name of pointcloud
+   * @param lines - lines 
+   */
+  bool updateSceneLines(std::string lineName, const std::vector<Line> &lines);
 
   /** \brief create camera object
    * @param cameraName - camera name
@@ -156,11 +214,9 @@ class VizScene {
    * @param Twc - camera pose
    */
   bool updateCameraPose(const string cameraName, const Affine3d &Twc);
-  /** \brief test viz window display cloud points during increase position
-   *
-   */
-  /** \brief test viz window display cloud points during increase position
-   *
+
+  /** \brief test scene points for increase points z
+   *  @param name - scene points name
    */
   void testIncreasePoints(string name);
 
@@ -172,6 +228,7 @@ class VizScene {
  private:
   map<string, ScenePointCloudType> sceneCloud_;
   map<string, CameraObject> sceneCamera_;
+  map<string, SceneLines> sceneLines_;
   viz::Viz3d *sceneWindowPtr_;
   thread *windowLoopThread_;
   mutex mCloud_;
