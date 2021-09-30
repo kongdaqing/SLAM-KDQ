@@ -153,9 +153,9 @@ class VizScene {
 
   /** \brief update pose of camera named by "cameraName"
    * @param cameraName - camera name
-   * @param cameraPose - camera pose
+   * @param Twc - camera pose
    */
-  bool updateCameraPose(const string cameraName, const Affine3d &cameraPose);
+  bool updateCameraPose(const string cameraName, const Affine3d &Twc);
   /** \brief test viz window display cloud points during increase position
    *
    */

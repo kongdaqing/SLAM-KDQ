@@ -62,12 +62,12 @@ int main(int argc,char** argv){
       for (size_t i = 0; i < proPtsVec.size(); i++)
       {
         ProjectPointInfo ptsInfo = proPtsVec[i];
-        std::cout << ptsInfo.t << "\n" << ptsInfo.cameraPose.matrix() << std::endl ;
+        std::cout << ptsInfo.t << "\n" << ptsInfo.Twc.matrix() << std::endl ;
         for(auto &p:ptsInfo.ptsMap) {
           Eigen::Vector3d p3W(p.second.first.x,p.second.first.y,p.second.first.z);
           Eigen::Vector2d p2D(p.second.second.x,p.second.second.y);
-          double scale = (ptsInfo.cameraPose.translation() - p3W).norm();
-          Eigen::Vector3d p3W_map = camProjector.pixelInverseProjectToWorld( ptsInfo.cameraPose,p2D,scale);
+          double scale = (ptsInfo.Twc.translation() - p3W).norm();
+          Eigen::Vector3d p3W_map = camProjector.pixelInverseProjectToWorld( ptsInfo.Twc,p2D,scale);
           std::cout << p.first << " " << p.second.first << " " << p.second.second << " " << p3W_map.transpose() << std::endl;
         }
       }

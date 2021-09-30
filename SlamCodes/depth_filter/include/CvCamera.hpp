@@ -1,13 +1,13 @@
 #pragma once 
 #include "opencv2/opencv.hpp"
-namespace DepthFilter{
-class Camera {
+namespace depth_filter {
+class CvCamera {
  public:
   
   /** \brief Construct Function
    * @param cfg  ---  config object
    */ 
-  Camera(std::string configFile) {
+  CvCamera(std::string configFile) {
     cv::FileStorage fs(configFile,cv::FileStorage::READ);
     if (!fs.isOpened()) {
       std::cerr << "[Config]:Config file is not exist!" << std::endl;
@@ -25,13 +25,14 @@ class Camera {
     fy_ = K_.at<float>(1,1);
     cx_ = K_.at<float>(0,2);
     cy_ = K_.at<float>(1,2);
+    std::cout << "K = " << K_ << std::endl;
   };
   /** \brief Construct Function
    * @param K         ---   intrinisic matrix
    * @param D         ---   distortion matrix
    * @param isFishEye ---   fisheye flg
    */ 
-  Camera(cv::Mat K,cv::Mat D,bool isFishEye,int w,int h):
+  CvCamera(cv::Mat K,cv::Mat D,bool isFishEye,int w,int h):
   Width(w),
   Height(h) {
     is_fisheye_ = isFishEye;

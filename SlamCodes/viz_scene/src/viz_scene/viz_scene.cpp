@@ -137,12 +137,12 @@ bool VizScene::createCameraObject(string cameraName,
   return true;
 }
 
-bool VizScene::updateCameraPose(const string cameraName, const Affine3d &cameraPose) {
+bool VizScene::updateCameraPose(const string cameraName, const Affine3d &Twc) {
   lock_guard<mutex> lockWCloud(mCloud_);
   if (!sceneCamera_.count(cameraName)) {
     return false;
   }
-  sceneCamera_[cameraName].updatePose(cameraPose);
+  sceneCamera_[cameraName].updatePose(Twc);
   viz::WTrajectory cameraPath(sceneCamera_[cameraName].poseVec_);
   sceneWindowPtr_->showWidget(sceneCamera_[cameraName].cPathName_, cameraPath);
 }

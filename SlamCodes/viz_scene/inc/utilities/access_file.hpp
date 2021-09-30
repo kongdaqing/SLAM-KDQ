@@ -9,7 +9,7 @@
 struct ProjectPointInfo {
   double t;
   std::map<int,std::pair<cv::Point3d,cv::Point2i>> ptsMap;
-  Eigen::Isometry3d cameraPose;
+  Eigen::Isometry3d Twc;
 };
 
 
@@ -144,8 +144,8 @@ public:
     }
     std::fstream file(fileName,std::ios::app);
     file.precision(9);
-    Eigen::Quaterniond q(ptsInfo.cameraPose.rotation());
-    Eigen::Vector3d p(ptsInfo.cameraPose.translation());
+    Eigen::Quaterniond q(ptsInfo.Twc.rotation());
+    Eigen::Vector3d p(ptsInfo.Twc.translation());
     file << ptsInfo.t << "," << p.x() << " " << p.y() << " " << p.z() << " " 
          << q.w() << " " << q.x() << " " << q.y() << " " << q.z() << "," ;
     std::map<int,std::pair<cv::Point3d,cv::Point2i> >::const_iterator it;
@@ -190,9 +190,9 @@ public:
       pp >> quat.x();
       pp >> quat.y();
       pp >> quat.z();
-      ptsInfo.cameraPose.setIdentity();
-      ptsInfo.cameraPose.prerotate(quat);
-      ptsInfo.cameraPose.pretranslate(trans);   
+      ptsInfo.Twc.setIdentity();
+      ptsInfo.Twc.prerotate(quat);
+      ptsInfo.Twc.pretranslate(trans);   
       while(std::getline(ss,tokenStr,',')) {
         std::stringstream subStr(tokenStr);
         int id;

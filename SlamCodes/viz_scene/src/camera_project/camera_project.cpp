@@ -16,7 +16,7 @@ CameraProject::~CameraProject() {
 
 }
 
-ProjectPointInfo CameraProject::projectVizPoints(double t,const std::vector<cv::Vec3f>& ptsCloud,const Eigen::Isometry3d& cameraPos) {
+ProjectPointInfo CameraProject::projectVizPoints(double t,const std::vector<cv::Vec3f>& ptsCloud,const Eigen::Isometry3d& Twc) {
   if(ptsCloud.empty()) {
     return ProjectPointInfo();
   }
@@ -27,9 +27,9 @@ ProjectPointInfo CameraProject::projectVizPoints(double t,const std::vector<cv::
   std::mt19937 gen{12345};
   std::normal_distribution<> d{0.0, pixelNoise_};
 
-  Eigen::Isometry3d Tcw = cameraPos.inverse();
+  Eigen::Isometry3d Tcw = Twc.inverse();
   ProjectPointInfo ptsInfo;
-  ptsInfo.cameraPose = cameraPos;
+  ptsInfo.Twc = Twc;
   ptsInfo.t = t;
   for (size_t i = 0; i < ptsCloud.size(); i++) {
     Eigen::Vector3d pW(ptsCloud[i][0],ptsCloud[i][1],ptsCloud[i][2]);
