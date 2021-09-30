@@ -24,70 +24,120 @@
 #include <thread>
 #include <condition_variable>
 #include <Eigen/Dense>
-#include "Camera.hpp"
 
-namespace DepthFilter {
+namespace depth_filter {
 
 class Corner;
-typedef std::map<int,Corner> Corners;
+typedef std::map<int, Corner> Corners;
+
+///SeedPoint contains points in world frame for showing uncertainty of seed
+struct SeedPoint {
+  /** Construction
+   * @param mean --- seed coordinate with mean depth
+   * @param min  --- seed coordinate with min depth
+   * @param max  --- seed coordinate with max depth
+   */
+  SeedPoint(Eigen::Vector3d mean, Eigen::Vector3d min, Eigen::Vector3d max) :
+    meanPtsInWorld(mean),
+    minPtsInWorld(min),
+    maxPtsInWorld(max) {
+  }
+  Eigen::Vector3d meanPtsInWorld; //<! seed coordinate with mean depth
+  Eigen::Vector3d minPtsInWorld;  //<! seed coordinate with min depth
+  Eigen::Vector3d maxPtsInWorld;  //<! seed coordinate with max depth
+};
 
 /// Corner in images includes pixel coordinate and bearing vector etc
 class Corner {
  public:
-  Corner(){};
-  Corner(int id,double d,Eigen::Vector3d f): 
+  //Default construction
+  Corner() = default;
+  /** Construction
+   * @param id --- corner id
+   * @param depth --- depth of corner in world frame
+   * @param unitBearingVector --- point coordinate in normalized plane
+   */
+  Corner(int id, double depth, Eigen::Vector3d unitBearingVector) :
     id_(id),
-    d_(d),
-    f_(f) {
+    depth_(depth),
+    unitBearingVector_(unitBearingVector) {
   }
-  Corner(const Corner& c) {
-    d_ = c.d_;
-    f_ = c.f_;
+  /**  Copy
+   * @param c  --- corner object
+   */
+  Corner(const Corner &c) {
     id_ = c.id_;
+    depth_ = c.depth_;
+    unitBearingVector_ = c.unitBearingVector_;
   }
-  ~Corner() {};
-  double d_;
-  Eigen::Vector3d f_;  //!< Unit-bearing vector of the feature.
-  int id_;
+
+  int id_;                             //!< Id of corner
+  double depth_;                       //!< Depth of corner vector
+  Eigen::Vector3d unitBearingVector_;  //!< Unit-bearing vector of the feature.
 };
+
 /// Frame includes pose and features
 class Frame {
  public:
-  Frame(Eigen::Isometry3d T_f_w): T_f_w_(T_f_w) {};
 
-  Corner* getCorner(int id) {
+  /** Construction
+   * @param Tcw  --- Translation from world to camera
+   */
+  Frame(Eigen::Isometry3d Tcw) : Tcw_(Tcw) {};
+
+  /** Get corner through its id
+   *
+   * @param id  --- corner's id
+   * @return a pointer points corner object
+   */
+  Corner *getCorner(int id) {
     if (corners_.count(id)) {
       return &corners_[id];
     } else {
       return nullptr;
     }
-  } 
-  Corners& getCorners() {
+  }
+
+  /** Get corners in frame
+   *
+   * @return reference of corners
+   */
+  Corners &getCorners() {
     return corners_;
   }
-  void insertCorner(Corner& c) {
+
+  /** Insert a corner into corners
+   *
+   * @param c --- corner object
+   */
+  void insertCorner(Corner &c) {
     if (!corners_.count(c.id_)) {
       corners_[c.id_] = c;
     }
   }
-  Eigen::Isometry3d T_f_w_;
+  Eigen::Isometry3d Tcw_; //!< Translation from world to camera
  private:
-  Corners corners_;//这个会因为主函数析构而析构
+  Corners corners_;       //!< Contains all corners of frame should view
 };
 
 /// A seed is a probabilistic depth estimate for a single pixel.
-struct Seed
-{
+struct Seed {
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  Corner c;                //!< Corner in the keyframe for which the depth should be computed.
-  float a;                     //!< a of Beta distribution: When high, probability of inlier is large.
-  float b;                     //!< b of Beta distribution: When high, probability of outlier is large.
-  float mu;                    //!< Mean of normal distribution.
-  float z_range;               //!< Max range of the possible depth.
-  float sigma2;                //!< Variance of normal distribution.
-  Eigen::Isometry3d T_ref_w_;  //!< Translation from world to reference camera frame
-  int lost_count;
-  Seed(Corner& cor,Eigen::Isometry3d T_ref_w,float depth_mean, float depth_min);
+  Corner c_;                     //!< Corner in the keyframe for which the depth should be computed.
+  float a_;                     //!< a of Beta distribution: When high, probability of inlier is large.
+  float b_;                     //!< b of Beta distribution: When high, probability of outlier is large.
+  float mu_;                    //!< Mean of normal distribution.
+  float depthRange_;               //!< Max range of the possible depth.
+  float sigma2_;                //!< Variance of normal distribution.
+  Eigen::Isometry3d Tcw_;   //!< Translation from world to reference camera frame
+  int lostCount_;              //!< Lost count for corner not observed
+  /* Construct
+   * @param cor  --- corner object
+   * @param Tcw  --- Translation from world to corner's reference camera
+   * @param depth_mean  --- mean value of corner depth
+   * @param depth_min   --- min value of corner depth
+   */
+  Seed(Corner &c, Eigen::Isometry3d Tcw, float depthMean, float depthMin);
 };
 
 /// Depth filter implements the Bayesian Update proposed in:
@@ -96,17 +146,15 @@ struct Seed
 ///
 /// The class uses a callback mechanism such that it can be used also by other
 /// algorithms than nslam and for simplified testing.
-class DepthFilter
-{
-public:
+class DepthFilter {
+ public:
   EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   typedef std::shared_ptr<Frame> FramePtr;
   typedef std::unique_lock<std::mutex> lock_t;
-  typedef std::function<void ( Eigen::Vector3d, double )> callback_t;
+  typedef std::function<void(const std::vector<SeedPoint> &)> callback_t;
 
   /// Depth-filter config parameters
-  struct Options
-  {
+  struct Options {
     bool check_ftr_angle;                       //!< gradient features are only updated if the epipolar line is orthogonal to the gradient.
     bool epi_search_1d;                         //!< restrict Gauss Newton in the epipolar search to the epipolar line.
     bool verbose;                               //!< display output.
@@ -115,18 +163,29 @@ public:
     double sigma_i_sq;                          //!< image noise.
     double seed_convergence_sigma2_thresh;      //!< threshold on depth uncertainty for convergence.
     Options()
-    : check_ftr_angle(false),
-      epi_search_1d(false),
-      verbose(false),
-      use_photometric_disparity_error(false),
-      max_lost_fs(5),
-      sigma_i_sq(5e-4),
-      seed_convergence_sigma2_thresh(200.0)
-    {}
+      : check_ftr_angle(false),
+        epi_search_1d(false),
+        verbose(false),
+        use_photometric_disparity_error(false),
+        max_lost_fs(5),
+        sigma_i_sq(5e-4),
+        seed_convergence_sigma2_thresh(200.0) {}
   } options_;
 
-  DepthFilter(std::string camConfigFile,callback_t seed_converged_cb,int width,int height);
+  DepthFilter() = delete;
 
+  /** Construction
+   *
+   * @param K       --- camera intrinsic matrix
+   * @param width   --- width of image
+   * @param height  --- height of image
+   * @param seedCallback --- callback function
+   */
+  DepthFilter(Eigen::Matrix3d K,int width,int height,callback_t seedCallback);
+
+  /**
+   *
+   */
   virtual ~DepthFilter();
 
   /// Start this thread when seed updating should be in a parallel thread.
@@ -146,39 +205,39 @@ public:
   void reset();
 
   /// Return a reference to the seeds. This is NOT THREAD SAFE!
-  std::list<Seed>& getSeeds() { return seeds_; }
+  std::list<Seed> &getSeeds() { return seeds_; }
 
   /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
   static void updateSeed(
-      const float x,
-      const float tau2,
-      Seed* seed);
+    const float x,
+    const float tau2,
+    Seed *seed);
 
   /// Compute the uncertainty of the measurement.
   //KDQ： 特征点在参考帧因为像素误差可能导致的和真值的误差
   static double computeTau(
-      const Eigen::Isometry3d& T_ref_cur,
-      const Eigen::Vector3d& f,
-      const double z,
-      const double px_error_angle);
+    const Eigen::Isometry3d &T_ref_cur,
+    const Eigen::Vector3d &f,
+    const double z,
+    const double px_error_angle);
 
-protected:
-  CameraPtr camPtr_;
-  callback_t seed_converged_cb_;
+ protected:
+  callback_t seedCallback_;
   std::list<Seed> seeds_;
-  std::map<int,bool> seedIds_;
-  std::mutex seeds_mut_;
-  bool seeds_updating_halt_;            //!< Set this value to true when seeds updating should be interrupted.
-  std::thread* thread_;
-  std::queue<FramePtr> frame_queue_;
-  std::mutex frame_queue_mut_;
-  std::condition_variable frame_queue_cond_;
-  FramePtr new_keyframe_;               //!< Next keyframe to extract new seeds.
-  bool new_keyframe_set_;               //!< Do we have a new keyframe to process?.
-  double new_keyframe_min_depth_;       //!< Minimum depth in the new keyframe. Used for range in new seeds.
-  double new_keyframe_mean_depth_;      //!< Maximum depth in the new keyframe. Used for range in new seeds.
-  const int W;
-  const int H;
+  std::map<int, bool> seedIds_;
+  std::mutex seedsMut_;
+  bool seedsUpdatingHalt_;            //!< Set this value to true when seeds updating should be interrupted.
+  std::thread *thread_;
+  std::queue<FramePtr> frameQueue_;
+  std::mutex frameQueueMut_;
+  std::condition_variable frameQueueCond_;
+  FramePtr newKeyframe_;
+  bool newKeyframeSet_;               //!< Do we have a new keyframe to process?.
+  double newKeyframeMinDepth_;       //!< Minimum depth in the new keyframe. Used for range in new seeds.
+  double newKeyframeMeanDepth_;      //!< Maximum depth in the new keyframe. Used for range in new seeds.
+  Eigen::Matrix3d K_;
+  int width_;
+  int height_;
   /// Initialize new seeds from a frame.
   void initializeSeeds(FramePtr frame);
 
@@ -192,21 +251,21 @@ protected:
   void updateSeedsLoop();
 
   bool depthFromTriangulation(
-    const Eigen::Isometry3d& T_search_ref,
-    const Eigen::Vector3d& f_ref,
-    const Eigen::Vector3d& f_cur,
-    double& depth);
+    const Eigen::Isometry3d &T_search_ref,
+    const Eigen::Vector3d &f_ref,
+    const Eigen::Vector3d &f_cur,
+    double &depth);
 
-  inline bool isInFrame(Eigen::Vector2i uv) {  
-    return uv.x() > 1 && uv.x() < W && uv.y() > 1 && uv.y() < H;
+  inline bool isInFrame(Eigen::Vector2i uv) {
+    return uv.x() > 1 && uv.x() < width_ && uv.y() > 1 && uv.y() < height_;
   }
 
   inline Eigen::Vector2d f2c(Eigen::Vector3d f) {
-    double u = camPtr_->fx() * f.x()/f.z() + camPtr_->cx();
-    double v = camPtr_->fy() * f.y()/f.z() + camPtr_->cy();
-    return Eigen::Vector2d(u,v);
+    Eigen::Vector3d nrVector(f.x()/f.z(),f.y()/f.z(),1.);
+    Eigen::Vector3d uv = K_ * nrVector;
+    return Eigen::Vector2d(uv.x(), uv.y());
   }
-  
+
 };
 
 } // namespace svo
