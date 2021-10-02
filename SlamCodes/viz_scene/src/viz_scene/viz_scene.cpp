@@ -51,11 +51,11 @@ void VizScene::showSceneLines() {
     }
     int cnt = 0;
     for (auto l : it->second.lines_) {
-      cnt++;
       viz::WLine widgetLine(l.startPoint_,l.endPoint_,l.color_);
       string lineName = "line" + to_string(cnt);
       widgetLine.setRenderingProperty(viz::LINE_WIDTH,it->second.displaySize_);
       sceneWindowPtr_->showWidget(lineName,widgetLine);
+      cnt++;
     }
     it->second.updateFlg_ = false;
   }
@@ -155,6 +155,12 @@ bool VizScene::updateSceneLines(std::string lineName, const std::vector<Line> &l
   if (lines.empty()) {
     printf("PointCloud empty!\n");
     return false;
+  }
+  int lastCount = sceneLines_[lineName].lines_.size();
+  int nowCount = lines.size();
+  for (int i = nowCount; i < lastCount; i++) {
+    string lineName = "line" + to_string(i);
+    sceneWindowPtr_ ->removeWidget(lineName);
   }
   sceneLines_[lineName].update(lines);
   return true;

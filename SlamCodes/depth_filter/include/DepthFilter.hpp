@@ -167,7 +167,7 @@ class DepthFilter {
         epi_search_1d(false),
         verbose(false),
         use_photometric_disparity_error(false),
-        max_lost_fs(5),
+        max_lost_fs(0),
         sigma_i_sq(5e-4),
         seed_convergence_sigma2_thresh(200.0) {}
   } options_;
@@ -238,6 +238,7 @@ class DepthFilter {
   Eigen::Matrix3d K_;
   int width_;
   int height_;
+  bool stopThreadFlg_;
   /// Initialize new seeds from a frame.
   void initializeSeeds(FramePtr frame);
 

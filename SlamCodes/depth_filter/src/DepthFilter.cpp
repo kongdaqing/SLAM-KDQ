@@ -40,7 +40,8 @@ DepthFilter::DepthFilter(Eigen::Matrix3d K,int width,int height,callback_t seedC
     newKeyframeMeanDepth_(0.0),
     K_(K),
     width_(width),
-    height_(height) {
+    height_(height),
+    stopThreadFlg_(false) {
   std::cout << "Camera K = \n" << K_ << std::endl;
   std::cout << "Width = " << width_ << "   Height = " << height_ << std::endl;
 }
@@ -56,12 +57,13 @@ void DepthFilter::startThread() {
 void DepthFilter::stopThread() {
   printf("DepthFilter stop thread invoked.");
   if (thread_ != NULL) {
-    //KDQ: 不知道如何打断
-    // printf("DepthFilter interrupt and join thread... ");
-    // seedsUpdatingHalt_ = true;
-    // thread_->interrupt();
-    // thread_->join();
-    // thread_ = NULL;
+     printf("DepthFilter interrupt and join thread... ");
+     seedsUpdatingHalt_ = true;
+     if (thread_->joinable()) {
+       stopThreadFlg_ = true;
+       thread_->join();
+     }
+     thread_ = NULL;
   }
 }
 
@@ -124,7 +126,7 @@ void DepthFilter::reset() {
 }
 
 void DepthFilter::updateSeedsLoop() {
-  while (1) {
+  while (!stopThreadFlg_) {
     FramePtr frame;
     {
       lock_t lock(frameQueueMut_);
@@ -188,6 +190,7 @@ void DepthFilter::updateSeeds(FramePtr frame) {
     if (curCor == nullptr) {
       it->b_++; // increase outlier probability when no match was found
       it->lostCount_++;
+      std::cout << "Lost cout = " << it->lostCount_ << std::endl;
       ++it;
       ++n_failed_matches;
       continue;
