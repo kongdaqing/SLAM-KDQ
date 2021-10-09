@@ -24,7 +24,7 @@ int main(int argc,char** argv) {
   vizScene.createSceneClouds("uv_camera",viz::Color::white(),2);
   vizScene.createSceneClouds("xyz_world",viz::Color::red(),4);
   vizScene.createSceneLines("p_sigma",viz::Color::blue(),1);
-  vizScene.createRandomPlanePoints("test plane",Vec3f(0,0,0),Vec3f(0,0,1),500,10,10);
+  vizScene.createRandomPlanePoints("test plane",Vec3f(0,0,0),Vec3f(0,0,1),100,10,10);
   vizScene.createCameraObject("test camera",0.3,Vec2f(0.3,0.4),Vec3f(0,0,0.2),Vec3f(0,0,0.1),Vec3f(0,1.0,0));
   vector<Vec3f> test_plane = vizScene.getScenePointCloud("test plane");
   //Record files you should mkdir log folder
@@ -38,19 +38,14 @@ int main(int argc,char** argv) {
   Eigen::Matrix3d K;
   cv::cv2eigen(cam.K(),K);
   DepthFilter dF(K,cam.width(),cam.height(),[&](const std::vector<SeedPoint>& clouds){
-    static int cnt = 0;
     vector<Vec3f> seedPoints;
     vector<Line> seedLines;
-    cnt++;
     for (int i = 0; i < clouds.size(); ++i) {
       Vec3f mean(clouds[i].meanPtsInWorld.x(),clouds[i].meanPtsInWorld.y(),clouds[i].meanPtsInWorld.z());
       seedPoints.push_back(mean);
       Point3d min(clouds[i].minPtsInWorld.x(),clouds[i].minPtsInWorld.y(),clouds[i].minPtsInWorld.z());
       Point3d max(clouds[i].maxPtsInWorld.x(),clouds[i].maxPtsInWorld.y(),clouds[i].maxPtsInWorld.z());
-      if (cnt % 2 == 0)
-        seedLines.emplace_back(min,max,cv::viz::Color::blue());
-      else
-        seedLines.emplace_back(min,max,cv::viz::Color::green());
+      seedLines.emplace_back(min,max,cv::viz::Color::green());
     }
     vizScene.updateSceneLines("p_sigma",seedLines);
     vizScene.updateSceneClouds("xyz_world",seedPoints);
@@ -58,6 +53,8 @@ int main(int argc,char** argv) {
   // set timestamp sequence
   double t = para->start_t_,last_image_t = para->start_t_;
   double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);
+  bool pauseFlg = false;
+  int nextFlg = 0;
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     if(t  < para->end_t_) {
@@ -96,7 +93,7 @@ int main(int argc,char** argv) {
         }
         vizScene.updateSceneClouds("uv_camera",camShowPoints);
         dF.addFrame(fptr);
-        dF.addKeyframe(fptr,5.,1);
+        dF.addKeyframe(fptr,5.,5);
         last_image_t = t;
       }
       vizScene.updateCameraPose("test camera",Twc_cv);
@@ -123,7 +120,36 @@ int main(int argc,char** argv) {
       }
       break;
     }
-    usleep(2);
+
+    while(1) {
+      cv::imshow("input",cv::Mat(300,300,CV_8UC1));
+      char key = cv::waitKey(30);
+      if (key == ' ') {
+        pauseFlg = !pauseFlg;
+        nextFlg = 0;
+      } else if (key == 'n') {
+        nextFlg++;
+      }
+      switch (nextFlg) {
+        case 0:
+          break;
+        case 1:
+          pauseFlg = true;
+          break;
+        case 2:
+          pauseFlg = false;
+          nextFlg = 1;
+          break;
+        default:
+          break;
+      }
+
+      if (pauseFlg == false) {
+        break;
+      }
+    }
+
+   // usleep(dt * 1e6);
   }
   return 0;
 } 
