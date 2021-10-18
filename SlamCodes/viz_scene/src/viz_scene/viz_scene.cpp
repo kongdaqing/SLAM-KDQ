@@ -156,6 +156,7 @@ bool VizScene::updateSceneLines(std::string lineName, const std::vector<Line> &l
     printf("PointCloud empty!\n");
     return false;
   }
+  //remove lines over last line 
   int lastCount = sceneLines_[lineName].lines_.size();
   int nowCount = lines.size();
   for (int i = nowCount; i < lastCount; i++) {
