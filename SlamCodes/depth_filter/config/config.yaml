@@ -8,8 +8,8 @@ gyr_noise_sigma: 0.001
 acc_noise_sigma: 0.01
 gyr_bias_sigma: 0.0001
 acc_bias_sigma: 0.001
-pixel_noise: 2
-add_pixel_noise: 0
+pixel_noise: 1
+add_pixel_noise: 1
 camera_yaml: "/home/kdq/Workspace/SLAM/SLAM-KDQ/SlamCodes/depth_filter/config/cam0_pinhole.yaml"
 
 Tbc: !!opencv-matrix

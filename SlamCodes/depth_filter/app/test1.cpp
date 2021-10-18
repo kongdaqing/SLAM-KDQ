@@ -55,8 +55,12 @@ int main(int argc,char** argv) {
   double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);
   bool pauseFlg = false;
   int nextFlg = 0;
+  cv::Mat rawImage(cam.height(),cam.width(),CV_8UC3, Scalar(255,255,255));
+  cv::Mat img = rawImage.clone();
+
   while(1) {
     //vizScene.testIncreasePoints("test plane");
+    bool imgUpdateFlg = false;
     if(t  < para->end_t_) {
       ImuMotionState imuState = imuModel.simImuMotion(t);
       ImuMotionState imuNoiseState = imuModel.addImuNoise(imuState);
@@ -72,6 +76,7 @@ int main(int argc,char** argv) {
       Vec3d twc_cv(twc.x(),twc.y(),twc.z());
       Affine3d Twc_cv(Rwc_cv,twc_cv);
       if (t - last_image_t > image_interval_time) {
+        imgUpdateFlg = true;
         Eigen::Isometry3d Twc;
         Twc.setIdentity();
         Twc.prerotate(Rwc);
@@ -80,6 +85,7 @@ int main(int argc,char** argv) {
         DepthFilter::FramePtr fptr;
         fptr.reset(new Frame(corners.Twc.inverse()));
         vector<Vec3f> camPoints,camShowPoints;
+        img = rawImage.clone();
         for(auto it = corners.ptsMap.begin(); it != corners.ptsMap.end(); it++) {
           int id = it->first;
           Eigen::Vector2d uv(it->second.second.x,it->second.second.y);
@@ -90,6 +96,10 @@ int main(int argc,char** argv) {
           camShowPoints.emplace_back(fw.x(),fw.y(),fw.z());
           Corner c(id,1.,f);
           fptr->insertCorner(c);
+#ifdef  VERBOOSE
+          cv::circle(img,it->second.second,3,cv::Scalar(255,0,0));
+          cv::putText(img, to_string(id),it->second.second,1,1,cv::Scalar(0,0,255));
+#endif
         }
         vizScene.updateSceneClouds("uv_camera",camShowPoints);
         dF.addFrame(fptr);
@@ -120,9 +130,9 @@ int main(int argc,char** argv) {
       }
       break;
     }
-
+#ifdef VERBOOSE
     while(1) {
-      cv::imshow("input",cv::Mat(300,300,CV_8UC1));
+      cv::imshow("corners",img);
       char key = cv::waitKey(30);
       if (key == ' ') {
         pauseFlg = !pauseFlg;
@@ -138,7 +148,8 @@ int main(int argc,char** argv) {
           break;
         case 2:
           pauseFlg = false;
-          nextFlg = 1;
+          if (imgUpdateFlg)
+            nextFlg = 1;
           break;
         default:
           break;
@@ -148,8 +159,9 @@ int main(int argc,char** argv) {
         break;
       }
     }
-
-   // usleep(dt * 1e6);
+#else
+    usleep(dt * 1e6);
+#endif
   }
   return 0;
 } 

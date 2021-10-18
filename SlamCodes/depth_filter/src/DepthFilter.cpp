@@ -165,7 +165,6 @@ bool DepthFilter::depthFromTriangulation(
 void DepthFilter::updateSeeds(FramePtr frame) {
   // update only a limited number of seeds, because we don't have time to do it
   // for all the seeds in every frame!
-  size_t n_updates = 0, n_failed_matches = 0, n_seeds = seeds_.size();
   lock_t lock(seedsMut_);
   std::list<Seed>::iterator it = seeds_.begin();
   std::list<Seed>::iterator itEnd = seeds_.end();
@@ -190,9 +189,7 @@ void DepthFilter::updateSeeds(FramePtr frame) {
     if (curCor == nullptr) {
       it->b_++; // increase outlier probability when no match was found
       it->lostCount_++;
-      std::cout << "Lost cout = " << it->lostCount_ << std::endl;
       ++it;
-      ++n_failed_matches;
       continue;
     }
     // check if point is visible in the current image
@@ -213,16 +210,15 @@ void DepthFilter::updateSeeds(FramePtr frame) {
     if (!depthFromTriangulation(T_ref_cur, it->c_.unitBearingVector_, curCor->unitBearingVector_, z)) {
       it->b_++; // increase outlier probability when no match was found
       ++it;
-      ++n_failed_matches;
+      it->lostCount_++;
       continue;
     }
-    // compute tau
+    // 计算因为特征点像素误差导致的深度误差
     double tau = computeTau(T_ref_cur, it->c_.unitBearingVector_, z, px_error_angle);
     double tau_inverse = 0.5 * (1.0 / std::max(0.0000001, z - tau) - 1.0 / (z + tau));
 
     // update the estimate
     updateSeed(1. / z, tau_inverse * tau_inverse, &*it);
-    ++n_updates;
     float z_inv_min = it->mu_ + sqrt(it->sigma2_);
     float z_inv_max = std::max(it->mu_ - sqrt(it->sigma2_), 0.00000001f);
     // if the seed has converged, we initialize a new candidate point and remove the seed
@@ -273,6 +269,9 @@ void DepthFilter::updateSeed(const float x, const float tau2, Seed *seed) {
   seed->mu_ = mu_new;
   seed->a_ = (e - f) / (f - e / f);
   seed->b_ = seed->a_ * (1.0f - f) / f;
+#ifdef  VERBOOSE
+  printf("%d,%f,%f,%f,%e\n",seed->c_.id_,1./seed->mu_,seed->a_,seed->b_,seed->sigma2_);
+#endif
 }
 
 double DepthFilter::computeTau(

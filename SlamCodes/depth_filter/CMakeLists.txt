@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(depth_filter)
+add_definitions(-DVERBOOSE)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake_modules/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 ${SSE_FLAGS} -msse4 -lgsl -pthread")
 get_filename_component(PARENT_DIRECTORY ${PROJECT_SOURCE_DIR} DIRECTORY)

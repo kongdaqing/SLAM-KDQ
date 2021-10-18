@@ -214,7 +214,7 @@ class DepthFilter {
     Seed *seed);
 
   /// Compute the uncertainty of the measurement.
-  //KDQ： 特征点在参考帧因为像素误差可能导致的和真值的误差
+  //KDQ： 特征点在参考帧因为像素误差可能导致的和真值的深度误差
   static double computeTau(
     const Eigen::Isometry3d &T_ref_cur,
     const Eigen::Vector3d &f,
