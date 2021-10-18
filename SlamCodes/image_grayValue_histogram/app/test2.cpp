@@ -10,13 +10,15 @@ int main(int argc,char** argv) {
       image.at<uchar>(y,x) = sum * 25;
     }
   }
-  ImageGrayValueHistogram gryCalHist(4,2,1);
+  ImageGrayValueHistogram gryCalHist(5,4,3,1);
   std::vector<std::vector<float>> histogram;
-  gryCalHist.CalculateGridsGrayValue(image,histogram);
+  std::vector<std::vector<int>> cornerSize;
+  float percent = gryCalHist.CalculateGridsGrayValue(image,histogram,cornerSize);
+  std::cout << "Good Percent:" << percent << std::endl;
   for (int i = 0; i < histogram.size(); ++i) {
     int j = 0;
     for (auto v: histogram[i]) {
-      printf("<%d,%d>:%f, ", i,j,v);
+      printf("<%d,%d>:%f,%d  ", i,j,v,cornerSize[i][j]);
       j++;
     }
     std::cout << std::endl;
