@@ -67,7 +67,7 @@ void DepthFilter::stopThread() {
   }
 }
 
-void DepthFilter::addFrame(FramePtr frame) {
+void DepthFilter::  addFrame(FramePtr frame) {
   if (thread_ != NULL) {
     {
       lock_t lock(frameQueueMut_);
