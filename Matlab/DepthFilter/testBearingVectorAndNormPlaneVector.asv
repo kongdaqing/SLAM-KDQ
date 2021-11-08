@@ -1,0 +1,11 @@
+function p = testBearingVectorAndNormPlaneVector(K,P,yaw,pitch,roll,t)
+%TESTBEARINGVECTORANDNORMPLANEVECTOR 此处显示有关此函数的摘要
+%   此处显示详细说明
+R = angle2dcm(yaw,pitch,roll,'ZYX');
+PInCurCam = R * P + t;
+uvInRef = pinhole(K,P);
+uvInCur = pinhole(K,PInCurCam);
+pInRefNorm = 
+
+end
+

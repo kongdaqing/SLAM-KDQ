@@ -1,0 +1,10 @@
+function seed = SeedInitialize(depth,minDepth,a,b)
+%% SEEDINITIALIZE 
+%   此处显示详细说明
+seed.a = a;
+seed.b = b;
+seed.mu = 1./depth;
+seed.depthRange = 1/minDepth;
+seed.sigma2 = seed.depthRange^2 / 36;
+end
+
