@@ -20,14 +20,14 @@
 
 namespace depth_filter {
 
-Seed::Seed(Corner &c, Eigen::Isometry3d Tcw, float depthMean, float depthMin):
+Seed::Seed(Corner &c,Eigen::Isometry3d Tcw,float depthMean,float depthMin,float a,float b):
     c_(c),
     Tcw_(Tcw),
-    a_(10),
-    b_(10),
+    a_(a),
+    b_(b),
     mu_(1.0 / depthMean),
-    depthRange_(1.0 / depthMin),
-    sigma2_(depthRange_ * depthRange_ / 36),
+    depthRange_(1.0 / depthMin), // depthRange = (1/minDepth - 1/maxDepth) ~= 1/minDepth
+    sigma2_(depthRange_ * depthRange_ / 36.),
     lostCount_(0) {
 }
 
@@ -42,8 +42,6 @@ DepthFilter::DepthFilter(Eigen::Matrix3d K,int width,int height,callback_t seedC
     width_(width),
     height_(height),
     stopThreadFlg_(false) {
-  std::cout << "Camera K = \n" << K_ << std::endl;
-  std::cout << "Width = " << width_ << "   Height = " << height_ << std::endl;
 }
 DepthFilter::~DepthFilter() {
   stopThread();
@@ -67,7 +65,7 @@ void DepthFilter::stopThread() {
   }
 }
 
-void DepthFilter::  addFrame(FramePtr frame) {
+void DepthFilter::addFrame(FramePtr frame) {
   if (thread_ != NULL) {
     {
       lock_t lock(frameQueueMut_);
@@ -151,13 +149,19 @@ bool DepthFilter::depthFromTriangulation(
     const Eigen::Isometry3d &T_search_ref,
     const Eigen::Vector3d &f_ref,
     const Eigen::Vector3d &f_cur,
-    double &depth) {
+    const Eigen::Matrix3d &transNoise,
+    double &depth,
+    double &depthStdErr) {
   Eigen::Matrix<double, 3, 2> A;
   A << T_search_ref.rotation() * f_ref, f_cur;
   const Eigen::Matrix2d AtA = A.transpose() * A;
+  //如果当前帧和
   if (AtA.determinant() < 0.000001)
     return false;
-  const Eigen::Vector2d depth2 = -AtA.inverse() * A.transpose() * T_search_ref.translation();
+  Eigen::Matrix<double,2,3> B = -AtA.inverse() * A.transpose();
+  const Eigen::Vector2d depth2 = B * T_search_ref.translation();
+  Eigen::Matrix<double,2,2> depthNoise = B * transNoise * B.transpose();
+  depthStdErr = sqrt(depthNoise(0,0));
   depth = fabs(depth2[0]);
   return true;
 }
@@ -169,54 +173,52 @@ void DepthFilter::updateSeeds(FramePtr frame) {
   std::list<Seed>::iterator it = seeds_.begin();
   std::list<Seed>::iterator itEnd = seeds_.end();
   const double focal_length = K_(0,0);
-  double px_noise = 1.0;
-  double px_error_angle = atan(px_noise / (2.0 * focal_length)) * 2.0; // law of chord (sehnensatz)
+  double px_error_angle = atan(frame->pixelNoise_ / (2.0 * focal_length)) * 2.0; // law of chord (sehnensatz)
   std::vector<SeedPoint> clouds;
   while (it != seeds_.end()) {
     // set this value true when seeds updating should be interrupted
     if (seedsUpdatingHalt_)
       return;
-    // check if seed is not already too old
-    // KDQ: 对于rovio来说这个是否合理，是不是判断看不到这个特征点再剔除
+    //如果这个点在当前帧没有出现，且丢失次数超过阈值则剔除
     if (it->lostCount_ > options_.max_lost_fs) {
       if (seedIds_.count(it->c_.id_)) {
         seedIds_.erase(it->c_.id_);
       }
+      printf("Delete %d for lost Count %d \n",it->c_.id_,it->lostCount_);
       it = seeds_.erase(it);
       continue;
     }
     Corner *curCor = frame->getCorner(it->c_.id_);
     if (curCor == nullptr) {
-      it->b_++; // increase outlier probability when no match was found
       it->lostCount_++;
       ++it;
       continue;
     }
     // check if point is visible in the current image
     Eigen::Isometry3d T_ref_cur = it->Tcw_ * frame->Tcw_.inverse();
-    const Eigen::Vector3d xyz_f(T_ref_cur.inverse() * (1.0 / it->mu_ * it->c_.unitBearingVector_));
-    if (xyz_f.z() < 0.0) {
-      ++it; // behind the camera
-      continue;
-    }
-    if (!isInFrame(f2c(xyz_f).cast<int>())) {
-      ++it; // point does not project in image
-      continue;
-    }
 
     // we are using inverse depth coordinates
-
-    double z;
-    if (!depthFromTriangulation(T_ref_cur, it->c_.unitBearingVector_, curCor->unitBearingVector_, z)) {
+    double z,z_std_err;
+    //对于很远的点，如果水平运动很小的话，导致bearingVector几乎没有变，那么在解算深度的时候只有一个方程有效，最终深度受到噪音的影响变大
+    if (!depthFromTriangulation(T_ref_cur.inverse(), it->c_.unitBearingVector_, curCor->unitBearingVector_,frame->transNoise_,z,z_std_err)) {
       it->b_++; // increase outlier probability when no match was found
       ++it;
+      printf("Triangulate failed!\n");
+      continue;
+    }
+    // 这里面有个问题，如果一开始初始化的深度极其不准，某些情况下导致该点重投影回当前帧根本就看不到?
+    const Eigen::Vector3d xyz_f(T_ref_cur.inverse() * (z * it->c_.unitBearingVector_));
+    if (!isInFrame(f2c(xyz_f).cast<int>())) {
+      ++it; // point does not project in image
       it->lostCount_++;
+      printf("Not in reference camera!\n");
       continue;
     }
     // 计算因为特征点像素误差导致的深度误差
     double tau = computeTau(T_ref_cur, it->c_.unitBearingVector_, z, px_error_angle);
+    double tau2 = computeTau(T_ref_cur, it->c_.unitBearingVector_, z + z_std_err, px_error_angle);
     double tau_inverse = 0.5 * (1.0 / std::max(0.0000001, z - tau) - 1.0 / (z + tau));
-
+    printf("depth : %f depthErr : %f and tau:  %f, tau2: %f\n",z,z_std_err,tau,tau2);
     // update the estimate
     updateSeed(1. / z, tau_inverse * tau_inverse, &*it);
     float z_inv_min = it->mu_ + sqrt(it->sigma2_);
@@ -230,7 +232,6 @@ void DepthFilter::updateSeeds(FramePtr frame) {
       clouds.push_back(xyz_world);
       ++it;
     } else if (isnan(z_inv_min)) {
-      printf("z_min is NaN");
       if (seedIds_.count(it->c_.id_)) {
         seedIds_.erase(it->c_.id_);
       }
@@ -270,7 +271,10 @@ void DepthFilter::updateSeed(const float x, const float tau2, Seed *seed) {
   seed->a_ = (e - f) / (f - e / f);
   seed->b_ = seed->a_ * (1.0f - f) / f;
 #ifdef  VERBOOSE
-  printf("%d,%f,%f,%f,%e\n",seed->c_.id_,1./seed->mu_,seed->a_,seed->b_,seed->sigma2_);
+  float inlierP = seed->a_ / (seed->a_ + seed->b_);
+  float stdErr = sqrt(seed->sigma2_);
+  float biaozhun =  seed->depthRange_ / 200.;
+  printf("%d,%f,%f,%f,%f,%f,%f,%f,%e\n",seed->c_.id_,stdErr,biaozhun,1./x,inlierP,seed->a_,seed->b_,1./seed->mu_,seed->sigma2_);
 #endif
 }
 

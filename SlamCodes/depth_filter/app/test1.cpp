@@ -53,6 +53,17 @@ int main(int argc,char** argv) {
   // set timestamp sequence
   double t = para->start_t_,last_image_t = para->start_t_;
   double dt = 1.0 / (double)(para->imuFreq_),image_interval_time = 1.0 / (double)(para->imageFreq_);
+  cv::Mat rawImage(cam.height(),cam.width(),CV_8UC3, Scalar(255,255,255));
+  cv::Mat img = rawImage.clone();
+  // set position noise
+  std::mt19937 gen{12345};
+  std::uniform_real_distribution<float> titlePos(-para->simPositionNoiseXY_,para->simPositionNoiseXY_);
+  std::uniform_real_distribution<float> verticalPos(-para->simPositionNoiseZ_,para->simPositionNoiseZ_);
+  Eigen::Matrix3d transNoise;
+  transNoise << para->simPositionNoiseXY_ * para->simPositionNoiseXY_,0,0,
+                0,para->simPositionNoiseXY_ * para->simPositionNoiseXY_,0,
+                0,0,para->simPositionNoiseZ_ * para->simPositionNoiseZ_;
+  // set control flg
   bool pauseFlg = false;
   int nextFlg = 0;
   cv::Mat rawImage(cam.height(),cam.width(),CV_8UC3, Scalar(255,255,255));

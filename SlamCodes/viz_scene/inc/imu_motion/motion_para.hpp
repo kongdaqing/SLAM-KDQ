@@ -21,6 +21,10 @@ class MotionParam {
       pixel_noise_ = config["pixel_noise"];
       addPixelNoiseFlg_ = config["add_pixel_noise"];
       std::string cameraConfig = config["camera_yaml"];
+      simLandmarkSize_ = config["simulator_landmark_size"];
+      simLandmarkWidth_ = config["simulator_landmark_width"];
+      simPositionNoiseXY_ = config["simulator_position_noise_xy"];
+      simPositionNoiseZ_ = config["simulator_position_noise_z"];
       cameraConfigFile_ = cameraConfig;
 
       cv::Mat Tbc,tbc;
@@ -51,6 +55,10 @@ class MotionParam {
       std::cout << "Skew = " << Skew_[1].transpose() << std::endl;
       std::cout << "Phase = " << Phase_[1].transpose() << std::endl;
       std::cout << "Bias = " << Bias_[1].transpose() << std::endl;
+      std::cout << "SimLandmarkSize = " << simLandmarkSize_ << std::endl;
+      std::cout << "SimLandmarkWidth = " << simLandmarkWidth_ << std::endl;
+      std::cout << "simPositionNoiseXY = " << simPositionNoiseXY_ << std::endl;
+      std::cout << "simPositionNoiseZ = " << simPositionNoiseZ_ << std::endl;
     };
     ~MotionParam(){};
     int imuFreq_,imageFreq_;
@@ -67,4 +75,8 @@ class MotionParam {
     Eigen::Vector3d Bias_[2];
     int addPixelNoiseFlg_;
     std::string cameraConfigFile_;
+    int simLandmarkSize_ ;
+    float simLandmarkWidth_;
+    float simPositionNoiseXY_;
+    float simPositionNoiseZ_;
 };

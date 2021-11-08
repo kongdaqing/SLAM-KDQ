@@ -83,7 +83,7 @@ class Frame {
   /** Construction
    * @param Tcw  --- Translation from world to camera
    */
-  Frame(Eigen::Isometry3d Tcw) : Tcw_(Tcw) {};
+  Frame(Eigen::Isometry3d Tcw,Eigen::Matrix3d transNoise,double pixelNoise) : Tcw_(Tcw), transNoise_(transNoise), pixelNoise_(pixelNoise) {};
 
   /** Get corner through its id
    *
@@ -116,6 +116,8 @@ class Frame {
     }
   }
   Eigen::Isometry3d Tcw_; //!< Translation from world to camera
+  Eigen::Matrix3d transNoise_;
+  double pixelNoise_;
  private:
   Corners corners_;       //!< Contains all corners of frame should view
 };
@@ -137,7 +139,7 @@ struct Seed {
    * @param depth_mean  --- mean value of corner depth
    * @param depth_min   --- min value of corner depth
    */
-  Seed(Corner &c, Eigen::Isometry3d Tcw, float depthMean, float depthMin);
+  Seed(Corner &c, Eigen::Isometry3d Tcw, float depthMean, float depthMin,float a = 10.,float b = 10.);
 };
 
 /// Depth filter implements the Bayesian Update proposed in:
@@ -167,7 +169,7 @@ class DepthFilter {
         epi_search_1d(false),
         verbose(false),
         use_photometric_disparity_error(false),
-        max_lost_fs(0),
+        max_lost_fs(10),
         sigma_i_sq(5e-4),
         seed_convergence_sigma2_thresh(200.0) {}
   } options_;
@@ -255,7 +257,9 @@ class DepthFilter {
     const Eigen::Isometry3d &T_search_ref,
     const Eigen::Vector3d &f_ref,
     const Eigen::Vector3d &f_cur,
-    double &depth);
+    const Eigen::Matrix3d &transNoise,
+    double &depth,
+    double &depthStdErr);
 
   inline bool isInFrame(Eigen::Vector2i uv) {
     return uv.x() > 1 && uv.x() < width_ && uv.y() > 1 && uv.y() < height_;
