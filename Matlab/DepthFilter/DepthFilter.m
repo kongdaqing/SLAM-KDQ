@@ -18,6 +18,7 @@ end
 measPInLast = normpdf(meas.x,seed.mu,norm_scale);
 % test %
 measDepthErrInLast = inverseErr2DepthErr(seed.mu,norm_scale);
+[maVecx,maVecy,masp] = plotNormalDistribution(1./meas.x,meas.tau2^0.5,1/meas.x,0);
 [mVecx,mVecy,msp] = plotNormalDistribution(1./seed.mu,measDepthErrInLast,1/meas.x,0);
 %当前量测的高斯分布和上一次高斯分布融合后的高斯噪声
 s2 = 1/(1/seed.sigma2 + 1/meas.tau2);
@@ -46,19 +47,31 @@ seedNew.depthRange = seed.depthRange;
 
 seedNewDepthErr = inverseErr2DepthErr(seedNew.mu,seedNew.sigma2^0.5);
 [sVecx,sVecy,ssp] = plotNormalDistribution(seedNew.d,seedNewDepthErr,1./meas.x,0);
-subplot(2,2,1);
+subplot(1,4,1);
+plot(maVecx,maVecy);
+hold on;
+plot(masp(1),masp(2),'Marker','*','MarkerSize',10,'Color','g');
+hold on;
+title("当前测量深度的高斯分布图");
+hold off;
+subplot(1,4,2);
 plot(mVecx,mVecy);
 hold on;
 plot(msp(1),msp(2),'Marker','*','MarkerSize',10,'Color','g');
 grid on;
 title("当前测量映射到上一次深度的高斯分布图");
 hold off;
-subplot(2,2,2);
+subplot(1,4,3);
 plot(sVecx,sVecy);
 hold on;
 plot(ssp(1),ssp(2),'Marker','*','MarkerSize',10,'Color','g');
 grid on;
 title("深度滤波器更新后的高斯分布");
+hold off;
+subplot(1,4,4);
+plot(1,seedNew.a,'Marker','*','MarkerSize',10,'Color','g');
+hold on;
+plot(3,seedNew.b,'Marker','diamond','MarkerSize',10,'Color','r');
 hold off;
 
 
