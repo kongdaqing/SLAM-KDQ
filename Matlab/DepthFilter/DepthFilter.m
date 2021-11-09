@@ -9,8 +9,6 @@ function seedNew = DepthFilter(seed,meas)
 %   meas - 当前量测的高斯分布模型
 %        -   x  : Gaussian均值
 %        - tau2 : Gaussian方差
-
-
 norm_scale = (seed.sigma2 + meas.tau2)^0.5;
 if isnan(norm_scale)
     printf("norm is nan!");
@@ -18,6 +16,9 @@ if isnan(norm_scale)
 end
 %获得量测值在上一次深度高斯分布中的概率值
 measPInLast = normpdf(meas.x,seed.mu,norm_scale);
+% test %
+measDepthErrInLast = inverseErr2DepthErr(seed.mu,norm_scale);
+[mVecx,mVecy,msp] = plotNormalDistribution(1./seed.mu,measDepthErrInLast,1/meas.x,0);
 %当前量测的高斯分布和上一次高斯分布融合后的高斯噪声
 s2 = 1/(1/seed.sigma2 + 1/meas.tau2);
 %对应的期望
@@ -25,7 +26,7 @@ m = s2 * (seed.mu / seed.sigma2 + meas.x / meas.tau2);
 %内点对应的概率
 C1 = seed.a / (seed.a + seed.b) * measPInLast;
 %外点对应的概率
-C2 = seed.b / (seed.a + seed.b) / seed.depthRange;
+C2 = seed.b / (seed.a + seed.b) * 1. / seed.depthRange;
 %归一化概率
 normC1C2 = C1 + C2;
 C1 = C1 / normC1C2;
@@ -36,11 +37,29 @@ e = C1 * (seed.a + 1) * (seed.a + 2) / ((seed.a + seed.b + 1) * (seed.a + seed.b
   + C2 * seed.a * (seed.a + 1) / ((seed.a + seed.b + 1) * (seed.a + seed.b + 2));
 % 更新种子
 muNew = C1 * m + C2 * seed.mu;
-seedNew.sigma2 = C1 * (s2 + m * m) + C2 * (seed.sigma2 + seed.mu^2) - muNew^2;
+seedNew.sigma2 = C1 * (s2 + m^2) + C2 * (seed.sigma2 + seed.mu^2) - muNew^2;
 seedNew.mu = muNew;
 seedNew.a = (e - f) / (f - e / f);
 seedNew.b = seedNew.a * (1 - f) / f;
+seedNew.d = 1 / seedNew.mu;
+seedNew.depthRange = seed.depthRange;
 
+seedNewDepthErr = inverseErr2DepthErr(seedNew.mu,seedNew.sigma2^0.5);
+[sVecx,sVecy,ssp] = plotNormalDistribution(seedNew.d,seedNewDepthErr,1./meas.x,0);
+subplot(2,2,1);
+plot(mVecx,mVecy);
+hold on;
+plot(msp(1),msp(2),'Marker','*','MarkerSize',10,'Color','g');
+grid on;
+title("当前测量映射到上一次深度的高斯分布图");
+hold off;
+subplot(2,2,2);
+plot(sVecx,sVecy);
+hold on;
+plot(ssp(1),ssp(2),'Marker','*','MarkerSize',10,'Color','g');
+grid on;
+title("深度滤波器更新后的高斯分布");
+hold off;
 
 
 

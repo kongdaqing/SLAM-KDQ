@@ -6,8 +6,10 @@ function seed = SeedInitialize(depth,minDepth,a,b)
 %          b - Beta分布外点初始数量
 seed.a = a;
 seed.b = b;
+seed.d = depth;
 seed.mu = 1./depth;
 seed.depthRange = 1/minDepth;
-seed.sigma2 = seed.depthRange^2 / 36;
+% sigma2逆深度方差
+seed.sigma2 = seed.depthRange^2 / 36; 
 end
 
