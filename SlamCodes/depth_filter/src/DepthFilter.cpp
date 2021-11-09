@@ -31,6 +31,17 @@ Seed::Seed(Corner &c,Eigen::Isometry3d Tcw,float depthMean,float depthMin,float 
     lostCount_(0) {
 }
 
+
+Seed::Seed(float depthMean,float depthMin,float a,float b):
+    a_(a),
+    b_(b),
+    mu_(1.0 / depthMean),
+    depthRange_(1.0 / depthMin), // depthRange = (1/minDepth - 1/maxDepth) ~= 1/minDepth
+    sigma2_(depthRange_ * depthRange_ / 36.),
+    lostCount_(0) {
+  Tcw_.setIdentity();
+}
+
 DepthFilter::DepthFilter(Eigen::Matrix3d K,int width,int height,callback_t seedCallback) :
     seedCallback_(seedCallback),
     seedsUpdatingHalt_(false),
@@ -273,8 +284,7 @@ void DepthFilter::updateSeed(const float x, const float tau2, Seed *seed) {
 #ifdef  VERBOOSE
   float inlierP = seed->a_ / (seed->a_ + seed->b_);
   float stdErr = sqrt(seed->sigma2_);
-  float biaozhun =  seed->depthRange_ / 200.;
-  printf("%d,%f,%f,%f,%f,%f,%f,%f,%e\n",seed->c_.id_,stdErr,biaozhun,1./x,inlierP,seed->a_,seed->b_,1./seed->mu_,seed->sigma2_);
+  printf("%d,%f,%f,%f,%f,%f,%f,%e\n",seed->c_.id_,stdErr,1./x,inlierP,seed->a_,seed->b_,1./seed->mu_,seed->sigma2_);
 #endif
 }
 

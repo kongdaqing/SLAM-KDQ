@@ -140,6 +140,8 @@ struct Seed {
    * @param depth_min   --- min value of corner depth
    */
   Seed(Corner &c, Eigen::Isometry3d Tcw, float depthMean, float depthMin,float a = 10.,float b = 10.);
+
+  Seed(float depthMean,float depthMin,float a = 10,float b = 10.);
 };
 
 /// Depth filter implements the Bayesian Update proposed in:
@@ -174,7 +176,7 @@ class DepthFilter {
         seed_convergence_sigma2_thresh(200.0) {}
   } options_;
 
-  DepthFilter() = delete;
+  DepthFilter() = default;
 
   /** Construction
    *

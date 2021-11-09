@@ -66,9 +66,6 @@ int main(int argc,char** argv) {
   // set control flg
   bool pauseFlg = false;
   int nextFlg = 0;
-  cv::Mat rawImage(cam.height(),cam.width(),CV_8UC3, Scalar(255,255,255));
-  cv::Mat img = rawImage.clone();
-
   while(1) {
     //vizScene.testIncreasePoints("test plane");
     bool imgUpdateFlg = false;
@@ -94,7 +91,7 @@ int main(int argc,char** argv) {
         Twc.pretranslate(twc);
         ProjectPointInfo corners = camProjector.projectVizPoints(t,test_plane,Twc);
         DepthFilter::FramePtr fptr;
-        fptr.reset(new Frame(corners.Twc.inverse()));
+        fptr.reset(new Frame(corners.Twc.inverse(),Eigen::Matrix3d::Zero(),1.));
         vector<Vec3f> camPoints,camShowPoints;
         img = rawImage.clone();
         for(auto it = corners.ptsMap.begin(); it != corners.ptsMap.end(); it++) {

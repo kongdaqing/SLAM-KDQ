@@ -60,6 +60,8 @@ plot(ssp(1),ssp(2),'Marker','*','MarkerSize',10,'Color','g');
 grid on;
 title("深度滤波器更新后的高斯分布");
 hold off;
+subplot(2,2,3);
+histogram([seedNew.a;seedNew.b]);
 
 
 
