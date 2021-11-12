@@ -220,8 +220,9 @@ void DepthFilter::updateSeeds(FramePtr frame) {
     // 这里面有个问题，如果一开始初始化的深度极其不准，某些情况下导致该点重投影回当前帧根本就看不到?
     const Eigen::Vector3d xyz_f(T_ref_cur.inverse() * (z * it->c_.unitBearingVector_));
     if (!isInFrame(f2c(xyz_f).cast<int>())) {
-      ++it; // point does not project in image
       it->lostCount_++;
+      it->b_++;
+      ++it; // point does not project in image
       printf("Not in reference camera!\n");
       continue;
     }
