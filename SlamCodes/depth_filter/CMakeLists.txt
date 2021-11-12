@@ -27,3 +27,7 @@ target_link_libraries(depth_filter
   ${VIZ_SCENE_LIBS}
 )
 
+add_executable(testDf
+        app/testDF.cpp
+        src/DepthFilter.cpp
+        )

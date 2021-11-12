@@ -31,6 +31,17 @@ Seed::Seed(Corner &c,Eigen::Isometry3d Tcw,float depthMean,float depthMin,float 
     lostCount_(0) {
 }
 
+
+Seed::Seed(float depthMean,float depthMin,float a,float b):
+    a_(a),
+    b_(b),
+    mu_(1.0 / depthMean),
+    depthRange_(1.0 / depthMin), // depthRange = (1/minDepth - 1/maxDepth) ~= 1/minDepth
+    sigma2_(depthRange_ * depthRange_ / 36.),
+    lostCount_(0) {
+  Tcw_.setIdentity();
+}
+
 DepthFilter::DepthFilter(Eigen::Matrix3d K,int width,int height,callback_t seedCallback) :
     seedCallback_(seedCallback),
     seedsUpdatingHalt_(false),
@@ -209,8 +220,9 @@ void DepthFilter::updateSeeds(FramePtr frame) {
     // 这里面有个问题，如果一开始初始化的深度极其不准，某些情况下导致该点重投影回当前帧根本就看不到?
     const Eigen::Vector3d xyz_f(T_ref_cur.inverse() * (z * it->c_.unitBearingVector_));
     if (!isInFrame(f2c(xyz_f).cast<int>())) {
-      ++it; // point does not project in image
       it->lostCount_++;
+      it->b_++;
+      ++it; // point does not project in image
       printf("Not in reference camera!\n");
       continue;
     }
@@ -273,8 +285,7 @@ void DepthFilter::updateSeed(const float x, const float tau2, Seed *seed) {
 #ifdef  VERBOOSE
   float inlierP = seed->a_ / (seed->a_ + seed->b_);
   float stdErr = sqrt(seed->sigma2_);
-  float biaozhun =  seed->depthRange_ / 200.;
-  printf("%d,%f,%f,%f,%f,%f,%f,%f,%e\n",seed->c_.id_,stdErr,biaozhun,1./x,inlierP,seed->a_,seed->b_,1./seed->mu_,seed->sigma2_);
+  printf("%d,%f,%f,%f,%f,%f,%f,%e\n",seed->c_.id_,stdErr,1./x,inlierP,seed->a_,seed->b_,1./seed->mu_,seed->sigma2_);
 #endif
 }
 
