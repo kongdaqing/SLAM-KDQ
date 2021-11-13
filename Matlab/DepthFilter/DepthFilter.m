@@ -9,9 +9,10 @@ function seedNew = DepthFilter(seed,meas)
 %   meas - 当前量测的高斯分布模型
 %        -   x  : Gaussian均值
 %        - tau2 : Gaussian方差
+seedNew = [];
 norm_scale = (seed.sigma2 + meas.tau2)^0.5;
 if isnan(norm_scale)
-    printf("norm is nan!");
+    fprintf("norm is nan!");
     return 
 end
 %获得量测值在上一次深度高斯分布中的概率值
@@ -45,6 +46,11 @@ seedNew.a = (e - f) / (f - e / f);
 seedNew.b = seedNew.a * (1 - f) / f;
 seedNew.d = 1 / seedNew.mu;
 seedNew.depthRange = seed.depthRange;
+if checkSeedNan(seedNew)
+    fprintf("Cautious:Seed is nan!\n");
+    return;
+end
+
 %% plot
 seedNewDepthErr = inverseErr2DepthErr(seedNew.mu,seedNew.sigma2^0.5);
 [sVecx,sVecy,ssp] = plotNormalDistribution(seedNew.d,seedNewDepthErr,1./meas.x,0);
