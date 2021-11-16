@@ -4,10 +4,10 @@ function depthErr = angleErr2DepthErr(trc,bearVec,z,angleErr)
 a = z * bearVec - trc;
 tNorm = norm(trc);
 aNorm = norm(a);
-alpha = acos(bearVec' * trc / tNorm);
-beta = acos(a' * (-trc)/(tNorm * aNorm));
+alpha = acos(bearVec' * trc / tNorm)
+beta = acos(a' * (-trc)/(tNorm * aNorm))
 betaPlus = beta + angleErr;
-gammaPlus = pi - alpha - betaPlus;
+gammaPlus = pi - alpha - betaPlus
 zPlus = tNorm * sin(betaPlus) / sin(gammaPlus);
 depthErr = zPlus - z;
 end

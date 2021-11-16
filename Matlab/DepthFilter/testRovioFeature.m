@@ -1,11 +1,12 @@
-function [mSeed,rSeed] = testRovioFeature(rovioData,id)
+function [mSeed,rSeed,lastMSeed] = testRovioFeature(rovioData,id,plotEnable)
 %TESTROVIOFEATURE 此处显示有关此函数的摘要
 %   此处显示详细说明
 mSeed = [];
 rSeed = [];
+lastMSeed = [];
 dfDatas = extractRovioIdData(rovioData,id);
 if isempty(dfDatas) 
-    fprintf("No this id data!\n");
+    %fprintf("No this id data!\n");
     return;
 end
 len = length(dfDatas.id);
@@ -18,11 +19,17 @@ seed = SeedInitializeWithRovioData(dfDatas,1);
 for i = 1:len - 1
     meas.x = dfDatas.x(i);
     meas.tau2 = dfDatas.tau2(i);
-    seed = DepthFilter(seed,meas);
-    pause(0.2);
+    seed = DepthFilter(seed,meas,plotEnable);
+    if plotEnable == 1
+        pause(0.3);
+    end
 end
+
 mSeed = seed;
 rSeed = SeedInitializeWithRovioData(dfDatas,len);
-fprintf("Update count: %d\n",len - 1);
+fprintf("Id: %d ,Update count: %d\n",id,len - 1);
+meas.x = dfDatas.x(len);
+meas.tau2 = dfDatas.tau2(len);
+lastMSeed = DepthFilter(seed,meas,1);
 end
 

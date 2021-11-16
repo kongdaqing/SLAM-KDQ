@@ -1,4 +1,4 @@
-function seedNew = DepthFilter(seed,meas)
+function seedNew = DepthFilter(seed,meas,plotEnable)
 %% DEPTHFILTER 深度滤波器 -- 特征点逆深度滤波采用Beta * Gaussian模型近似真实的含有外点的直方图分布
 %   seed -  存储特征点深度的概率模型Beta*Gaussian
 %        -  a : Beta内点数量
@@ -50,7 +50,9 @@ if checkSeedNan(seedNew)
     fprintf("Cautious:Seed is nan!\n");
     return;
 end
-
+if plotEnable ~= 1
+    return;
+end
 %% plot
 seedNewDepthErr = inverseErr2DepthErr(seedNew.mu,seedNew.sigma2^0.5);
 [sVecx,sVecy,ssp] = plotNormalDistribution(seedNew.d,seedNewDepthErr,1./meas.x,0);
