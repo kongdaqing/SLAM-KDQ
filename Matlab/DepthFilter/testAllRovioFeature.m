@@ -1,5 +1,5 @@
-idMin = 100
-idMax = 1000;
+idMin = 4500;
+idMax = 5500;
 goodSize = 0;
 featureSize = 0;
 idVec = [];
@@ -19,7 +19,7 @@ else
             mSeed.d,rSeed.d, ...
             mSeed.sigma2,rSeed.sigma2);
     end
-    if seedIsGood(lastMSeed,0.8) == 1 
+    if seedIsGood(lastMSeed,0.7) == 1 
         goodIdVec = [goodIdVec;i];
         goodDepVec = [goodDepVec;rSeed.d];
         goodSize = goodSize + 1;

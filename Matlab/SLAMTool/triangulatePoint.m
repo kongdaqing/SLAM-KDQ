@@ -1,4 +1,4 @@
-function [flg,depth,B,detA] = triangulatePoint(R,t,pInRef,pInCur)
+function [flg,depth,B,detA,cs] = triangulatePoint(R,t,pInRef,pInCur)
 %TRIANGULATEPOINT 三角化特征点
 % R -- 参考帧到当前帧的旋转矩阵
 % t -- 参考帧到当前帧的平移矩阵
@@ -8,6 +8,10 @@ A = zeros(3,2);
 A(:,1) = R * pInRef;
 A(:,2) = pInCur;
 AtA = A' * A;
+C = zeros(3,3);
+C(:,1:2) = A;
+C(:,3) = t;
+[cu,cs,cv] = svd(C);
 detA = det(AtA);
 depth = [];
 B = [];

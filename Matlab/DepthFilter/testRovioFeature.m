@@ -1,4 +1,4 @@
-function [mSeed,rSeed,lastMSeed] = testRovioFeature(rovioData,id,plotEnable)
+function [mSeed,rSeed,lastMSeed] = testRovioFeature(rovioData,id,delays)
 %TESTROVIOFEATURE 此处显示有关此函数的摘要
 %   此处显示详细说明
 mSeed = [];
@@ -19,10 +19,8 @@ seed = SeedInitializeWithRovioData(dfDatas,1);
 for i = 1:len - 1
     meas.x = dfDatas.x(i);
     meas.tau2 = dfDatas.tau2(i);
-    seed = DepthFilter(seed,meas,plotEnable);
-    if plotEnable == 1
-        pause(0.3);
-    end
+    seed = DepthFilter(seed,meas,delays);
+    pause(delays);
 end
 
 mSeed = seed;
